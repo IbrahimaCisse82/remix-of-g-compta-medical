@@ -2926,6 +2926,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_medical_invitation: {
+        Args: { _invitation_id: string }
+        Returns: string
+      }
       can_admin_entreprise: {
         Args: { _entreprise_id: string }
         Returns: boolean
@@ -2933,6 +2937,25 @@ export type Database = {
       can_write_entreprise: {
         Args: { _entreprise_id: string }
         Returns: boolean
+      }
+      create_medical_invitation: {
+        Args: {
+          _email: string
+          _role: Database["public"]["Enums"]["medical_role"]
+          _site_id?: string
+          _structure_id: string
+        }
+        Returns: string
+      }
+      create_medical_site: {
+        Args: {
+          _adresse?: string
+          _nom: string
+          _principal?: boolean
+          _structure_id: string
+          _telephone?: string
+        }
+        Returns: string
       }
       create_medical_structure: {
         Args: {
@@ -3033,6 +3056,13 @@ export type Database = {
       }
       is_structure_admin: { Args: { _structure_id: string }; Returns: boolean }
       is_structure_member: { Args: { _structure_id: string }; Returns: boolean }
+      set_medical_theme: {
+        Args: {
+          _structure_id: string
+          _theme: Database["public"]["Enums"]["medical_theme"]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "comptable" | "lecteur"
