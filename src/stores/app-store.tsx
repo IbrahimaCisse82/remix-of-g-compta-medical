@@ -43,7 +43,9 @@ interface AppState {
   switchEntreprise: (entrepriseId: string) => Promise<void>;
 }
 
-const AppContext = createContext<AppState | null>(null);
+// Contexte stable entre rechargements à chaud (évite "useApp must be used within AppProvider")
+const g = globalThis as unknown as { __gcomptaAppContext?: React.Context<AppState | null> };
+const AppContext = g.__gcomptaAppContext ?? (g.__gcomptaAppContext = createContext<AppState | null>(null));
 
 const DEMO_ENTREPRISE_ID = 'a0000000-0000-0000-0000-000000000001';
 const DEMO_EXERCICE_ID = 'b0000000-0000-0000-0000-000000000001';
