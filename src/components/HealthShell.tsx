@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AgendaPage from '@/components/sante/AgendaPage';
+import ConsultationPage from '@/components/sante/ConsultationPage';
 import PatientsPage from '@/components/sante/PatientsPage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 
@@ -17,7 +19,8 @@ export default function HealthShell() {
   const { medicalStructure, logout } = useApp();
   const { toggle } = useTheme();
   const { palette, setPalette } = useMedicalPalette(medicalStructure?.theme_medical);
-  const [view, setView] = useState<'accueil' | 'patients' | 'parametres'>('accueil');
+  const [view, setView] = useState<'accueil' | 'patients' | 'agenda' | 'parametres'>('accueil');
+  const [consultationId, setConsultationId] = useState<string | null>(null);
   const [sites, setSites] = useState<{ id: string; nom: string; principal: boolean }[]>([]);
   const [invitations, setInvitations] = useState<{ id: string; email: string; role: string; statut: string }[]>([]);
   const [siteName, setSiteName] = useState('');
@@ -66,14 +69,14 @@ export default function HealthShell() {
         <nav className="space-y-1">
           <Button variant={view === 'accueil' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('accueil')}><LayoutDashboard />Accueil</Button>
           <Button variant={view === 'patients' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('patients')}><Users />Patients</Button>
-          <Button variant="ghost" className="w-full justify-start" disabled><ClipboardList />Consultations</Button>
+          <Button variant={view === 'agenda' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => { setConsultationId(null); setView('agenda'); }}><ClipboardList />Agenda & consultations</Button>
           <Button variant="ghost" className="w-full justify-start" disabled><FlaskConical />Laboratoire</Button>
           <Button variant={view === 'parametres' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('parametres')}><Settings />Paramètres</Button>
         </nav>
-        <div className="mt-auto text-xs text-fg3">Phase S1 · Dossier patient</div>
+        <div className="mt-auto text-xs text-fg3">Phase S2 · Clinique</div>
       </aside>
       <div className="flex-1 min-w-0">
-        <nav className="md:hidden flex gap-1 border-b border-border bg-bg2 p-2 overflow-x-auto">{(['accueil','patients','parametres'] as const).map(v => <Button key={v} size="sm" variant={view === v ? 'secondary' : 'ghost'} onClick={() => setView(v)} className="capitalize">{v === 'parametres' ? 'Paramètres' : v}</Button>)}</nav>
+        <nav className="md:hidden flex gap-1 border-b border-border bg-bg2 p-2 overflow-x-auto">{(['accueil','patients','agenda','parametres'] as const).map(v => <Button key={v} size="sm" variant={view === v ? 'secondary' : 'ghost'} onClick={() => setView(v)} className="capitalize">{v === 'parametres' ? 'Paramètres' : v}</Button>)}</nav>
         <header className="h-16 border-b border-border bg-bg2 flex items-center justify-between px-4 sm:px-6">
           <div><p className="font-semibold truncate">{medicalStructure?.nom}</p><p className="text-xs text-fg3 capitalize">{medicalStructure?.type}</p></div>
           <div className="flex items-center gap-2">
@@ -85,7 +88,7 @@ export default function HealthShell() {
           </div>
         </header>
         <main className="p-5 sm:p-8">
-          {view === 'patients' && medicalStructure ? <PatientsPage structureId={medicalStructure.id} /> : view === 'accueil' ? (
+          {view === 'agenda' && medicalStructure ? (consultationId ? <ConsultationPage id={consultationId} onBack={() => setConsultationId(null)} /> : <AgendaPage structureId={medicalStructure.id} onConsultation={setConsultationId} />) : view === 'patients' && medicalStructure ? <PatientsPage structureId={medicalStructure.id} /> : view === 'accueil' ? (
           <div className="max-w-5xl">
             <p className="text-xs font-mono uppercase text-primary mb-2">Espace Santé</p>
             <h1 className="font-serif text-3xl mb-2">Fondations opérationnelles</h1>
