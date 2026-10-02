@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
 
@@ -119,6 +120,7 @@ export default function HealthShell() {
                   <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p></div>)}</div>
                 </section>
               </div>
+              {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
             </div>
           )}
         </main>
