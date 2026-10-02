@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { alertesConstantes, classeImc, imc, validerOrdonnance, type LigneOrdonnance } from '@/domain/sante/clinique';
 import { libelleAge } from '@/domain/sante/patient';
 import { imprimerOrdonnance } from './print-ordonnance';
+import CertificatsAnalyses from './CertificatsAnalyses';
 
 const CHAMPS = [['motif', 'Motif'], ['anamnese', 'Anamnèse'], ['examen', 'Examen clinique'], ['diagnostic', 'Diagnostic'], ['conduite', 'Conduite à tenir']] as const;
 const CONST = [['ta_sys', 'TA sys.'], ['ta_dia', 'TA dia.'], ['pouls', 'Pouls'], ['temperature', 'T° °C'], ['poids', 'Poids kg'], ['taille', 'Taille cm'], ['spo2', 'SpO₂ %'], ['glycemie', 'Glyc. g/L']] as const;
@@ -155,6 +156,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
               </div>
             ))}
           </section>
+          <CertificatsAnalyses consultation={c} />
         </div>
 
         <aside className="border border-border bg-bg2 rounded-md p-4 h-fit xl:sticky xl:top-4">
