@@ -1743,12 +1743,15 @@ export type Database = {
       }
       journal: {
         Row: {
+          auxiliaire_libelle: string | null
           compte: string
+          compte_auxiliaire: string | null
           created_at: string
           credit: number
           date_ecriture: string
           debit: number
           ecriture_id: string | null
+          ecriture_numero: string | null
           entreprise_id: string
           exercice_id: string
           id: string
@@ -1764,12 +1767,15 @@ export type Database = {
           valide_par: string | null
         }
         Insert: {
+          auxiliaire_libelle?: string | null
           compte: string
+          compte_auxiliaire?: string | null
           created_at?: string
           credit?: number
           date_ecriture: string
           debit?: number
           ecriture_id?: string | null
+          ecriture_numero?: string | null
           entreprise_id: string
           exercice_id: string
           id?: string
@@ -1785,12 +1791,15 @@ export type Database = {
           valide_par?: string | null
         }
         Update: {
+          auxiliaire_libelle?: string | null
           compte?: string
+          compte_auxiliaire?: string | null
           created_at?: string
           credit?: number
           date_ecriture?: string
           debit?: number
           ecriture_id?: string | null
+          ecriture_numero?: string | null
           entreprise_id?: string
           exercice_id?: string
           id?: string

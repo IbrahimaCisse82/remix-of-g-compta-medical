@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790975700602,
+      "tag": "0000_journal_fec_champs",
+      "breakpoints": true
+    }
+  ]
+}
