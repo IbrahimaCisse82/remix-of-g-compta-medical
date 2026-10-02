@@ -20,5 +20,6 @@
 - [x] Prérequis vérifiés
 - [x] S0 : secteur d'activité, modules, options Clinique/Laboratoire, lien structure ↔ entreprise, isolation testée
 - [x] Démo Santé (2 structures fictives isolées)
-- [~] S1 : dossier patient (création, doublons, recherche paginée, fiche à onglets, journal d'accès) — reste : fusion tracée des doublons, documents GED
-- [ ] S2 Clinique · S3 Laboratoire · S4 Facturation · S5 Portail · S6 Conformité
+- [x] S1 : dossier patient (création, doublons + fusion tracée, recherche paginée, fiche à onglets, documents privés, journal d'accès)
+- [~] S2 Clinique : praticiens, actes, médicaments, agenda/file d'attente, consultation verrouillée + addenda, constantes, ordonnance A4 — reste : certificats, rappels RDV, prescription d'analyses (avec S3), actes facturables (avec S4), écrans de paramétrage praticiens/actes
+- [ ] S3 Laboratoire · S4 Facturation · S5 Portail · S6 Conformité
