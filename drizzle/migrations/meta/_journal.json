@@ -57,6 +57,20 @@
       "when": 1790980201824,
       "tag": "0007_sante_s2_clinique",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790980669881,
+      "tag": "0008_sante_s2_certificats_s3_labo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790980885115,
+      "tag": "0009_sante_audit_structure_generique",
+      "breakpoints": true
     }
   ]
 }
