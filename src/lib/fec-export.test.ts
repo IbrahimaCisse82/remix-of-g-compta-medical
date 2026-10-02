@@ -50,7 +50,7 @@ describe('FEC — numérotation et contrôle', () => {
     expect(lines[2]).toContain('701000');
     // ligne avec compte_auxiliaire explicite prioritaire sur le découpage
     expect(lines[1]).toContain('411CLIENT01');
-    const r = controlerFec([L({ debit: 1180 }), L({ credit: 1180 })]);
+    const r = controlerFec([L({ compte: '411001', debit: 1180 }), L({ credit: 1180 })]);
     expect(r.lignesAuxiliaires).toBeGreaterThanOrEqual(1);
   });
 });
