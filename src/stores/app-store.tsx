@@ -7,9 +7,18 @@ import { toast } from 'sonner';
 
 
 export type EnvMode = 'entreprise' | 'cabinet';
+export type Workspace = 'compta' | 'sante';
+export type MedicalPalette = 'clinique' | 'laboratoire' | 'urgences';
+export interface MedicalStructure {
+  id: string;
+  nom: string;
+  type: 'cabinet' | 'laboratoire' | 'mixte';
+  theme_medical: MedicalPalette;
+}
 export type PageId = 'dashboard' | 'clients' | 'cabinet_mgmt' | 'kpi_collab' | 'abonnements_clients' | 'journal' | 'balance' | 'grandlivre' | 'bilan' | 'resultat' | 'tft' | 'note34' | 'liasse' | 'rapprochement' | 'saisie' | 'plan' | 'exercices' | 'parametres' | 'balance_agee' | 'audit' | 'import' | 'lettrage' | 'analytique' | 'budget' | 'tva' | 'abonnement' | 'mon_abonnement' | 'cloture' | 'immobilisations' | 'facturation' | 'fournisseurs' | 'paie' | 'echeancier' | 'stocks' | 'provisions' | 'documents' | 'validation' | 'portail' | 'mobile_money' | 'factures_dgid' | 'anomalies';
 
 interface AppState {
+  workspace: Workspace;
   env: EnvMode;
   demo: boolean;
   launched: boolean;
@@ -23,9 +32,13 @@ interface AppState {
   journal: JournalLine[];
   plan: PlanCompte[];
   entreprises: Entreprise[];
+  medicalStructure: MedicalStructure | null;
   setPage: (page: PageId) => void;
   launchDemo: (env: EnvMode) => void;
   launchUser: (env: EnvMode) => void;
+  launchHealth: () => Promise<void>;
+  completeHealthOnboarding: (structure: MedicalStructure) => void;
+  setWorkspace: (workspace: Workspace) => void;
   logout: () => void;
   addJournalEntry: (lines: JournalLine[]) => void;
   deleteJournalEntry: (id: string) => void;
@@ -99,6 +112,7 @@ function mapPlan(data: any[]): PlanCompte[] {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [workspace, setWorkspace] = useState<Workspace>('compta');
   const [env, setEnv] = useState<EnvMode>('entreprise');
   const [demo, setDemo] = useState(false);
   const [launched, setLaunched] = useState(false);
@@ -112,6 +126,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [journal, setJournal] = useState<JournalLine[]>([]);
   const [plan, setPlan] = useState<PlanCompte[]>([]);
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
+  const [medicalStructure, setMedicalStructure] = useState<MedicalStructure | null>(null);
 
   const isExerciceCloture = useCallback(() => {
     return exercice?.statut === 'cloture';
@@ -220,6 +235,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // ─── LAUNCH USER (authenticated) ─────────────────────
   const launchUser = useCallback(async (envMode: EnvMode) => {
+    setWorkspace('compta');
     setEnv(envMode);
     setDemo(false);
     setLoading(true);
@@ -331,6 +347,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(false);
   }, [loadExerciceData]);
+
+  const launchHealth = useCallback(async () => {
+    setWorkspace('sante');
+    setDemo(false);
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Veuillez vous connecter.');
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('structure_memberships')
+      .select('structure_id, structures(id, nom, type, theme_medical)')
+      .eq('user_id', user.id)
+      .eq('statut', 'actif')
+      .limit(1)
+      .maybeSingle();
+    if (error) toast.error("Impossible de charger l’espace Santé.");
+    const structure = data?.structures;
+    setMedicalStructure(structure ? {
+      id: structure.id,
+      nom: structure.nom,
+      type: structure.type,
+      theme_medical: structure.theme_medical,
+    } : null);
+    setLaunched(true);
+    setLoading(false);
+  }, []);
+
+  const completeHealthOnboarding = useCallback((structure: MedicalStructure) => {
+    setMedicalStructure(structure);
+  }, []);
 
   const logout = useCallback(async () => {
     setLaunched(false);
@@ -688,9 +737,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      env, demo, launched, loading, currentPage, entreprise, exercice, exercices,
-      balance, balanceN1, journal, plan, entreprises,
+      workspace, env, demo, launched, loading, currentPage, entreprise, exercice, exercices,
+      balance, balanceN1, journal, plan, entreprises, medicalStructure,
       setPage: setCurrentPage, launchDemo, launchUser, logout, addJournalEntry,
+      launchHealth, completeHealthOnboarding, setWorkspace,
       deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte,
       addExercice, deleteExercice, openExercice, updateEntreprise,
       clotureExercice, isExerciceCloture, switchEntreprise,

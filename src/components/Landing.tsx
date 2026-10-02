@@ -4,6 +4,8 @@ import type { EnvMode } from '@/stores/app-store';
 import { useState } from 'react';
 import AuthPage from '@/pages/AuthPage';
 import { Link } from 'react-router-dom';
+import { Calculator, Stethoscope } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const FEATURES = [
   { icon: '✏️', title: "Saisie d'écritures", desc: 'Saisie rapide en partie double avec auto-complétion du plan comptable SYSCOHADA.' },
@@ -22,10 +24,11 @@ const STATS = [
 ];
 
 export default function Landing() {
-  const { launchDemo, launchUser } = useApp();
+  const { launchDemo, launchUser, launchHealth } = useApp();
   const { user } = useAuth();
   const [selectedEnv, setSelectedEnv] = useState<EnvMode>('entreprise');
   const [showAuth, setShowAuth] = useState(false);
+  const [workspace, setWorkspace] = useState<'compta' | 'sante'>('compta');
 
   if (showAuth && !user) return <AuthPage />;
 
@@ -37,38 +40,43 @@ export default function Landing() {
         
         {/* Nav */}
         <nav className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4">
-          <span className="font-serif text-xl text-primary">G-Compta</span>
+          <span className="font-serif text-xl text-primary">{workspace === 'compta' ? 'G-Compta' : 'G‑Santé'}</span>
           <div className="flex items-center gap-4 text-xs">
             <Link to="/tarifs" className="text-fg2 hover:text-primary transition-colors">Tarifs</Link>
             <span className="text-[10px] text-fg3 font-mono hidden sm:inline">par GROW HUB SARL</span>
           </div>
         </nav>
 
-        <div className="mt-8 mb-2">
+        <div className="mt-8 mb-6 inline-flex items-center gap-1 border border-border bg-bg2 rounded-md p-1">
+          <Button variant={workspace === 'compta' ? 'default' : 'ghost'} size="sm" onClick={() => setWorkspace('compta')}><Calculator />Comptabilité</Button>
+          <Button variant={workspace === 'sante' ? 'default' : 'ghost'} size="sm" onClick={() => setWorkspace('sante')}><Stethoscope />Santé</Button>
+        </div>
+        <div className="mb-2">
           <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider uppercase border border-primary/30 text-primary bg-primary/5">
-            SYSCOHADA · OHADA · Zone UEMOA
+            {workspace === 'compta' ? 'SYSCOHADA · OHADA · Zone UEMOA' : 'Cabinet · Laboratoire · Structure mixte'}
           </span>
         </div>
         <h1 className="font-serif text-4xl sm:text-6xl text-foreground tracking-tight mb-4 max-w-3xl leading-tight">
-          La comptabilité <span className="text-primary">africaine</span>, réinventée.
+          {workspace === 'compta' ? <>La comptabilité <span className="text-primary">africaine</span>, réinventée.</> : <>La santé connectée, <span className="text-primary">en toute confiance.</span></>}
         </h1>
         <p className="text-sm sm:text-base text-fg2 max-w-xl leading-relaxed mb-8">
-          G-Compta est le logiciel de comptabilité 100% conforme SYSCOHADA révisé, 
-          conçu pour les entreprises et cabinets d'expertise comptable en Afrique.
+          {workspace === 'compta'
+            ? "G-Compta est le logiciel de comptabilité conforme SYSCOHADA révisé, conçu pour les entreprises et cabinets d'expertise comptable en Afrique."
+            : "G‑Santé sécurise l’organisation de votre cabinet médical, laboratoire ou structure mixte, sans retirer vos outils comptables."}
         </p>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12 w-full max-w-2xl">
+        {workspace === 'compta' && <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12 w-full max-w-2xl">
           {STATS.map(s => (
             <div key={s.label} className="bg-bg2 border border-border rounded-xl p-4">
               <div className="font-serif text-2xl text-primary">{s.value}</div>
               <div className="text-[10px] text-fg3 font-mono mt-1">{s.label}</div>
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* Environment Selection */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-[760px] mb-8">
+        {workspace === 'compta' && <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-[760px] mb-8">
           {([
             { env: 'entreprise' as EnvMode, icon: '🏭', title: 'Espace Entreprise', desc: 'Une société gère elle-même sa comptabilité. Accès direct à ses données, journal, balance et états financiers.', color: 'hsl(var(--accent))' },
             { env: 'cabinet' as EnvMode, icon: '⚖️', title: 'Espace Cabinet', desc: "Un expert-comptable gère la comptabilité de plusieurs clients. Tableau de bord multi-entreprises.", color: 'hsl(var(--purple))' },
@@ -81,11 +89,11 @@ export default function Landing() {
               <div className="text-xs text-fg3 leading-relaxed">{card.desc}</div>
             </button>
           ))}
-        </div>
+        </div>}
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[760px]">
-          <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">
+          {workspace === 'compta' && <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">
             <div className="flex items-center gap-2 rounded-lg p-2 mb-4 text-xs text-accent" style={{ background: 'linear-gradient(90deg, rgba(245,158,11,.15), rgba(251,113,133,.1))', border: '1px solid rgba(245,158,11,.3)' }}>
               ⚡ Mode démo — données préchargées
             </div>
@@ -95,24 +103,24 @@ export default function Landing() {
               className="w-full py-2.5 rounded-lg font-semibold text-sm bg-accent text-accent-foreground hover:brightness-110 transition-all">
               ⚡ Lancer la Démo
             </button>
-          </div>
+          </div>}
 
           <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">
             <div className="flex items-center gap-2 rounded-lg p-2 mb-4 text-xs text-success" style={{ background: 'linear-gradient(90deg, rgba(52,211,153,.15), rgba(56,189,248,.1))', border: '1px solid rgba(52,211,153,.3)' }}>
               🔒 Espace sécurisé — vos données
             </div>
-            <div className="font-serif text-lg text-primary text-center mb-4">Mon Espace</div>
+            <div className="font-serif text-lg text-primary text-center mb-4">{workspace === 'compta' ? 'Mon Espace' : 'Mon espace Santé'}</div>
             {user ? (
               <>
                 <p className="text-xs text-fg2 text-center leading-relaxed mb-2">Connecté : <strong className="text-primary">{user.email}</strong></p>
-                <button onClick={() => launchUser(selectedEnv)}
+                <button onClick={() => workspace === 'compta' ? launchUser(selectedEnv) : void launchHealth()}
                   className="w-full py-2.5 rounded-lg font-semibold text-sm bg-primary text-primary-foreground hover:brightness-110 transition-all">
-                  🚀 Accéder à mon espace
+                  Accéder à mon espace
                 </button>
               </>
             ) : (
               <>
-                <p className="text-xs text-fg2 text-center leading-relaxed mb-4">Connectez-vous pour gérer vos propres données comptables.</p>
+                <p className="text-xs text-fg2 text-center leading-relaxed mb-4">Connectez-vous pour accéder à vos données {workspace === 'compta' ? 'comptables' : 'de structure'}.</p>
                 <button onClick={() => setShowAuth(true)}
                   className="w-full py-2.5 rounded-lg font-semibold text-sm bg-primary text-primary-foreground hover:brightness-110 transition-all">
                   Se connecter / S'inscrire
@@ -124,7 +132,7 @@ export default function Landing() {
       </section>
 
       {/* PRICING PREVIEW */}
-      <section className="px-5 py-16 border-t border-border">
+      {workspace === 'compta' && <section className="px-5 py-16 border-t border-border">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider uppercase border border-primary/30 text-primary bg-primary/5 mb-3">Tarifs transparents · FCFA</span>
@@ -154,10 +162,10 @@ export default function Landing() {
             <Link to="/tarifs" className="text-xs text-primary hover:underline font-semibold">→ Comparatif complet & FAQ</Link>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* FEATURES */}
-      <section className="px-5 py-16 bg-bg2">
+      {workspace === 'compta' && <section className="px-5 py-16 bg-bg2">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-serif text-2xl sm:text-3xl text-foreground text-center mb-2">Fonctionnalités complètes</h2>
           <p className="text-sm text-fg3 text-center mb-10">Tout ce dont vous avez besoin pour une comptabilité SYSCOHADA professionnelle.</p>
@@ -171,7 +179,16 @@ export default function Landing() {
             ))}
           </div>
         </div>
-      </section>
+      </section>}
+
+      {workspace === 'sante' && <section className="px-5 py-16 border-t border-border bg-bg2">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10"><h2 className="font-serif text-2xl sm:text-3xl text-foreground mb-2">Un socle médical sécurisé</h2><p className="text-sm text-fg3">Votre structure, ses sites et les accès de votre équipe sont isolés et tracés.</p></div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[['Structure', 'Cabinet, laboratoire ou activité mixte.'], ['Accès par rôle', 'Chaque collaborateur reçoit uniquement les droits nécessaires.'], ['Traçabilité', 'Les actions sensibles sont conservées dans un journal protégé.']].map(([title, description]) => <div key={title} className="border border-border bg-background rounded-md p-5"><p className="font-semibold text-sm mb-2">{title}</p><p className="text-xs text-fg3 leading-relaxed">{description}</p></div>)}
+          </div>
+        </div>
+      </section>}
 
       {/* TRUST / COMPANY */}
       <section className="px-5 py-16">

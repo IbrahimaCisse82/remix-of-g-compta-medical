@@ -124,6 +124,51 @@
     --glow-primary: rgba(14, 165, 233, 0.08);
     --glow-accent: rgba(245, 158, 11, 0.06);
   }
+
+  .palette-clinique {
+    --primary: 194 86% 48%;
+    --primary-foreground: 210 30% 8%;
+    --accent: 166 76% 44%;
+    --accent-foreground: 210 30% 8%;
+    --ring: 194 86% 48%;
+  }
+
+  .palette-laboratoire {
+    --primary: 168 76% 45%;
+    --primary-foreground: 210 30% 8%;
+    --accent: 188 86% 50%;
+    --accent-foreground: 210 30% 8%;
+    --ring: 168 76% 45%;
+  }
+
+  .palette-urgences {
+    --primary: 201 88% 52%;
+    --primary-foreground: 210 30% 8%;
+    --accent: 8 82% 63%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 201 88% 52%;
+  }
+
+  .light.palette-clinique {
+    --primary: 194 82% 35%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 166 67% 35%;
+    --accent-foreground: 0 0% 100%;
+  }
+
+  .light.palette-laboratoire {
+    --primary: 168 72% 31%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 188 80% 35%;
+    --accent-foreground: 0 0% 100%;
+  }
+
+  .light.palette-urgences {
+    --primary: 201 80% 38%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 8 72% 49%;
+    --accent-foreground: 0 0% 100%;
+  }
 }
 
 @layer base {

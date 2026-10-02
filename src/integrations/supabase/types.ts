@@ -1925,6 +1925,168 @@ export type Database = {
         }
         Relationships: []
       }
+      medical_access_log: {
+        Row: {
+          created_at: string
+          ecran: string
+          id: number
+          motif: string | null
+          patient_id: string | null
+          structure_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          ecran: string
+          id?: never
+          motif?: string | null
+          patient_id?: string | null
+          structure_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          ecran?: string
+          id?: never
+          motif?: string | null
+          patient_id?: string | null
+          structure_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_access_log_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: number
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          structure_id: string
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: never
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          structure_id: string
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: never
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          structure_id?: string
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_audit_log_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_invitations: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["medical_role"]
+          site_id: string | null
+          statut: string
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role: Database["public"]["Enums"]["medical_role"]
+          site_id?: string | null
+          statut?: string
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["medical_role"]
+          site_id?: string | null
+          statut?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_invitations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_invitations_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          membership_id: string
+          role: Database["public"]["Enums"]["medical_role"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          membership_id: string
+          role: Database["public"]["Enums"]["medical_role"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          membership_id?: string
+          role?: Database["public"]["Enums"]["medical_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_user_roles_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "structure_memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mouvements_stock: {
         Row: {
           article_id: string
@@ -2413,6 +2575,149 @@ export type Database = {
           },
         ]
       }
+      sites: {
+        Row: {
+          actif: boolean
+          adresse: string | null
+          created_at: string
+          id: string
+          nom: string
+          principal: boolean
+          structure_id: string
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          adresse?: string | null
+          created_at?: string
+          id?: string
+          nom: string
+          principal?: boolean
+          structure_id: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          adresse?: string | null
+          created_at?: string
+          id?: string
+          nom?: string
+          principal?: boolean
+          structure_id?: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sites_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structure_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          site_id: string | null
+          statut: Database["public"]["Enums"]["membership_status"]
+          structure_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          site_id?: string | null
+          statut?: Database["public"]["Enums"]["membership_status"]
+          structure_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          site_id?: string | null
+          statut?: Database["public"]["Enums"]["membership_status"]
+          structure_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structure_memberships_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structure_memberships_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structures: {
+        Row: {
+          adresse: string | null
+          autorisation_exercice: string | null
+          created_at: string
+          created_by: string
+          devise: string
+          id: string
+          inscription_ordre: string | null
+          logo_path: string | null
+          ninea: string | null
+          nom: string
+          rccm: string | null
+          telephone: string | null
+          theme_medical: Database["public"]["Enums"]["medical_theme"]
+          type: Database["public"]["Enums"]["structure_type"]
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          autorisation_exercice?: string | null
+          created_at?: string
+          created_by: string
+          devise?: string
+          id?: string
+          inscription_ordre?: string | null
+          logo_path?: string | null
+          ninea?: string | null
+          nom: string
+          rccm?: string | null
+          telephone?: string | null
+          theme_medical?: Database["public"]["Enums"]["medical_theme"]
+          type: Database["public"]["Enums"]["structure_type"]
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          autorisation_exercice?: string | null
+          created_at?: string
+          created_by?: string
+          devise?: string
+          id?: string
+          inscription_ordre?: string | null
+          logo_path?: string | null
+          ninea?: string | null
+          nom?: string
+          rccm?: string | null
+          telephone?: string | null
+          theme_medical?: Database["public"]["Enums"]["medical_theme"]
+          type?: Database["public"]["Enums"]["structure_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions_mm: {
         Row: {
           contrepartie: string | null
@@ -2621,6 +2926,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_medical_invitation: {
+        Args: { _invitation_id: string }
+        Returns: string
+      }
       can_admin_entreprise: {
         Args: { _entreprise_id: string }
         Returns: boolean
@@ -2628,6 +2937,39 @@ export type Database = {
       can_write_entreprise: {
         Args: { _entreprise_id: string }
         Returns: boolean
+      }
+      create_medical_invitation: {
+        Args: {
+          _email: string
+          _role: Database["public"]["Enums"]["medical_role"]
+          _site_id?: string
+          _structure_id: string
+        }
+        Returns: string
+      }
+      create_medical_site: {
+        Args: {
+          _adresse?: string
+          _nom: string
+          _principal?: boolean
+          _structure_id: string
+          _telephone?: string
+        }
+        Returns: string
+      }
+      create_medical_structure: {
+        Args: {
+          _adresse?: string
+          _autorisation_exercice?: string
+          _inscription_ordre?: string
+          _ninea?: string
+          _nom: string
+          _rccm?: string
+          _telephone?: string
+          _theme?: Database["public"]["Enums"]["medical_theme"]
+          _type: Database["public"]["Enums"]["structure_type"]
+        }
+        Returns: string
       }
       exercice_est_cloture: { Args: { _exercice_id: string }; Returns: boolean }
       fn_balance: {
@@ -2694,6 +3036,13 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_entreprise_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_medical_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["medical_role"]
+          _structure_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2705,9 +3054,31 @@ export type Database = {
         Args: { _cabinet_id: string; _user_id: string }
         Returns: boolean
       }
+      is_structure_admin: { Args: { _structure_id: string }; Returns: boolean }
+      is_structure_member: { Args: { _structure_id: string }; Returns: boolean }
+      set_medical_theme: {
+        Args: {
+          _structure_id: string
+          _theme: Database["public"]["Enums"]["medical_theme"]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "comptable" | "lecteur"
+      medical_role:
+        | "admin_structure"
+        | "medecin"
+        | "biologiste"
+        | "technicien"
+        | "preleveur"
+        | "secretaire"
+        | "caissier"
+        | "comptable"
+        | "lecteur"
+      medical_theme: "clinique" | "laboratoire" | "urgences"
+      membership_status: "invite" | "actif" | "suspendu"
+      structure_type: "cabinet" | "laboratoire" | "mixte"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2836,6 +3207,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "comptable", "lecteur"],
+      medical_role: [
+        "admin_structure",
+        "medecin",
+        "biologiste",
+        "technicien",
+        "preleveur",
+        "secretaire",
+        "caissier",
+        "comptable",
+        "lecteur",
+      ],
+      medical_theme: ["clinique", "laboratoire", "urgences"],
+      membership_status: ["invite", "actif", "suspendu"],
+      structure_type: ["cabinet", "laboratoire", "mixte"],
     },
   },
 } as const

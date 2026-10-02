@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export type Theme = 'dark' | 'light' | 'system';
+export type MedicalPalette = 'clinique' | 'laboratoire' | 'urgences';
 
 function getSystemTheme(): 'dark' | 'light' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -9,6 +10,12 @@ function getSystemTheme(): 'dark' | 'light' {
 function applyTheme(theme: Theme) {
   const resolved = theme === 'system' ? getSystemTheme() : theme;
   document.documentElement.classList.toggle('light', resolved === 'light');
+}
+
+function applyMedicalPalette(palette: MedicalPalette | null) {
+  const root = document.documentElement;
+  root.classList.remove('palette-clinique', 'palette-laboratoire', 'palette-urgences');
+  if (palette) root.classList.add(`palette-${palette}`);
 }
 
 export function useTheme() {
@@ -40,4 +47,23 @@ export function useTheme() {
   const resolved = theme === 'system' ? getSystemTheme() : theme;
 
   return { theme, resolved, setTheme, toggle };
+}
+
+export function useMedicalPalette(initialPalette: MedicalPalette = 'clinique') {
+  const [palette, setPaletteState] = useState<MedicalPalette>(() =>
+    (localStorage.getItem('g-sante-palette') as MedicalPalette) || initialPalette,
+  );
+
+  const setPalette = useCallback((next: MedicalPalette) => {
+    setPaletteState(next);
+    localStorage.setItem('g-sante-palette', next);
+    applyMedicalPalette(next);
+  }, []);
+
+  useEffect(() => {
+    applyMedicalPalette(palette);
+    return () => applyMedicalPalette(null);
+  }, [palette]);
+
+  return { palette, setPalette };
 }
