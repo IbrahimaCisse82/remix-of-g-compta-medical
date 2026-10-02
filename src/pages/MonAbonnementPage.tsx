@@ -20,6 +20,7 @@ import {
   type Usage,
 } from '@/lib/subscription';
 import { fmt } from '@/lib/accounting';
+import OptionsSanteCard from '@/components/OptionsSanteCard';
 
 export default function MonAbonnementPage() {
   const { entreprise, env } = useApp();
@@ -125,6 +126,7 @@ export default function MonAbonnementPage() {
       </div>
 
       <div className="p-5">
+        <OptionsSanteCard entrepriseId={entreprise.id} />
         {loading ? (
           <div className="text-center text-fg3 py-10 text-sm">Chargement...</div>
         ) : (
