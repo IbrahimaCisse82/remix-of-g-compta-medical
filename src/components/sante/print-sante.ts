@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import QRCode from 'qrcode';
 import { LIBELLE_DRAPEAU, type Drapeau } from '@/domain/sante/reference';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -47,7 +48,7 @@ export async function imprimerCompteRendu(demandeId: string) {
   const byParam = new Map((res ?? []).map(r => [r.parametre_id, r]));
   const s: any = d.structure, p: any = d.patient;
   const verif = `${window.location.origin}/?verif=${encodeURIComponent(d.numero)}`;
-  const qr = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(verif)}`;
+  const qr = await QRCode.toDataURL(verif, { width: 140, margin: 0 });
   const blocs = (das ?? []).map((x: any) => {
     const a = x.analyse;
     const lignes = [...a.parametres].sort((u: any, v: any) => u.ordre - v.ordre).map((pa: any) => {
