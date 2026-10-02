@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -54,6 +55,14 @@ export default function AuthPage() {
     setLoading(false);
   };
 
+  const handleGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) toast.error(error.message);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-5"
       style={{ background: 'radial-gradient(ellipse at 65% 15%, rgba(56,189,248,.07) 0%, transparent 55%), radial-gradient(ellipse at 20% 80%, rgba(167,139,250,.07) 0%, transparent 50%), hsl(var(--background))' }}>
@@ -61,6 +70,8 @@ export default function AuthPage() {
       <p className="text-[11px] text-fg3 tracking-[3px] uppercase font-mono mb-8">Comptabilité SYSCOHADA</p>
 
       <div className="bg-bg2 border border-border rounded-xl p-6 w-full max-w-[400px]">
+        <Button type="button" variant="outline" className="w-full mb-4" onClick={handleGoogle}>Continuer avec Google</Button>
+        <div className="flex items-center gap-3 mb-4"><span className="h-px flex-1 bg-border" /><span className="text-[10px] uppercase text-fg3">ou</span><span className="h-px flex-1 bg-border" /></div>
         <div className="flex gap-1 mb-5 bg-bg3 rounded-lg p-0.5">
           <button onClick={() => setMode('login')} className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'login' ? 'bg-primary text-primary-foreground' : 'text-fg2'}`}>Connexion</button>
           <button onClick={() => setMode('signup')} className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'signup' ? 'bg-primary text-primary-foreground' : 'text-fg2'}`}>Inscription</button>

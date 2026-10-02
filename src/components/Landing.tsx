@@ -132,7 +132,7 @@ export default function Landing() {
       </section>
 
       {/* PRICING PREVIEW */}
-      <section className="px-5 py-16 border-t border-border">
+      {workspace === 'compta' && <section className="px-5 py-16 border-t border-border">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <span className="inline-block px-3 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider uppercase border border-primary/30 text-primary bg-primary/5 mb-3">Tarifs transparents · FCFA</span>
@@ -162,10 +162,10 @@ export default function Landing() {
             <Link to="/tarifs" className="text-xs text-primary hover:underline font-semibold">→ Comparatif complet & FAQ</Link>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* FEATURES */}
-      <section className="px-5 py-16 bg-bg2">
+      {workspace === 'compta' && <section className="px-5 py-16 bg-bg2">
         <div className="max-w-4xl mx-auto">
           <h2 className="font-serif text-2xl sm:text-3xl text-foreground text-center mb-2">Fonctionnalités complètes</h2>
           <p className="text-sm text-fg3 text-center mb-10">Tout ce dont vous avez besoin pour une comptabilité SYSCOHADA professionnelle.</p>
@@ -179,7 +179,16 @@ export default function Landing() {
             ))}
           </div>
         </div>
-      </section>
+      </section>}
+
+      {workspace === 'sante' && <section className="px-5 py-16 border-t border-border bg-bg2">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10"><h2 className="font-serif text-2xl sm:text-3xl text-foreground mb-2">Un socle médical sécurisé</h2><p className="text-sm text-fg3">Votre structure, ses sites et les accès de votre équipe sont isolés et tracés.</p></div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[['Structure', 'Cabinet, laboratoire ou activité mixte.'], ['Accès par rôle', 'Chaque collaborateur reçoit uniquement les droits nécessaires.'], ['Traçabilité', 'Les actions sensibles sont conservées dans un journal protégé.']].map(([title, description]) => <div key={title} className="border border-border bg-background rounded-md p-5"><p className="font-semibold text-sm mb-2">{title}</p><p className="text-xs text-fg3 leading-relaxed">{description}</p></div>)}
+          </div>
+        </div>
+      </section>}
 
       {/* TRUST / COMPANY */}
       <section className="px-5 py-16">
