@@ -43,6 +43,7 @@ import PortailPage from '@/pages/PortailPage';
 import KpiCollabPage from '@/pages/KpiCollabPage';
 import MobileMoneyPage from '@/pages/MobileMoneyPage';
 import FacturesDgidPage from '@/pages/FacturesDgidPage';
+import AnomaliesPage from '@/pages/AnomaliesPage';
 
 const NAV: { section: string; items: { id: PageId; icon: string; label: string; shortcut?: string; cabinet?: boolean }[] }[] = [
   { section: 'Synthèse', items: [
@@ -56,6 +57,7 @@ const NAV: { section: string; items: { id: PageId; icon: string; label: string; 
     { id: 'saisie', icon: '✏️', label: "Saisie d'écritures", shortcut: 'Alt+S' },
     { id: 'journal', icon: '📋', label: 'Journal', shortcut: 'Alt+J' },
     { id: 'balance', icon: '⚖️', label: 'Balance', shortcut: 'Alt+B' },
+    { id: 'anomalies', icon: '🩺', label: 'Contrôles de cohérence' },
     { id: 'grandlivre', icon: '📖', label: 'Grand Livre', shortcut: 'Alt+G' },
     { id: 'lettrage', icon: '🔗', label: 'Lettrage' },
     { id: 'rapprochement', icon: '🏦', label: 'Rapprochement' },
@@ -102,6 +104,7 @@ const NAV: { section: string; items: { id: PageId; icon: string; label: string; 
 const PAGES: Record<string, React.ComponentType> = {
   dashboard: Dashboard, journal: JournalPage, balance: BalancePage,
   bilan: BilanPage, resultat: ResultatPage, tft: TFTPage,
+  anomalies: AnomaliesPage,
   plan: PlanComptablePage, exercices: ExercicesPage, parametres: ParametresPage,
   saisie: SaisiePage, grandlivre: GrandLivrePage,
   balance_agee: BalanceAgeePage, rapprochement: RapprochementPage,
