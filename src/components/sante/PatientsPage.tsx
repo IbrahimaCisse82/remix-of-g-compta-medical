@@ -124,7 +124,7 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
   );
 }
 
-const ONGLETS = ['Identité', 'Assurances', 'Antécédents', 'Consentements'] as const;
+const ONGLETS = ['Identité', 'Assurances', 'Antécédents', 'Consentements', 'Documents'] as const;
 
 function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
   const [p, setP] = useState<Record<string, any> | null>(null);
@@ -141,7 +141,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
     })();
   }, [id]);
 
-  const table = onglet === 'Assurances' ? 'sante_patient_assurances' : onglet === 'Antécédents' ? 'sante_antecedents' : onglet === 'Consentements' ? 'sante_consentements' : null;
+  const table = onglet === 'Documents' ? 'sante_documents_patient' : onglet === 'Assurances' ? 'sante_patient_assurances' : onglet === 'Antécédents' ? 'sante_antecedents' : onglet === 'Consentements' ? 'sante_consentements' : null;
   const loadItems = useCallback(async () => {
     if (!table) return;
     const { data, error } = await supabase.from(table).select('*').eq('patient_id', id).order('created_at', { ascending: false });
@@ -168,12 +168,13 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
       <div className="border border-border bg-bg2 rounded-md p-5 mb-4">
         <p className="font-mono text-xs text-primary">{p.numero_dossier}</p>
         <h1 className="font-serif text-2xl">{p.nom} {p.prenoms}</h1>
+        <FusionPatient patientId={id} structureId={p.structure_id} onDone={onBack} />
         <p className="text-sm text-fg2">{p.sexe === 'F' ? 'Féminin' : 'Masculin'}{p.date_naissance ? ` · ${libelleAge(p.date_naissance)} (${new Date(p.date_naissance).toLocaleDateString('fr-FR')})` : ''}</p>
       </div>
       <div className="flex gap-1 border-b border-border mb-4 overflow-x-auto" role="tablist">
         {ONGLETS.map(o => <Button key={o} role="tab" aria-selected={onglet === o} variant={onglet === o ? 'secondary' : 'ghost'} size="sm" onClick={() => setOnglet(o)}>{o}</Button>)}
       </div>
-      {onglet === 'Identité' ? (
+      {onglet === 'Documents' ? <DocumentsPatient patientId={id} structureId={p.structure_id} items={items} onChange={loadItems} /> : onglet === 'Identité' ? (
         <dl className="grid sm:grid-cols-2 gap-3 text-sm">
           {[['Téléphone', p.telephone], ['Adresse', p.adresse], ['Personne à prévenir', p.contact_urgence_nom], ['Tél. à prévenir', p.contact_urgence_tel], ['Créé le', new Date(p.created_at).toLocaleDateString('fr-FR')]].map(([k, v]) => (
             <div key={k} className="border border-border rounded-md p-3"><dt className="text-xs text-fg3">{k}</dt><dd>{v || '—'}</dd></div>
@@ -202,6 +203,62 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function FusionPatient({ patientId, structureId, onDone }: { patientId: string; structureId: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [numero, setNumero] = useState('');
+  const [motif, setMotif] = useState('');
+  const fusionner = async () => {
+    const { data } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: numero.trim(), _limit: 2 });
+    const cible = (data ?? []).find(d => d.numero_dossier === numero.trim().toUpperCase());
+    if (!cible || cible.id === patientId) return toast.error('Dossier en double introuvable');
+    if (!confirm(`Fusionner ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ? Action tracée et définitive.`)) return;
+    const { error } = await supabase.rpc('sante_fusionner_patients', { _conserve: patientId, _fusionne: cible.id, _motif: motif });
+    if (error) return toast.error(error.message);
+    toast.success('Dossiers fusionnés'); onDone();
+  };
+  if (!open) return <button className="float-right text-xs underline text-fg3" onClick={() => setOpen(true)}>Fusionner un doublon</button>;
+  return (
+    <div className="flex flex-wrap gap-2 my-2">
+      <Input className="w-40" placeholder="N° dossier en double" value={numero} onChange={e => setNumero(e.target.value)} />
+      <Input className="flex-1 min-w-40" placeholder="Motif (obligatoire)" value={motif} onChange={e => setMotif(e.target.value)} />
+      <Button size="sm" onClick={fusionner}>Fusionner</Button>
+      <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+    </div>
+  );
+}
+
+function DocumentsPatient({ patientId, structureId, items, onChange }: { patientId: string; structureId: string; items: Record<string, any>[]; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const envoyer = async (file: File) => {
+    if (file.size > 20 * 1024 * 1024) return toast.error('Fichier trop volumineux (20 Mo max)');
+    setBusy(true);
+    const path = `${structureId}/${patientId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`;
+    const up = await supabase.storage.from('sante-documents').upload(path, file);
+    if (up.error) { setBusy(false); return toast.error('Envoi refusé'); }
+    const { error } = await supabase.from('sante_documents_patient').insert({ patient_id: patientId, structure_id: structureId, nom: file.name, storage_path: path, mime_type: file.type, taille_octets: file.size });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    onChange();
+  };
+  const ouvrir = async (path: string) => {
+    const { data } = await supabase.storage.from('sante-documents').createSignedUrl(path, 60);
+    if (data) window.open(data.signedUrl, '_blank'); else toast.error('Accès refusé');
+  };
+  return (
+    <div className="space-y-2">
+      <label className="inline-flex items-center gap-2 border border-border rounded-md px-3 py-2 text-sm cursor-pointer hover:bg-bg3">
+        <Plus className="h-4 w-4" />{busy ? 'Envoi…' : 'Joindre un document'}
+        <input type="file" className="hidden" disabled={busy} onChange={e => e.target.files?.[0] && envoyer(e.target.files[0])} />
+      </label>
+      {items.length === 0 ? <p className="text-sm text-fg3">Aucun document.</p> : items.map(d => (
+        <button key={d.id} onClick={() => ouvrir(d.storage_path)} className="w-full text-left border border-border rounded-md p-3 text-sm hover:bg-bg3">
+          {d.nom} <span className="text-xs text-fg3">· {new Date(d.created_at).toLocaleDateString('fr-FR')}</span>
+        </button>
+      ))}
     </div>
   );
 }

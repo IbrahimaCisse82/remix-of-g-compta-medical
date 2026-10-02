@@ -2616,6 +2616,47 @@ export type Database = {
           },
         ]
       }
+      sante_actes: {
+        Row: {
+          actif: boolean
+          code: string
+          created_at: string
+          id: string
+          libelle: string
+          regime_tva: string
+          structure_id: string
+          tarif: number
+        }
+        Insert: {
+          actif?: boolean
+          code: string
+          created_at?: string
+          id?: string
+          libelle: string
+          regime_tva?: string
+          structure_id: string
+          tarif?: number
+        }
+        Update: {
+          actif?: boolean
+          code?: string
+          created_at?: string
+          id?: string
+          libelle?: string
+          regime_tva?: string
+          structure_id?: string
+          tarif?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_actes_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_antecedents: {
         Row: {
           created_at: string
@@ -2650,6 +2691,47 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_catalogue_medicaments: {
+        Row: {
+          actif: boolean
+          created_at: string
+          dci: string
+          dosage: string | null
+          forme: string | null
+          id: string
+          nom_commercial: string | null
+          structure_id: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          dci: string
+          dosage?: string | null
+          forme?: string | null
+          id?: string
+          nom_commercial?: string | null
+          structure_id: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          dci?: string
+          dosage?: string | null
+          forme?: string | null
+          id?: string
+          nom_commercial?: string | null
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_catalogue_medicaments_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
             referencedColumns: ["id"]
           },
         ]
@@ -2691,6 +2773,406 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_constantes: {
+        Row: {
+          consultation_id: string
+          created_at: string
+          glycemie: number | null
+          id: string
+          mesure_par: string | null
+          patient_id: string
+          poids: number | null
+          pouls: number | null
+          spo2: number | null
+          ta_dia: number | null
+          ta_sys: number | null
+          taille: number | null
+          temperature: number | null
+        }
+        Insert: {
+          consultation_id: string
+          created_at?: string
+          glycemie?: number | null
+          id?: string
+          mesure_par?: string | null
+          patient_id: string
+          poids?: number | null
+          pouls?: number | null
+          spo2?: number | null
+          ta_dia?: number | null
+          ta_sys?: number | null
+          taille?: number | null
+          temperature?: number | null
+        }
+        Update: {
+          consultation_id?: string
+          created_at?: string
+          glycemie?: number | null
+          id?: string
+          mesure_par?: string | null
+          patient_id?: string
+          poids?: number | null
+          pouls?: number | null
+          spo2?: number | null
+          ta_dia?: number | null
+          ta_sys?: number | null
+          taille?: number | null
+          temperature?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_constantes_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "sante_consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_constantes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_consultation_addenda: {
+        Row: {
+          auteur: string
+          consultation_id: string
+          created_at: string
+          id: string
+          patient_id: string
+          texte: string
+        }
+        Insert: {
+          auteur?: string
+          consultation_id: string
+          created_at?: string
+          id?: string
+          patient_id: string
+          texte: string
+        }
+        Update: {
+          auteur?: string
+          consultation_id?: string
+          created_at?: string
+          id?: string
+          patient_id?: string
+          texte?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_consultation_addenda_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "sante_consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_consultation_addenda_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_consultations: {
+        Row: {
+          anamnese: string | null
+          cloturee_le: string | null
+          cloturee_par: string | null
+          conduite: string | null
+          created_at: string
+          created_by: string | null
+          diagnostic: string | null
+          examen: string | null
+          id: string
+          motif: string | null
+          patient_id: string
+          praticien_id: string
+          rdv_id: string | null
+          statut: string
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          anamnese?: string | null
+          cloturee_le?: string | null
+          cloturee_par?: string | null
+          conduite?: string | null
+          created_at?: string
+          created_by?: string | null
+          diagnostic?: string | null
+          examen?: string | null
+          id?: string
+          motif?: string | null
+          patient_id: string
+          praticien_id: string
+          rdv_id?: string | null
+          statut?: string
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          anamnese?: string | null
+          cloturee_le?: string | null
+          cloturee_par?: string | null
+          conduite?: string | null
+          created_at?: string
+          created_by?: string | null
+          diagnostic?: string | null
+          examen?: string | null
+          id?: string
+          motif?: string | null
+          patient_id?: string
+          praticien_id?: string
+          rdv_id?: string | null
+          statut?: string
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_consultations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_consultations_praticien_id_fkey"
+            columns: ["praticien_id"]
+            isOneToOne: false
+            referencedRelation: "sante_praticiens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_consultations_rdv_id_fkey"
+            columns: ["rdv_id"]
+            isOneToOne: false
+            referencedRelation: "sante_rendez_vous"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_consultations_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_documents_patient: {
+        Row: {
+          categorie: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          nom: string
+          patient_id: string
+          storage_path: string
+          structure_id: string
+          taille_octets: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          categorie?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nom: string
+          patient_id: string
+          storage_path: string
+          structure_id: string
+          taille_octets?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          categorie?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nom?: string
+          patient_id?: string
+          storage_path?: string
+          structure_id?: string
+          taille_octets?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_documents_patient_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_documents_patient_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_fusions: {
+        Row: {
+          created_at: string
+          fusionne_par: string
+          id: string
+          motif: string
+          patient_conserve: string
+          patient_fusionne: string
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          fusionne_par: string
+          id?: string
+          motif: string
+          patient_conserve: string
+          patient_fusionne: string
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          fusionne_par?: string
+          id?: string
+          motif?: string
+          patient_conserve?: string
+          patient_fusionne?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_fusions_patient_conserve_fkey"
+            columns: ["patient_conserve"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_fusions_patient_fusionne_fkey"
+            columns: ["patient_fusionne"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_fusions_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_ordonnance_lignes: {
+        Row: {
+          duree: string | null
+          id: string
+          medicament: string
+          ordonnance_id: string
+          ordre: number
+          posologie: string
+          quantite: string | null
+        }
+        Insert: {
+          duree?: string | null
+          id?: string
+          medicament: string
+          ordonnance_id: string
+          ordre: number
+          posologie: string
+          quantite?: string | null
+        }
+        Update: {
+          duree?: string | null
+          id?: string
+          medicament?: string
+          ordonnance_id?: string
+          ordre?: number
+          posologie?: string
+          quantite?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_ordonnance_lignes_ordonnance_id_fkey"
+            columns: ["ordonnance_id"]
+            isOneToOne: false
+            referencedRelation: "sante_ordonnances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_ordonnances: {
+        Row: {
+          consultation_id: string
+          emise_le: string
+          emise_par: string
+          id: string
+          numero: string
+          patient_id: string
+          praticien_id: string
+          recommandations: string | null
+          structure_id: string
+        }
+        Insert: {
+          consultation_id: string
+          emise_le?: string
+          emise_par: string
+          id?: string
+          numero: string
+          patient_id: string
+          praticien_id: string
+          recommandations?: string | null
+          structure_id: string
+        }
+        Update: {
+          consultation_id?: string
+          emise_le?: string
+          emise_par?: string
+          id?: string
+          numero?: string
+          patient_id?: string
+          praticien_id?: string
+          recommandations?: string | null
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_ordonnances_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "sante_consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_ordonnances_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_ordonnances_praticien_id_fkey"
+            columns: ["praticien_id"]
+            isOneToOne: false
+            referencedRelation: "sante_praticiens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_ordonnances_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
             referencedColumns: ["id"]
           },
         ]
@@ -2842,6 +3324,153 @@ export type Database = {
           },
           {
             foreignKeyName: "sante_patients_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_praticiens: {
+        Row: {
+          actif: boolean
+          created_at: string
+          id: string
+          nom: string
+          numero_ordre: string | null
+          specialite: string | null
+          structure_id: string
+          user_id: string | null
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          id?: string
+          nom: string
+          numero_ordre?: string | null
+          specialite?: string | null
+          structure_id: string
+          user_id?: string | null
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          id?: string
+          nom?: string
+          numero_ordre?: string | null
+          specialite?: string | null
+          structure_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_praticiens_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_rendez_vous: {
+        Row: {
+          arrive_le: string | null
+          created_at: string
+          created_by: string | null
+          debut: string
+          duree_min: number
+          id: string
+          motif: string | null
+          patient_id: string
+          praticien_id: string
+          site_id: string | null
+          statut: string
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          arrive_le?: string | null
+          created_at?: string
+          created_by?: string | null
+          debut: string
+          duree_min?: number
+          id?: string
+          motif?: string | null
+          patient_id: string
+          praticien_id: string
+          site_id?: string | null
+          statut?: string
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          arrive_le?: string | null
+          created_at?: string
+          created_by?: string | null
+          debut?: string
+          duree_min?: number
+          id?: string
+          motif?: string | null
+          patient_id?: string
+          praticien_id?: string
+          site_id?: string | null
+          statut?: string
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_rendez_vous_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_rendez_vous_praticien_id_fkey"
+            columns: ["praticien_id"]
+            isOneToOne: false
+            referencedRelation: "sante_praticiens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_rendez_vous_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_rendez_vous_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_sequences: {
+        Row: {
+          annee: number
+          dernier: number
+          structure_id: string
+          type: string
+        }
+        Insert: {
+          annee: number
+          dernier?: number
+          structure_id: string
+          type: string
+        }
+        Update: {
+          annee?: number
+          dernier?: number
+          structure_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_sequences_structure_id_fkey"
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
@@ -3355,6 +3984,10 @@ export type Database = {
         Args: { _entreprise_id: string; _module: string }
         Returns: boolean
       }
+      sante_cloturer_consultation: {
+        Args: { _consultation_id: string }
+        Returns: undefined
+      }
       sante_creer_patient: {
         Args: {
           _adresse?: string
@@ -3368,6 +4001,15 @@ export type Database = {
           _sexe: string
           _structure_id: string
           _telephone?: string
+        }
+        Returns: string
+      }
+      sante_demarrer_consultation: {
+        Args: {
+          _motif?: string
+          _patient_id: string
+          _praticien_id: string
+          _rdv_id?: string
         }
         Returns: string
       }
@@ -3388,9 +4030,25 @@ export type Database = {
           telephone: string
         }[]
       }
+      sante_emettre_ordonnance: {
+        Args: {
+          _consultation_id: string
+          _lignes: Json
+          _recommandations?: string
+        }
+        Returns: string
+      }
+      sante_fusionner_patients: {
+        Args: { _conserve: string; _fusionne: string; _motif: string }
+        Returns: undefined
+      }
       sante_ouvrir_dossier: {
         Args: { _ecran?: string; _patient_id: string }
         Returns: undefined
+      }
+      sante_prochain_numero: {
+        Args: { _prefixe: string; _structure_id: string; _type: string }
+        Returns: string
       }
       sante_rechercher_patients: {
         Args: {
@@ -3410,6 +4068,7 @@ export type Database = {
           total: number
         }[]
       }
+      sante_storage_patient: { Args: { _name: string }; Returns: string }
       set_medical_theme: {
         Args: {
           _structure_id: string
