@@ -50,6 +50,13 @@
       "when": 1790980123822,
       "tag": "0006_sante_s1_fusion_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790980201824,
+      "tag": "0007_sante_s2_clinique",
+      "breakpoints": true
     }
   ]
 }
