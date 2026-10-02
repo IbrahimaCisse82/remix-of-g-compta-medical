@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 
 export type EnvMode = 'entreprise' | 'cabinet';
-export type PageId = 'dashboard' | 'clients' | 'cabinet_mgmt' | 'kpi_collab' | 'abonnements_clients' | 'journal' | 'balance' | 'grandlivre' | 'bilan' | 'resultat' | 'tft' | 'note34' | 'liasse' | 'rapprochement' | 'saisie' | 'plan' | 'exercices' | 'parametres' | 'balance_agee' | 'audit' | 'import' | 'lettrage' | 'analytique' | 'budget' | 'tva' | 'abonnement' | 'mon_abonnement' | 'cloture' | 'immobilisations' | 'facturation' | 'fournisseurs' | 'paie' | 'echeancier' | 'stocks' | 'provisions' | 'documents' | 'validation' | 'portail' | 'mobile_money' | 'factures_dgid';
+export type PageId = 'dashboard' | 'clients' | 'cabinet_mgmt' | 'kpi_collab' | 'abonnements_clients' | 'journal' | 'balance' | 'grandlivre' | 'bilan' | 'resultat' | 'tft' | 'note34' | 'liasse' | 'rapprochement' | 'saisie' | 'plan' | 'exercices' | 'parametres' | 'balance_agee' | 'audit' | 'import' | 'lettrage' | 'analytique' | 'budget' | 'tva' | 'abonnement' | 'mon_abonnement' | 'cloture' | 'immobilisations' | 'facturation' | 'fournisseurs' | 'paie' | 'echeancier' | 'stocks' | 'provisions' | 'documents' | 'validation' | 'portail' | 'mobile_money' | 'factures_dgid' | 'anomalies';
 
 interface AppState {
   env: EnvMode;
@@ -81,6 +81,9 @@ function mapJournal(data: any[]): JournalLine[] {
     libelle: d.libelle, compte: d.compte, intitule: d.intitule,
     debit: Number(d.debit), credit: Number(d.credit),
     ecriture_id: d.ecriture_id ?? null,
+    ecriture_numero: d.ecriture_numero ?? null,
+    compte_auxiliaire: d.compte_auxiliaire ?? null,
+    auxiliaire_libelle: d.auxiliaire_libelle ?? null,
   }));
 }
 

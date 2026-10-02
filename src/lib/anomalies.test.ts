@@ -9,7 +9,7 @@ import {
 const L = (o: Partial<LigneControle>): LigneControle => ({
   id: o.id || 'l1', date_ecriture: o.date_ecriture || '2026-03-15', piece: o.piece ?? 'AC-001',
   journal_code: o.journal_code || 'AC', compte: o.compte || '601000', libelle: 'Achat',
-  debit: o.debit ?? 0, credit: o.credit ?? 0, ecriture_id: o.ecriture_id ?? 'e1',
+  debit: o.debit ?? 0, credit: o.credit ?? 0, ecriture_id: o.ecriture_id !== undefined ? o.ecriture_id : 'e1',
 });
 
 const ok: LigneControle[] = [
