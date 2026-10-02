@@ -2,6 +2,7 @@ import { useApp } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import SecteurActiviteCard from '@/components/SecteurActiviteCard';
 
 export default function ParametresPage() {
   const { entreprise, updateEntreprise, demo } = useApp();
@@ -80,6 +81,8 @@ export default function ParametresPage() {
             {field('Monnaie', 'monnaie')}
           </div>
         </div>
+
+        {user && !demo && <SecteurActiviteCard entrepriseId={entreprise.id} />}
 
         {user && (
           <div className="bg-bg2 border border-border rounded-lg p-4 mb-4">
