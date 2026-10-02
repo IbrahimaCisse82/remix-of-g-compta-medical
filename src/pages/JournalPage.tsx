@@ -2,7 +2,7 @@ import { useApp } from '@/stores/app-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { fmt } from '@/lib/accounting';
 import { exportJournalCsv } from '@/lib/csv-export';
-import { buildFec, downloadFec } from '@/lib/fec-export';
+import { buildFec, downloadFec, controlerFec } from '@/lib/fec-export';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
