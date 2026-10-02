@@ -1,3 +1,4 @@
 - G-Santé uses a phased delivery model; complete and validate each phase before starting the next to preserve security and scope.
 - Medical visual identity is token-based, with three structure-selectable palettes and dark/light modes, so all screens stay consistent.
 - G-Santé uses dedicated structure, membership, role, invitation, and audit objects while sharing only account identity with G-Compta, preventing health-data scope from weakening accounting tenancy.
+- G-Santé structures may be linked to a G-Compta entreprise; health modules are gated server-side by entreprise sector + entreprise_modules, so non-health entreprises see no change.
