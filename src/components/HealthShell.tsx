@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PatientsPage from '@/components/sante/PatientsPage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
@@ -16,7 +17,7 @@ export default function HealthShell() {
   const { medicalStructure, logout } = useApp();
   const { toggle } = useTheme();
   const { palette, setPalette } = useMedicalPalette(medicalStructure?.theme_medical);
-  const [view, setView] = useState<'accueil' | 'parametres'>('accueil');
+  const [view, setView] = useState<'accueil' | 'patients' | 'parametres'>('accueil');
   const [sites, setSites] = useState<{ id: string; nom: string; principal: boolean }[]>([]);
   const [invitations, setInvitations] = useState<{ id: string; email: string; role: string; statut: string }[]>([]);
   const [siteName, setSiteName] = useState('');
@@ -64,14 +65,15 @@ export default function HealthShell() {
         <div className="flex items-center gap-2 text-primary font-serif text-xl mb-8"><Stethoscope />G‑Santé</div>
         <nav className="space-y-1">
           <Button variant={view === 'accueil' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('accueil')}><LayoutDashboard />Accueil</Button>
-          <Button variant="ghost" className="w-full justify-start" disabled><Users />Patients</Button>
+          <Button variant={view === 'patients' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('patients')}><Users />Patients</Button>
           <Button variant="ghost" className="w-full justify-start" disabled><ClipboardList />Consultations</Button>
           <Button variant="ghost" className="w-full justify-start" disabled><FlaskConical />Laboratoire</Button>
           <Button variant={view === 'parametres' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('parametres')}><Settings />Paramètres</Button>
         </nav>
-        <div className="mt-auto text-xs text-fg3">Phase 0 · Socle sécurisé</div>
+        <div className="mt-auto text-xs text-fg3">Phase S1 · Dossier patient</div>
       </aside>
       <div className="flex-1 min-w-0">
+        <nav className="md:hidden flex gap-1 border-b border-border bg-bg2 p-2 overflow-x-auto">{(['accueil','patients','parametres'] as const).map(v => <Button key={v} size="sm" variant={view === v ? 'secondary' : 'ghost'} onClick={() => setView(v)} className="capitalize">{v === 'parametres' ? 'Paramètres' : v}</Button>)}</nav>
         <header className="h-16 border-b border-border bg-bg2 flex items-center justify-between px-4 sm:px-6">
           <div><p className="font-semibold truncate">{medicalStructure?.nom}</p><p className="text-xs text-fg3 capitalize">{medicalStructure?.type}</p></div>
           <div className="flex items-center gap-2">
@@ -83,11 +85,11 @@ export default function HealthShell() {
           </div>
         </header>
         <main className="p-5 sm:p-8">
-          {view === 'accueil' ? (
+          {view === 'patients' && medicalStructure ? <PatientsPage structureId={medicalStructure.id} /> : view === 'accueil' ? (
           <div className="max-w-5xl">
             <p className="text-xs font-mono uppercase text-primary mb-2">Espace Santé</p>
             <h1 className="font-serif text-3xl mb-2">Fondations opérationnelles</h1>
-            <p className="text-sm text-fg2 max-w-2xl">Votre structure, ses rôles et ses accès sont isolés et protégés. Les dossiers patients seront ajoutés après validation de cette phase.</p>
+            <p className="text-sm text-fg2 max-w-2xl">Votre structure, ses rôles et ses accès sont isolés et protégés. Le dossier patient est disponible : création rapide, détection des doublons et journal des accès.</p>
             <div className="grid sm:grid-cols-3 gap-4 mt-8">
               {[
                 [Building2, 'Structure', medicalStructure?.type || '—'],
