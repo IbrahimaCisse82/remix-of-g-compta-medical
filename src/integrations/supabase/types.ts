@@ -1214,6 +1214,41 @@ export type Database = {
           },
         ]
       }
+      entreprise_modules: {
+        Row: {
+          actif: boolean
+          created_at: string
+          date_activation: string | null
+          entreprise_id: string
+          id: string
+          module: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          date_activation?: string | null
+          entreprise_id: string
+          id?: string
+          module: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          date_activation?: string | null
+          entreprise_id?: string
+          id?: string
+          module?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entreprise_modules_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entreprises: {
         Row: {
           adresse: string | null
@@ -1226,6 +1261,7 @@ export type Database = {
           nom: string
           rccm: string | null
           secteur: string | null
+          secteur_activite: string
           sigle: string | null
           tel: string | null
           user_id: string | null
@@ -1241,6 +1277,7 @@ export type Database = {
           nom: string
           rccm?: string | null
           secteur?: string | null
+          secteur_activite?: string
           sigle?: string | null
           tel?: string | null
           user_id?: string | null
@@ -1256,6 +1293,7 @@ export type Database = {
           nom?: string
           rccm?: string | null
           secteur?: string | null
+          secteur_activite?: string
           sigle?: string | null
           tel?: string | null
           user_id?: string | null
@@ -2389,6 +2427,7 @@ export type Database = {
           periodicite: string
           populaire: boolean
           prix_fcfa: number
+          type_plan: string
           updated_at: string
         }
         Insert: {
@@ -2404,6 +2443,7 @@ export type Database = {
           periodicite?: string
           populaire?: boolean
           prix_fcfa: number
+          type_plan?: string
           updated_at?: string
         }
         Update: {
@@ -2419,6 +2459,7 @@ export type Database = {
           periodicite?: string
           populaire?: boolean
           prix_fcfa?: number
+          type_plan?: string
           updated_at?: string
         }
         Relationships: []
@@ -2671,6 +2712,7 @@ export type Database = {
           created_at: string
           created_by: string
           devise: string
+          entreprise_id: string | null
           id: string
           inscription_ordre: string | null
           logo_path: string | null
@@ -2688,6 +2730,7 @@ export type Database = {
           created_at?: string
           created_by: string
           devise?: string
+          entreprise_id?: string | null
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -2705,6 +2748,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           devise?: string
+          entreprise_id?: string | null
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -2716,7 +2760,15 @@ export type Database = {
           type?: Database["public"]["Enums"]["structure_type"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "structures_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions_mm: {
         Row: {
@@ -3056,12 +3108,28 @@ export type Database = {
       }
       is_structure_admin: { Args: { _structure_id: string }; Returns: boolean }
       is_structure_member: { Args: { _structure_id: string }; Returns: boolean }
+      lier_structure_entreprise: {
+        Args: { _entreprise_id: string; _structure_id: string }
+        Returns: undefined
+      }
+      module_actif: {
+        Args: { _entreprise_id: string; _module: string }
+        Returns: boolean
+      }
       set_medical_theme: {
         Args: {
           _structure_id: string
           _theme: Database["public"]["Enums"]["medical_theme"]
         }
         Returns: undefined
+      }
+      set_secteur_activite: {
+        Args: { _entreprise_id: string; _secteur: string }
+        Returns: undefined
+      }
+      structure_module_actif: {
+        Args: { _module: string; _structure_id: string }
+        Returns: boolean
       }
     }
     Enums: {

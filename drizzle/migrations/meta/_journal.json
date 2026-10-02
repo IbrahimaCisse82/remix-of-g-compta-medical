@@ -29,6 +29,13 @@
       "when": 1790979040958,
       "tag": "0003_gsante_phase0_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790979242842,
+      "tag": "0004_sante_s0_sectorisation",
+      "breakpoints": true
     }
   ]
 }
