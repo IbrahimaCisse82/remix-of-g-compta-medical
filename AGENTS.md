@@ -1,0 +1,2 @@
+- G-Santé uses a phased delivery model; complete and validate each phase before starting the next to preserve security and scope.
+- Medical visual identity is token-based, with three structure-selectable palettes and dark/light modes, so all screens stay consistent.
