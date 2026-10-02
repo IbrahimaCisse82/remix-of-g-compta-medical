@@ -1,1 +1,4 @@
 project_id = "otyqiiumbdgaxvkcqpht"
+
+[functions.demo-sante]
+verify_jwt = false
