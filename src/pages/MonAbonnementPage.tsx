@@ -279,7 +279,7 @@ export default function MonAbonnementPage() {
               Le paiement en ligne n'est pas encore activé. La modification déclenche un essai de 14 jours et notifie le cabinet.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-              {plans.map(p => (
+              {plans.filter(p => !p.code?.startsWith('option_')).map(p => (
                 <button
                   key={p.id}
                   onClick={() => setSelectedPlanId(p.id)}
