@@ -43,6 +43,13 @@
       "when": 1790979901676,
       "tag": "0005_sante_s1_dossier_patient",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790980123822,
+      "tag": "0006_sante_s1_fusion_documents",
+      "breakpoints": true
     }
   ]
 }

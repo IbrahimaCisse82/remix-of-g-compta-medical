@@ -2695,6 +2695,112 @@ export type Database = {
           },
         ]
       }
+      sante_documents_patient: {
+        Row: {
+          categorie: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          nom: string
+          patient_id: string
+          storage_path: string
+          structure_id: string
+          taille_octets: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          categorie?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nom: string
+          patient_id: string
+          storage_path: string
+          structure_id: string
+          taille_octets?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          categorie?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nom?: string
+          patient_id?: string
+          storage_path?: string
+          structure_id?: string
+          taille_octets?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_documents_patient_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_documents_patient_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_fusions: {
+        Row: {
+          created_at: string
+          fusionne_par: string
+          id: string
+          motif: string
+          patient_conserve: string
+          patient_fusionne: string
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          fusionne_par: string
+          id?: string
+          motif: string
+          patient_conserve: string
+          patient_fusionne: string
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          fusionne_par?: string
+          id?: string
+          motif?: string
+          patient_conserve?: string
+          patient_fusionne?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_fusions_patient_conserve_fkey"
+            columns: ["patient_conserve"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_fusions_patient_fusionne_fkey"
+            columns: ["patient_fusionne"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_fusions_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_patient_assurances: {
         Row: {
           ayant_droit: string | null
@@ -3388,6 +3494,10 @@ export type Database = {
           telephone: string
         }[]
       }
+      sante_fusionner_patients: {
+        Args: { _conserve: string; _fusionne: string; _motif: string }
+        Returns: undefined
+      }
       sante_ouvrir_dossier: {
         Args: { _ecran?: string; _patient_id: string }
         Returns: undefined
@@ -3410,6 +3520,7 @@ export type Database = {
           total: number
         }[]
       }
+      sante_storage_patient: { Args: { _name: string }; Returns: string }
       set_medical_theme: {
         Args: {
           _structure_id: string
