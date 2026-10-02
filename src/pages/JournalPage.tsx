@@ -19,12 +19,27 @@ export default function JournalPage() {
 
   const handleExportFec = () => {
     if (!entreprise || !exercice) return;
+    const rapport = controlerFec(journal as any);
+    const lignes = [
+      `Rapport de contrôle FEC — ${entreprise.nom} · Exercice ${exercice.annee}`,
+      `Lignes : ${rapport.totalLignes} · Débit : ${fmt(rapport.totalDebit)} · Crédit : ${fmt(rapport.totalCredit)}`,
+      `Équilibre : ${rapport.equilibre ? '✓ OK' : '✗ DÉSÉQUILIBRE'}`,
+      `Lignes sans numéro serveur (recomptées) : ${rapport.lignesRecomptees}`,
+      `Lignes auxiliaires : ${rapport.lignesAuxiliaires}`,
+      rapport.comptesSansLibelle.length ? `Comptes sans intitulé : ${rapport.comptesSansLibelle.join(', ')}` : 'Intitulés : OK',
+      '',
+      'Télécharger le FEC ?',
+    ];
+    if (!rapport.equilibre || rapport.comptesSansLibelle.length > 0) {
+      if (!window.confirm(lignes.join('\n') + '\n\n⚠️ Des anomalies ont été détectées.')) return;
+    } else if (!window.confirm(lignes.join('\n'))) return;
     const content = buildFec(journal as any, {
       entrepriseNom: entreprise.nom,
       ninea: entreprise.ninea || '',
       exerciceAnnee: exercice.annee,
     });
     downloadFec(content, entreprise.ninea || 'FEC', exercice.annee, exercice.date_fin);
+    toast.success('FEC exporté — rapport de contrôle validé');
   };
 
   return (
