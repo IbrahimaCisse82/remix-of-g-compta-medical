@@ -36,6 +36,13 @@
       "when": 1790979242842,
       "tag": "0004_sante_s0_sectorisation",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790979901676,
+      "tag": "0005_sante_s1_dossier_patient",
+      "breakpoints": true
     }
   ]
 }

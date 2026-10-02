@@ -2616,6 +2616,239 @@ export type Database = {
           },
         ]
       }
+      sante_antecedents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          details: string | null
+          id: string
+          libelle: string
+          patient_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          details?: string | null
+          id?: string
+          libelle: string
+          patient_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          details?: string | null
+          id?: string
+          libelle?: string
+          patient_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_antecedents_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_consentements: {
+        Row: {
+          accorde: boolean
+          created_at: string
+          id: string
+          patient_id: string
+          preuve: string | null
+          recueilli_par: string | null
+          type: string
+          version_texte: string
+        }
+        Insert: {
+          accorde: boolean
+          created_at?: string
+          id?: string
+          patient_id: string
+          preuve?: string | null
+          recueilli_par?: string | null
+          type: string
+          version_texte: string
+        }
+        Update: {
+          accorde?: boolean
+          created_at?: string
+          id?: string
+          patient_id?: string
+          preuve?: string | null
+          recueilli_par?: string | null
+          type?: string
+          version_texte?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_consentements_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_patient_assurances: {
+        Row: {
+          ayant_droit: string | null
+          created_at: string
+          date_debut: string | null
+          date_fin: string | null
+          id: string
+          numero_adherent: string | null
+          organisme: string
+          patient_id: string
+          plafond: number | null
+          taux_couverture: number | null
+        }
+        Insert: {
+          ayant_droit?: string | null
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          id?: string
+          numero_adherent?: string | null
+          organisme: string
+          patient_id: string
+          plafond?: number | null
+          taux_couverture?: number | null
+        }
+        Update: {
+          ayant_droit?: string | null
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          id?: string
+          numero_adherent?: string | null
+          organisme?: string
+          patient_id?: string
+          plafond?: number | null
+          taux_couverture?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_patient_assurances_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_patient_sequences: {
+        Row: {
+          annee: number
+          dernier: number
+          structure_id: string
+        }
+        Insert: {
+          annee: number
+          dernier?: number
+          structure_id: string
+        }
+        Update: {
+          annee?: number
+          dernier?: number
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_patient_sequences_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_patients: {
+        Row: {
+          adresse: string | null
+          contact_urgence_nom: string | null
+          contact_urgence_tel: string | null
+          created_at: string
+          created_by: string | null
+          date_naissance: string | null
+          email: string | null
+          fusionne_dans: string | null
+          id: string
+          lieu_naissance: string | null
+          nom: string
+          numero_dossier: string
+          prenoms: string
+          profession: string | null
+          sexe: string
+          statut: string
+          structure_id: string
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          contact_urgence_nom?: string | null
+          contact_urgence_tel?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_naissance?: string | null
+          email?: string | null
+          fusionne_dans?: string | null
+          id?: string
+          lieu_naissance?: string | null
+          nom: string
+          numero_dossier: string
+          prenoms: string
+          profession?: string | null
+          sexe: string
+          statut?: string
+          structure_id: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          contact_urgence_nom?: string | null
+          contact_urgence_tel?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_naissance?: string | null
+          email?: string | null
+          fusionne_dans?: string | null
+          id?: string
+          lieu_naissance?: string | null
+          nom?: string
+          numero_dossier?: string
+          prenoms?: string
+          profession?: string | null
+          sexe?: string
+          statut?: string
+          structure_id?: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_patients_fusionne_dans_fkey"
+            columns: ["fusionne_dans"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_patients_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sites: {
         Row: {
           actif: boolean
@@ -2982,6 +3215,8 @@ export type Database = {
         Args: { _invitation_id: string }
         Returns: string
       }
+      can_access_clinique: { Args: { _patient_id: string }; Returns: boolean }
+      can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
       can_admin_entreprise: {
         Args: { _entreprise_id: string }
         Returns: boolean
@@ -3088,6 +3323,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_entreprise_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_any_medical_role: {
+        Args: { _roles: string[]; _structure_id: string }
+        Returns: boolean
+      }
       has_medical_role: {
         Args: {
           _role: Database["public"]["Enums"]["medical_role"]
@@ -3115,6 +3354,61 @@ export type Database = {
       module_actif: {
         Args: { _entreprise_id: string; _module: string }
         Returns: boolean
+      }
+      sante_creer_patient: {
+        Args: {
+          _adresse?: string
+          _consentement?: boolean
+          _contact_urgence_nom?: string
+          _contact_urgence_tel?: string
+          _date_naissance?: string
+          _ignorer_doublons?: boolean
+          _nom: string
+          _prenoms: string
+          _sexe: string
+          _structure_id: string
+          _telephone?: string
+        }
+        Returns: string
+      }
+      sante_doublons_patient: {
+        Args: {
+          _date_naissance: string
+          _nom: string
+          _prenoms: string
+          _structure_id: string
+          _telephone: string
+        }
+        Returns: {
+          date_naissance: string
+          id: string
+          nom: string
+          numero_dossier: string
+          prenoms: string
+          telephone: string
+        }[]
+      }
+      sante_ouvrir_dossier: {
+        Args: { _ecran?: string; _patient_id: string }
+        Returns: undefined
+      }
+      sante_rechercher_patients: {
+        Args: {
+          _limit?: number
+          _offset?: number
+          _q?: string
+          _structure_id: string
+        }
+        Returns: {
+          date_naissance: string
+          id: string
+          nom: string
+          numero_dossier: string
+          prenoms: string
+          sexe: string
+          telephone: string
+          total: number
+        }[]
       }
       set_medical_theme: {
         Args: {
