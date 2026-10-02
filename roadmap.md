@@ -7,8 +7,8 @@
   - [x] Créer structures, sites, adhésions, rôles, invitations et journaux dédiés
   - [x] Appliquer l’isolation, les droits et l’audit dans la base
   - [x] Créer le parcours de création de structure
-  - [ ] Tester le parcours et l’isolation avec plusieurs comptes
-  - [ ] Valider les critères de sortie de la phase 0
+  - [ ] Tester le parcours et l’isolation avec plusieurs comptes — bloqué jusqu’à la création du premier compte utilisateur
+  - [ ] Valider les critères de sortie de la phase 0 — attend le test multi-comptes
 - [ ] Phase 1 — Dossier patient commun
 - [ ] Phase 2 — Cabinet médical
 - [ ] Phase 3 — Laboratoire
