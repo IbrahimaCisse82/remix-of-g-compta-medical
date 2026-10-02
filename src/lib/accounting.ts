@@ -55,6 +55,12 @@ export interface JournalLine {
   credit: number;
   /** Écriture (en-tête) dont la ligne est issue — null pour les lignes historiques. */
   ecriture_id?: string | null;
+  /** Numéro séquentiel serveur persistant de l'écriture (export FEC). */
+  ecriture_numero?: string | null;
+  /** Compte auxiliaire (tiers) de la ligne — export FEC. */
+  compte_auxiliaire?: string | null;
+  /** Libellé du tiers auxiliaire — export FEC. */
+  auxiliaire_libelle?: string | null;
 }
 
 

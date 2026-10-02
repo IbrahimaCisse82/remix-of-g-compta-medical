@@ -81,6 +81,9 @@ function mapJournal(data: any[]): JournalLine[] {
     libelle: d.libelle, compte: d.compte, intitule: d.intitule,
     debit: Number(d.debit), credit: Number(d.credit),
     ecriture_id: d.ecriture_id ?? null,
+    ecriture_numero: d.ecriture_numero ?? null,
+    compte_auxiliaire: d.compte_auxiliaire ?? null,
+    auxiliaire_libelle: d.auxiliaire_libelle ?? null,
   }));
 }
 
