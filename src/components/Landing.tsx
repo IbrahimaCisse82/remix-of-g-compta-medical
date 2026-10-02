@@ -6,6 +6,8 @@ import AuthPage from '@/pages/AuthPage';
 import { Link } from 'react-router-dom';
 import { Calculator, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const FEATURES = [
   { icon: '✏️', title: "Saisie d'écritures", desc: 'Saisie rapide en partie double avec auto-complétion du plan comptable SYSCOHADA.' },
@@ -29,6 +31,21 @@ export default function Landing() {
   const [selectedEnv, setSelectedEnv] = useState<EnvMode>('entreprise');
   const [showAuth, setShowAuth] = useState(false);
   const [workspace, setWorkspace] = useState<'compta' | 'sante'>('compta');
+  const [demoBusy, setDemoBusy] = useState(false);
+
+  const launchHealthDemo = async () => {
+    setDemoBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('demo-sante', { body: {} });
+      if (error || !data?.email) throw new Error('indisponible');
+      const { error: e2 } = await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
+      if (e2) throw e2;
+      await launchHealth();
+    } catch {
+      toast.error('La démo Santé est momentanément indisponible.');
+    }
+    setDemoBusy(false);
+  };
 
   if (showAuth && !user) return <AuthPage />;
 
@@ -103,6 +120,12 @@ export default function Landing() {
               className="w-full py-2.5 rounded-lg font-semibold text-sm bg-accent text-accent-foreground hover:brightness-110 transition-all">
               ⚡ Lancer la Démo
             </button>
+          </div>}
+
+          {workspace === 'sante' && <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">
+            <div className="font-serif text-lg text-primary text-center mb-4">Démo Santé</div>
+            <p className="text-xs text-fg2 text-center leading-relaxed mb-4">Clinique fictive préconfigurée (médecin, biologiste, secrétariat). Données de test uniquement.</p>
+            <Button className="w-full" disabled={demoBusy} onClick={launchHealthDemo}><Stethoscope />{demoBusy ? 'Préparation…' : 'Lancer la démo Santé'}</Button>
           </div>}
 
           <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">

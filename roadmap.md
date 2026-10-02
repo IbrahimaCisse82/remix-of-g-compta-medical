@@ -15,3 +15,10 @@
 - [ ] Phase 4 — Facturation, tiers-payant, caisse et export comptable
 - [ ] Phase 5 — Portails, notifications et tableaux de bord
 - [ ] Phase 6 — Conformité, durcissement et qualité
+
+## Options Santé (document « G-Compta options Clinique »)
+- [x] Prérequis vérifiés
+- [x] S0 : secteur d'activité, modules, options Clinique/Laboratoire, lien structure ↔ entreprise, isolation testée
+- [x] Démo Santé (2 structures fictives isolées)
+- [~] S1 : dossier patient (création, doublons, recherche paginée, fiche à onglets, journal d'accès) — reste : fusion tracée des doublons, documents GED
+- [ ] S2 Clinique · S3 Laboratoire · S4 Facturation · S5 Portail · S6 Conformité
