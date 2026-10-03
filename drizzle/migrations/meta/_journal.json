@@ -78,6 +78,13 @@
       "when": 1791041129519,
       "tag": "0010_sante_s3_qualite_reactifs_rectificatif",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791041267886,
+      "tag": "0011_sante_fix_westgard_array",
+      "breakpoints": true
     }
   ]
 }
