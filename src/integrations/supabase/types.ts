@@ -2472,6 +2472,7 @@ export type Database = {
           email: string
           entreprise_id: string
           id: string
+          jeton: string
           nom: string | null
           peut_deposer_documents: boolean
           peut_voir_bilan: boolean
@@ -2487,6 +2488,7 @@ export type Database = {
           email: string
           entreprise_id: string
           id?: string
+          jeton?: string
           nom?: string | null
           peut_deposer_documents?: boolean
           peut_voir_bilan?: boolean
@@ -2502,6 +2504,7 @@ export type Database = {
           email?: string
           entreprise_id?: string
           id?: string
+          jeton?: string
           nom?: string | null
           peut_deposer_documents?: boolean
           peut_voir_bilan?: boolean

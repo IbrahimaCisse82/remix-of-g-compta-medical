@@ -120,6 +120,13 @@
       "when": 1791043692802,
       "tag": "0016_sante_facturation_s4",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791047186991,
+      "tag": "0017_securite_fonctions_portail",
+      "breakpoints": true
     }
   ]
 }
