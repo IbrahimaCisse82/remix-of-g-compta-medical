@@ -224,7 +224,8 @@ export default function AppShell() {
     return () => window.removeEventListener('show-shortcuts', handler);
   }, []);
 
-  const { medicalStructure } = useApp();
+  const { medicalStructure, workspace } = useApp();
+  useEffect(() => { if (workspace === 'sante') setPage('sante_accueil'); }, [workspace]); // eslint-disable-line react-hooks/exhaustive-deps
   const healthView = currentPage.startsWith('sante_') ? currentPage.slice(6) as HealthView : null;
   const PageComponent = currentPage === 'clients' ? ClientsPage : (PAGES[currentPage] || Dashboard);
 

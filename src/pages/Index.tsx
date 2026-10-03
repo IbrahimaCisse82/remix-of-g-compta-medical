@@ -3,11 +3,9 @@ import { useAuth } from '@/hooks/useAuth';
 import Landing from '@/components/Landing';
 import AuthPage from '@/pages/AuthPage';
 import AppShell from '@/components/AppShell';
-import HealthOnboarding from '@/components/HealthOnboarding';
-import HealthShell from '@/components/HealthShell';
 
 function AppContent() {
-  const { launched, workspace, medicalStructure } = useApp();
+  const { launched } = useApp();
   const { user, loading } = useAuth();
 
   if (loading) {
