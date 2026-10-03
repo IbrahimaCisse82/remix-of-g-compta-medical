@@ -41,7 +41,7 @@ export default function RappelsSmsCard({ structureId }: { structureId: string })
       <div className="flex items-center gap-2"><MessageSquare className="text-primary" /><h2 className="font-semibold">Rappels de rendez-vous par SMS</h2></div>
       <p className="text-xs text-fg2">Envoyés la veille aux patients ayant un téléphone. Le message ne contient que la date, l’heure et le nom de la structure — aucune information médicale.</p>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={actifs} onChange={e => setActifs(e.target.checked)} />Activer les rappels</label>
-      <div className="flex gap-2"><Input aria-label="Numéro expéditeur" placeholder="Numéro expéditeur (+221…)" value={exp} onChange={e => setExp(e.target.value)} /><Button variant="outline" onClick={save}>Enregistrer</Button></div>
+      <div className="flex gap-2"><Input aria-label="Numéro expéditeur" placeholder="Expéditeur : +221… ou nom (ex. CLINIQUE)" value={exp} onChange={e => setExp(e.target.value)} /><Button variant="outline" onClick={save}>Enregistrer</Button></div>
       <Button size="sm" onClick={envoyer} disabled={busy}>{busy ? 'Envoi…' : 'Envoyer les rappels de demain'}</Button>
       {hist.length > 0 && <div className="text-xs space-y-1 border-t border-border pt-2">{hist.map(h => <p key={h.id} className={h.statut === 'envoye' ? 'text-fg2' : 'text-destructive'}>{new Date(h.created_at).toLocaleString('fr-FR')} · {LIB[h.statut]}</p>)}</div>}
     </section>
