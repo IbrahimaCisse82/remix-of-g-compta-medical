@@ -23,6 +23,7 @@ export default function PortailPublicPage() {
   const [params] = useSearchParams();
   const entrepriseId = params.get('e') || '';
   const emailQ = params.get('u') || '';
+  const jeton = params.get('t') || '';
 
   const [email, setEmail] = useState(emailQ);
   const [authed, setAuthed] = useState(false);
@@ -35,14 +36,14 @@ export default function PortailPublicPage() {
 
   const invoke = useCallback(async (payload: Record<string, unknown>) => {
     const { data: res, error } = await supabase.functions.invoke('portail-public', {
-      body: { entreprise_id: entrepriseId, email, ...payload },
+      body: { entreprise_id: entrepriseId, email, jeton, ...payload },
     });
     if (error || (res && (res as { error?: string }).error)) {
       const msg = (res as { error?: string })?.error || error?.message || 'Accès refusé';
       throw new Error(msg);
     }
     return res as any;
-  }, [entrepriseId, email]);
+  }, [entrepriseId, email, jeton]);
 
   const fetchSection = useCallback(async (sec: Section) => {
     if (!entrepriseId || !email) return;

@@ -37,6 +37,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { data: allowed } = await anon.rpc('can_write_entreprise', { _entreprise_id: entreprise_id });
+    if (allowed !== true) {
+      return new Response(JSON.stringify({ error: 'Accès refusé à cette entreprise' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
