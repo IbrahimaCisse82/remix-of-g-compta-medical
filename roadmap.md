@@ -28,3 +28,4 @@
 - [ ] S5 Portail · S6 Conformité
 - [ ] Audit du document « Module Santé (Cabinet + Laboratoire) » : type d'établissement, nomenclature catégorisée — comparer à l'existant
 - [x] Environnement unique G-Santé ERP (menu Santé + compta) aux couleurs santé
+- [ ] Cahier des charges réel (état actuel du code) pour consultant
