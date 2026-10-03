@@ -14,6 +14,7 @@ interface Acces {
   peut_voir_factures: boolean;
   peut_deposer_documents: boolean;
   derniere_connexion: string | null;
+  jeton: string;
   created_at: string;
 }
 
@@ -70,7 +71,7 @@ export default function PortailPage() {
 
   const copyLink = (a: Acces) => {
     if (!entreprise) return;
-    const link = `${window.location.origin}/portail?e=${entreprise.id}&u=${encodeURIComponent(a.email)}`;
+    const link = `${window.location.origin}/portail?e=${entreprise.id}&u=${encodeURIComponent(a.email)}&t=${a.jeton}`;
     navigator.clipboard.writeText(link);
     toast.success('Lien portail copié');
   };
@@ -151,7 +152,7 @@ export default function PortailPage() {
 
         <div className="text-[10px] text-fg3 space-y-1">
           <p>💡 <strong>Portail client</strong> : chaque client invité recevra un lien pour consulter en lecture seule ses états financiers, ses documents et ses factures.</p>
-          <p>🔐 Sécurité : accès isolé par entreprise via RLS ; le client s'identifie via son email.</p>
+          <p>🔐 Sécurité : accès isolé par entreprise via RLS ; le lien contient un code secret propre à chaque client — ne le partagez qu'avec lui.</p>
         </div>
       </div>
     </div>

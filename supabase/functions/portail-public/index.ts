@@ -12,9 +12,9 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { entreprise_id, email, section, action } = body || {};
-    if (!entreprise_id || !email) {
-      return new Response(JSON.stringify({ error: 'entreprise_id et email requis' }), {
+    const { entreprise_id, email, section, action, jeton } = body || {};
+    if (!entreprise_id || !email || !jeton || typeof jeton !== 'string' || jeton.length < 32) {
+      return new Response(JSON.stringify({ error: 'Lien d\'accès incomplet' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
       .from('portail_acces').select('*')
       .eq('entreprise_id', entreprise_id)
       .eq('email', String(email).toLowerCase().trim())
+      .eq('jeton', jeton)
       .eq('actif', true).maybeSingle();
 
     if (accErr || !acces) {
