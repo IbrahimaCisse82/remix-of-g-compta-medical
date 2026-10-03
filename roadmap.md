@@ -29,3 +29,4 @@
 - [ ] Audit du document « Module Santé (Cabinet + Laboratoire) » : type d'établissement, nomenclature catégorisée — comparer à l'existant
 - [x] Environnement unique G-Santé ERP (menu Santé + compta) aux couleurs santé
 - [x] Cahier des charges réel (état actuel du code) pour consultant
+- [x] Document 2 : compléments (6 points)
