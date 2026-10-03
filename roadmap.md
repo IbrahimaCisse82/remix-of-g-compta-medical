@@ -24,5 +24,6 @@
 - [x] S2 Clinique (+ certificats, paramétrage praticiens/actes ; rappels SMS J-1 via Twilio connecté : envoi manuel « Envoyer les rappels de demain » ; reste : expéditeur à configurer, envoi automatique quotidien)
   - ancien détail : : praticiens, actes, médicaments, agenda/file d'attente, consultation verrouillée + addenda, constantes, ordonnance A4 — reste : certificats, rappels RDV, prescription d'analyses (avec S3), actes facturables (avec S4), écrans de paramétrage praticiens/actes
 - [x] S3 Laboratoire : catalogue, références sexe/âge, circuit complet, critiques acquittées, double validation, compte rendu A4 + QR, étiquettes code-barres, CQ Westgard bloquant + Levey-Jennings, réactifs/lots/péremption, rectificatif versionné, antériorités + delta-check — reste hors v1 : import CSV/ASTM automates
-- [ ] S4 Facturation · S5 Portail · S6 Conformité
+- [x] S4 Facturation (factures immuables + avoirs, part patient/organisme, caisse, encaissements Mobile Money, suivi tiers-payant) — reste : bordereau par organisme, export G-Compta
+- [ ] S5 Portail · S6 Conformité
 - [ ] Audit du document « Module Santé (Cabinet + Laboratoire) » : type d'établissement, nomenclature catégorisée — comparer à l'existant
