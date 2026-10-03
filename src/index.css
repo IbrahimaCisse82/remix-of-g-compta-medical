@@ -6,10 +6,10 @@
 
 @layer base {
   :root {
-    --background: 220 20% 4%;
-    --background-2: 220 18% 7%;
-    --background-3: 220 16% 11%;
-    --background-4: 220 14% 14%;
+    --background: 200 32% 5%;
+    --background-2: 198 28% 8%;
+    --background-3: 196 24% 12%;
+    --background-4: 194 20% 15%;
     --foreground: 214 32% 91%;
     --foreground-2: 214 24% 64%;
     --foreground-3: 214 18% 42%;
@@ -20,8 +20,8 @@
     --popover: 220 18% 7%;
     --popover-foreground: 214 32% 91%;
 
-    --primary: 197 95% 60%;
-    --primary-foreground: 0 0% 0%;
+    --primary: 176 68% 46%;
+    --primary-foreground: 200 40% 6%;
 
     --secondary: 220 14% 14%;
     --secondary-foreground: 214 32% 91%;
@@ -29,8 +29,8 @@
     --muted: 220 16% 11%;
     --muted-foreground: 214 18% 42%;
 
-    --accent: 38 92% 50%;
-    --accent-foreground: 0 0% 0%;
+    --accent: 152 58% 50%;
+    --accent-foreground: 200 40% 6%;
 
     --destructive: 350 81% 72%;
     --destructive-foreground: 0 0% 100%;
@@ -43,10 +43,10 @@
 
     --orange: 24 95% 62%;
 
-    --border: 215 30% 21%;
-    --border-2: 215 30% 29%;
-    --input: 215 30% 21%;
-    --ring: 197 95% 60%;
+    --border: 192 26% 19%;
+    --border-2: 192 24% 27%;
+    --input: 192 26% 19%;
+    --ring: 176 68% 46%;
 
     --radius: 0.625rem;
 
@@ -64,15 +64,15 @@
     --font-mono: 'IBM Plex Mono', monospace;
 
     --shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
-    --glow-primary: rgba(56, 189, 248, 0.12);
-    --glow-accent: rgba(245, 158, 11, 0.1);
+    --glow-primary: rgba(45, 200, 190, 0.12);
+    --glow-accent: rgba(60, 200, 130, 0.1);
   }
 
   .light {
-    --background: 220 20% 97%;
-    --background-2: 220 18% 94%;
-    --background-3: 220 16% 90%;
-    --background-4: 220 14% 86%;
+    --background: 186 33% 97%;
+    --background-2: 186 28% 94%;
+    --background-3: 186 22% 90%;
+    --background-4: 186 18% 86%;
     --foreground: 220 20% 12%;
     --foreground-2: 220 14% 38%;
     --foreground-3: 220 10% 55%;
@@ -83,7 +83,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 12%;
 
-    --primary: 197 95% 42%;
+    --primary: 182 72% 30%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 90%;
@@ -92,7 +92,7 @@
     --muted: 220 16% 92%;
     --muted-foreground: 220 10% 55%;
 
-    --accent: 38 92% 50%;
+    --accent: 152 56% 36%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 350 81% 52%;
@@ -109,7 +109,7 @@
     --border: 220 18% 82%;
     --border-2: 220 18% 74%;
     --input: 220 18% 82%;
-    --ring: 197 95% 42%;
+    --ring: 182 72% 30%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 20% 12%;

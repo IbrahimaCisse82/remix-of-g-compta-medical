@@ -44,8 +44,20 @@ import KpiCollabPage from '@/pages/KpiCollabPage';
 import MobileMoneyPage from '@/pages/MobileMoneyPage';
 import FacturesDgidPage from '@/pages/FacturesDgidPage';
 import AnomaliesPage from '@/pages/AnomaliesPage';
+import HealthShell, { type HealthView } from '@/components/HealthShell';
+import HealthOnboarding from '@/components/HealthOnboarding';
 
 const NAV: { section: string; items: { id: PageId; icon: string; label: string; shortcut?: string; cabinet?: boolean }[] }[] = [
+  { section: 'Santé', items: [
+    { id: 'sante_accueil', icon: '✚', label: 'Accueil santé' },
+    { id: 'sante_patients', icon: '🩺', label: 'Patients', shortcut: 'Alt+N' },
+    { id: 'sante_agenda', icon: '📅', label: 'Agenda & consultations' },
+    { id: 'sante_laboratoire', icon: '🧪', label: 'Laboratoire' },
+    { id: 'sante_qualite', icon: '🧫', label: 'Qualité & réactifs' },
+    { id: 'sante_facturation', icon: '💳', label: 'Factures & caisse' },
+    { id: 'sante_catalogue', icon: '📋', label: 'Catalogue & tarifs' },
+    { id: 'sante_parametres', icon: '🏥', label: 'Structure & équipe' },
+  ]},
   { section: 'Synthèse', items: [
     { id: 'dashboard', icon: '◈', label: 'Tableau de bord', shortcut: 'Alt+D' },
     { id: 'clients', icon: '👥', label: 'Mes Clients', cabinet: true },
@@ -212,6 +224,9 @@ export default function AppShell() {
     return () => window.removeEventListener('show-shortcuts', handler);
   }, []);
 
+  const { medicalStructure, workspace } = useApp();
+  useEffect(() => { if (workspace === 'sante') setPage('sante_accueil'); }, [workspace]); // eslint-disable-line react-hooks/exhaustive-deps
+  const healthView = currentPage.startsWith('sante_') ? currentPage.slice(6) as HealthView : null;
   const PageComponent = currentPage === 'clients' ? ClientsPage : (PAGES[currentPage] || Dashboard);
 
   const handlePageChange = (page: PageId) => {
@@ -227,7 +242,7 @@ export default function AppShell() {
       <div className="h-[50px] bg-bg2 border-b border-border flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-3.5">
           <button onClick={toggleSidebar} className="lg:hidden text-fg2 text-lg">☰</button>
-          <span className="font-serif text-lg text-primary">G-Compta</span>
+          <span className="font-serif text-lg text-primary">✚ G-Santé ERP</span>
           <div className="hidden sm:flex items-center bg-bg3 border border-border rounded-full overflow-hidden text-[11px]">
             <span className={`px-2.5 py-1 font-bold border-r border-border ${env === 'cabinet' ? 'text-purple' : 'text-accent'}`}>
               {env === 'cabinet' ? '⚖️ Cabinet' : '🏭 Entreprise'}
@@ -291,7 +306,7 @@ export default function AppShell() {
         </aside>
 
         <main className="flex-1 overflow-y-auto">
-          <PageComponent />
+          {healthView ? (medicalStructure ? <HealthShell embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent />}
         </main>
       </div>
     </div>

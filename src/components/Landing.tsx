@@ -30,7 +30,7 @@ export default function Landing() {
   const { user } = useAuth();
   const [selectedEnv, setSelectedEnv] = useState<EnvMode>('entreprise');
   const [showAuth, setShowAuth] = useState(false);
-  const [workspace, setWorkspace] = useState<'compta' | 'sante'>('compta');
+  const [workspace, setWorkspace] = useState<'compta' | 'sante'>('sante');
   const [demoBusy, setDemoBusy] = useState(false);
 
   const launchHealthDemo = async () => {
