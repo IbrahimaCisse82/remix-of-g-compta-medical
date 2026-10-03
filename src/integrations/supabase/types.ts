@@ -3146,6 +3146,111 @@ export type Database = {
           },
         ]
       }
+      sante_controles_qualite: {
+        Row: {
+          actif: boolean
+          automate: string | null
+          cible: number
+          created_at: string
+          ecart_type: number
+          id: string
+          lot: string
+          niveau: string
+          parametre_id: string
+          structure_id: string
+        }
+        Insert: {
+          actif?: boolean
+          automate?: string | null
+          cible: number
+          created_at?: string
+          ecart_type: number
+          id?: string
+          lot: string
+          niveau?: string
+          parametre_id: string
+          structure_id: string
+        }
+        Update: {
+          actif?: boolean
+          automate?: string | null
+          cible?: number
+          created_at?: string
+          ecart_type?: number
+          id?: string
+          lot?: string
+          niveau?: string
+          parametre_id?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_controles_qualite_parametre_id_fkey"
+            columns: ["parametre_id"]
+            isOneToOne: false
+            referencedRelation: "sante_analyse_parametres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_controles_qualite_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_cq_mesures: {
+        Row: {
+          controle_id: string
+          id: string
+          regles: string[]
+          saisi_le: string
+          saisi_par: string
+          statut: string
+          structure_id: string
+          valeur: number
+          z: number
+        }
+        Insert: {
+          controle_id: string
+          id?: string
+          regles?: string[]
+          saisi_le?: string
+          saisi_par: string
+          statut: string
+          structure_id: string
+          valeur: number
+          z: number
+        }
+        Update: {
+          controle_id?: string
+          id?: string
+          regles?: string[]
+          saisi_le?: string
+          saisi_par?: string
+          statut?: string
+          structure_id?: string
+          valeur?: number
+          z?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_cq_mesures_controle_id_fkey"
+            columns: ["controle_id"]
+            isOneToOne: false
+            referencedRelation: "sante_controles_qualite"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_cq_mesures_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_demande_analyses: {
         Row: {
           analyse_id: string
@@ -3213,6 +3318,7 @@ export type Database = {
           validee_par: string | null
           validee_tech_le: string | null
           validee_tech_par: string | null
+          version: number
         }
         Insert: {
           consultation_id?: string | null
@@ -3234,6 +3340,7 @@ export type Database = {
           validee_par?: string | null
           validee_tech_le?: string | null
           validee_tech_par?: string | null
+          version?: number
         }
         Update: {
           consultation_id?: string | null
@@ -3255,6 +3362,7 @@ export type Database = {
           validee_par?: string | null
           validee_tech_le?: string | null
           validee_tech_par?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -3379,6 +3487,57 @@ export type Database = {
           },
           {
             foreignKeyName: "sante_fusions_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_lots_reactifs: {
+        Row: {
+          id: string
+          numero_lot: string
+          peremption: string
+          quantite_recue: number
+          quantite_restante: number
+          reactif_id: string
+          recu_le: string
+          recu_par: string | null
+          structure_id: string
+        }
+        Insert: {
+          id?: string
+          numero_lot: string
+          peremption: string
+          quantite_recue: number
+          quantite_restante: number
+          reactif_id: string
+          recu_le?: string
+          recu_par?: string | null
+          structure_id: string
+        }
+        Update: {
+          id?: string
+          numero_lot?: string
+          peremption?: string
+          quantite_recue?: number
+          quantite_restante?: number
+          reactif_id?: string
+          recu_le?: string
+          recu_par?: string | null
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_lots_reactifs_reactif_id_fkey"
+            columns: ["reactif_id"]
+            isOneToOne: false
+            referencedRelation: "sante_reactifs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_lots_reactifs_structure_id_fkey"
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
@@ -3677,6 +3836,114 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sante_praticiens_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_reactifs: {
+        Row: {
+          actif: boolean
+          created_at: string
+          id: string
+          nom: string
+          seuil_alerte: number
+          structure_id: string
+          unite: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          id?: string
+          nom: string
+          seuil_alerte?: number
+          structure_id: string
+          unite?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          id?: string
+          nom?: string
+          seuil_alerte?: number
+          structure_id?: string
+          unite?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_reactifs_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_rectificatifs: {
+        Row: {
+          ancien_drapeau: string | null
+          ancienne_valeur_num: number | null
+          ancienne_valeur_texte: string | null
+          demande_id: string
+          id: string
+          le: string
+          motif: string
+          nouvelle_valeur_num: number | null
+          nouvelle_valeur_texte: string | null
+          par: string
+          parametre_id: string
+          structure_id: string
+          version: number
+        }
+        Insert: {
+          ancien_drapeau?: string | null
+          ancienne_valeur_num?: number | null
+          ancienne_valeur_texte?: string | null
+          demande_id: string
+          id?: string
+          le?: string
+          motif: string
+          nouvelle_valeur_num?: number | null
+          nouvelle_valeur_texte?: string | null
+          par: string
+          parametre_id: string
+          structure_id: string
+          version: number
+        }
+        Update: {
+          ancien_drapeau?: string | null
+          ancienne_valeur_num?: number | null
+          ancienne_valeur_texte?: string | null
+          demande_id?: string
+          id?: string
+          le?: string
+          motif?: string
+          nouvelle_valeur_num?: number | null
+          nouvelle_valeur_texte?: string | null
+          par?: string
+          parametre_id?: string
+          structure_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_rectificatifs_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "sante_demandes_labo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_rectificatifs_parametre_id_fkey"
+            columns: ["parametre_id"]
+            isOneToOne: false
+            referencedRelation: "sante_analyse_parametres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_rectificatifs_structure_id_fkey"
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
@@ -4432,6 +4699,7 @@ export type Database = {
         Args: { _consultation_id: string }
         Returns: undefined
       }
+      sante_cq_bloquant: { Args: { _demande_id: string }; Returns: boolean }
       sante_creer_demande_labo: {
         Args: {
           _analyses: string[]
@@ -4506,6 +4774,17 @@ export type Database = {
         Args: { _conserve: string; _fusionne: string; _motif: string }
         Returns: undefined
       }
+      sante_mouvement_reactif: {
+        Args: {
+          _lot_id?: string
+          _numero_lot?: string
+          _peremption?: string
+          _quantite: number
+          _reactif_id: string
+          _type: string
+        }
+        Returns: undefined
+      }
       sante_ouvrir_dossier: {
         Args: { _ecran?: string; _patient_id: string }
         Returns: undefined
@@ -4531,6 +4810,20 @@ export type Database = {
           telephone: string
           total: number
         }[]
+      }
+      sante_rectifier_resultat: {
+        Args: {
+          _demande_id: string
+          _motif: string
+          _parametre_id: string
+          _valeur_num: number
+          _valeur_texte: string
+        }
+        Returns: number
+      }
+      sante_saisir_cq: {
+        Args: { _controle_id: string; _valeur: number }
+        Returns: string
       }
       sante_saisir_resultat: {
         Args: {

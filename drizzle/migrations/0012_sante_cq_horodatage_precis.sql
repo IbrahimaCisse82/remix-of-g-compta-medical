@@ -1,0 +1,1 @@
+ALTER TABLE public.sante_cq_mesures ALTER COLUMN saisi_le SET DEFAULT clock_timestamp();

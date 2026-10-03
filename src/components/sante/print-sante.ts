@@ -61,9 +61,30 @@ export async function imprimerCompteRendu(demandeId: string) {
     return `<h3 style="margin-top:18px;font-size:11pt;text-transform:uppercase;color:#0e7490">${esc(a.libelle)} <small>(${esc(a.section)})</small></h3><table><thead><tr><th>Paramètre</th><th>Résultat</th><th>Unité</th><th>Valeurs de référence</th><th></th></tr></thead><tbody>${lignes}</tbody></table>`;
   }).join('');
   const definitif = d.statut === 'validee';
-  ouvrir(`Compte rendu ${d.numero}`, `${entete(s, `<strong>COMPTE RENDU ${definitif ? 'DÉFINITIF' : 'PARTIEL'}</strong><br><small>Demande ${esc(d.numero)}</small><br><img src="${qr}" alt="QR" width="70" height="70">`)}
+  ouvrir(`Compte rendu ${d.numero}`, `${entete(s, `<strong>COMPTE RENDU ${definitif ? (d.version > 1 ? `RECTIFICATIF (version ${d.version})` : 'DÉFINITIF') : 'PARTIEL'}</strong><br><small>Demande ${esc(d.numero)}</small><br><img src="${qr}" alt="QR" width="70" height="70">`)}
 <div style="display:flex;justify-content:space-between;margin:14px 0"><div><strong>${esc(p.nom)} ${esc(p.prenoms)}</strong><br><small>Dossier ${esc(p.numero_dossier)} · ${p.sexe === 'F' ? 'Féminin' : 'Masculin'}${p.date_naissance ? ' · né(e) le ' + new Date(p.date_naissance).toLocaleDateString('fr-FR') : ''}</small></div>
 <div style="text-align:right"><small>Prescripteur : ${esc(d.prescripteur ?? '—')}<br>Prélevé le : ${d.preleve_le ? new Date(d.preleve_le).toLocaleString('fr-FR') : '—'}<br>Rendu le : ${d.validee_le ? new Date(d.validee_le).toLocaleString('fr-FR') : '—'}</small></div></div>
 ${blocs}
 <div class="sig">${definitif ? `Validé biologiquement le ${new Date(d.validee_le).toLocaleString('fr-FR')}<br>Signature électronique du biologiste` : '<em>Compte rendu non encore validé biologiquement</em>'}</div>${pied(s)}`);
+}
+
+/** Étiquettes code-barres (Code 128) : une par tube/contenant distinct de la demande. */
+export async function imprimerEtiquettes(demandeId: string) {
+  const { default: JsBarcode } = await import('jsbarcode');
+  const { data: d } = await supabase.from('sante_demandes_labo').select('numero, urgence, created_at, patient:sante_patients(nom, prenoms, numero_dossier, date_naissance, sexe)').eq('id', demandeId).maybeSingle();
+  const { data: das } = await supabase.from('sante_demande_analyses').select('analyse:sante_analyses(code, tube)').eq('demande_id', demandeId);
+  if (!d) return toast.error('Demande introuvable');
+  const tubes = new Map<string, string[]>();
+  (das ?? []).forEach((x: any) => { const t = x.analyse.tube || 'Contenant'; tubes.set(t, [...(tubes.get(t) ?? []), x.analyse.code]); });
+  const p: any = d.patient;
+  const etiquettes = [...tubes.entries()].map(([tube, codes], i) => {
+    const code = `${d.numero}-${i + 1}`;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    JsBarcode(svg, code, { format: 'CODE128', height: 36, width: 1.4, fontSize: 10, margin: 0 });
+    return `<div class="et"><strong>${esc(p.nom)} ${esc(p.prenoms)}</strong> ${p.sexe} ${p.date_naissance ? new Date(p.date_naissance).toLocaleDateString('fr-FR') : ''}<br><small>${esc(p.numero_dossier)} · ${esc(tube)} · ${esc(codes.join(' '))}${d.urgence ? ' · URGENT' : ''}</small><br>${svg.outerHTML}</div>`;
+  }).join('');
+  const w = window.open('', '_blank');
+  if (!w) return toast.error('Autorisez les fenêtres pour imprimer');
+  w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Étiquettes ${esc(d.numero)}</title><style>@page{size:A4;margin:8mm}body{font-family:Arial,sans-serif;font-size:9pt}.et{display:inline-block;width:62mm;height:30mm;border:1px dashed #999;padding:2mm;margin:1mm;overflow:hidden;vertical-align:top}svg{max-width:100%}</style></head><body>${etiquettes}<script>window.onload=()=>window.print()</script></body></html>`);
+  w.document.close();
 }
