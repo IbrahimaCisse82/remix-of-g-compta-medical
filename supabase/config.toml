@@ -2,3 +2,6 @@ project_id = "otyqiiumbdgaxvkcqpht"
 
 [functions.demo-sante]
 verify_jwt = false
+
+[functions.sante-rappels]
+verify_jwt = false
