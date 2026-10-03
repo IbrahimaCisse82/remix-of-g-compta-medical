@@ -1,13 +1,10 @@
 // Public read-only + limited-write portal (no JWT). Validates access via portail_acces + email.
+import { corsFor } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
@@ -24,6 +21,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'inconnue';
+    const depuis = new Date(Date.now() - 3600_000).toISOString();
+    const { count: echecs } = await supabase.from('portail_tentatives').select('id', { count: 'exact', head: true })
+      .eq('ip', ip).eq('succes', false).gte('created_at', depuis);
+    if ((echecs ?? 0) >= 5) {
+      return new Response(JSON.stringify({ error: 'Trop de tentatives. Réessayez dans une heure.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Access check
     const { data: acces, error: accErr } = await supabase
       .from('portail_acces').select('*')
@@ -33,6 +40,7 @@ Deno.serve(async (req) => {
       .eq('actif', true).maybeSingle();
 
     if (accErr || !acces) {
+      await supabase.from('portail_tentatives').insert({ ip, entreprise_id: /^[0-9a-f-]{36}$/i.test(String(entreprise_id)) ? entreprise_id : null, email: String(email).slice(0, 200), succes: false });
       return new Response(JSON.stringify({ error: 'Accès refusé ou inactif' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

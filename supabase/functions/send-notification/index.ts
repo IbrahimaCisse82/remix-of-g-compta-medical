@@ -1,13 +1,10 @@
 // Envoie une notification applicative (et prépare l'email — à activer via Lovable Emails plus tard).
+import { corsFor } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     const authHeader = req.headers.get('Authorization') || '';
@@ -22,8 +19,8 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
     const token = authHeader.replace('Bearer ', '');
-    const { data: claims } = await anon.auth.getClaims(token);
-    if (!claims?.claims) {
+    const { data: u } = await anon.auth.getUser(token);
+    if (!u?.user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -48,6 +45,28 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    if (Array.isArray(user_ids) && user_ids.length) {
+      if (user_ids.length > 100 || !user_ids.every((u: unknown) => typeof u === 'string' && /^[0-9a-f-]{36}$/i.test(u))) {
+        return new Response(JSON.stringify({ error: 'Destinataires invalides' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      for (const uid of user_ids) {
+        const { data: ids } = await admin.rpc('get_user_entreprise_ids', { _user_id: uid });
+        const membres = ((ids as unknown[]) || []).map((r: any) => typeof r === 'string' ? r : r?.get_user_entreprise_ids);
+        if (!membres.includes(entreprise_id)) {
+          return new Response(JSON.stringify({ error: 'Un destinataire n\'appartient pas à cette entreprise' }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+    }
+    if (typeof titre !== 'string' || titre.length > 200 || (message && String(message).length > 2000)) {
+      return new Response(JSON.stringify({ error: 'Contenu invalide' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const rows: any[] = [];
     if (Array.isArray(user_ids) && user_ids.length) {

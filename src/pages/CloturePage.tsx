@@ -42,15 +42,10 @@ export default function CloturePage() {
   const handleReopen = async (excId: string) => {
     if (confirmReopen !== excId) { setConfirmReopen(excId); return; }
     setConfirmReopen(null);
-    // Reopen = set status back to en_cours
-    const { error } = await supabase.from('exercices').update({ statut: 'en_cours' } as any).eq('id', excId);
+    const motif = window.prompt('Motif de réouverture (obligatoire, 5 caractères minimum) :') || '';
+    if (motif.trim().length < 5) { toast.error('Motif obligatoire'); return; }
+    const { error } = await supabase.rpc('fn_rouvrir_exercice', { _exercice_id: excId, _motif: motif.trim() });
     if (error) { toast.error(error.message); return; }
-    if (entreprise && exercice) {
-      await supabase.from('cloture_logs').insert({
-        entreprise_id: entreprise.id, exercice_id: excId,
-        action: 'reouverture', details: { annee: exercices.find(e => e.id === excId)?.annee },
-      });
-    }
     toast.success('Exercice réouvert');
     await openExercice(excId);
     await loadLogs();

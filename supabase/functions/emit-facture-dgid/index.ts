@@ -62,7 +62,13 @@ Deno.serve(async (req) => {
 
     let statut = "transmise";
     let response_data: unknown = { simulated: true, mode };
-    if (mode === "prod" && cfg?.endpoint) {
+    const DGID_HOSTS = (Deno.env.get("DGID_ALLOWED_HOSTS") || "").split(",").map(h => h.trim()).filter(Boolean);
+    let endpointOk = false;
+    try { const u = new URL(cfg?.endpoint ?? ""); endpointOk = u.protocol === "https:" && DGID_HOSTS.includes(u.hostname); } catch { endpointOk = false; }
+    if (mode === "prod" && !endpointOk) {
+      statut = "rejetee";
+      response_data = { error: "Adresse DGID non autorisée : l'intégration officielle n'est pas encore branchée." };
+    } else if (mode === "prod" && cfg?.endpoint) {
       try {
         const r = await fetch(cfg.endpoint, {
           method: "POST",
@@ -76,7 +82,7 @@ Deno.serve(async (req) => {
         response_data = { error: String(e) };
       }
     } else {
-      statut = "acceptee"; // mode test: accepté d'office
+      statut = "simulee"; // mode test : simulation, jamais « acceptée »
     }
 
     await supabase.from("factures").update({

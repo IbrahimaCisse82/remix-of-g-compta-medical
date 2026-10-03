@@ -33,6 +33,7 @@ const STATUT_LABEL: Record<string, { label: string; color: string }> = {
   non_transmise: { label: 'Non transmise', color: 'text-fg3' },
   transmise: { label: 'Transmise', color: 'text-primary' },
   acceptee: { label: '✓ Acceptée', color: 'text-accent' },
+  simulee: { label: '⚠ Simulée (non transmise)', color: 'text-fg3' },
   rejetee: { label: '✕ Rejetée', color: 'text-destructive' },
 };
 

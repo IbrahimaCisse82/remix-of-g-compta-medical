@@ -127,6 +127,13 @@
       "when": 1791047186991,
       "tag": "0017_securite_fonctions_portail",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791049057035,
+      "tag": "0018_p0_exercices_portail_tentatives",
+      "breakpoints": true
     }
   ]
 }

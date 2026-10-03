@@ -2523,6 +2523,33 @@ export type Database = {
           },
         ]
       }
+      portail_tentatives: {
+        Row: {
+          created_at: string
+          email: string | null
+          entreprise_id: string | null
+          id: string
+          ip: string
+          succes: boolean
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          entreprise_id?: string | null
+          id?: string
+          ip: string
+          succes?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          entreprise_id?: string | null
+          id?: string
+          ip?: string
+          succes?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -4918,6 +4945,10 @@ export type Database = {
           md_calculee: number
           md_stockee: number
         }[]
+      }
+      fn_cloturer_exercice: {
+        Args: { _exercice_id: string }
+        Returns: undefined
       }
       fn_contrepasser_ecriture: {
         Args: { _ecriture_id: string; _motif: string }

@@ -636,7 +636,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!exercice || !entreprise) { toast.error('Aucun exercice ou entreprise sélectionné.'); return; }
     setLoading(true);
     try {
-      await supabase.from('exercices').update({ statut: 'cloture' }).eq('id', exercice.id);
+      const { error: clErr } = await supabase.rpc('fn_cloturer_exercice', { _exercice_id: exercice.id });
+      if (clErr) throw clErr;
 
       const newAnnee = exercice.annee + 1;
       const newDebut = `${newAnnee}-01-01`;
