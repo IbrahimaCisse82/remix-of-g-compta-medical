@@ -2,3 +2,4 @@
 - Medical visual identity is token-based, with three structure-selectable palettes and dark/light modes, so all screens stay consistent.
 - G-Santé uses dedicated structure, membership, role, invitation, and audit objects while sharing only account identity with G-Compta, preventing health-data scope from weakening accounting tenancy.
 - G-Santé structures may be linked to a G-Compta entreprise; health modules are gated server-side by entreprise sector + entreprise_modules, so non-health entreprises see no change.
+- Single shell: health pages render inside AppShell via 'sante_*' page ids (HealthShell embeddedView); why: one ERP environment for health structures.
