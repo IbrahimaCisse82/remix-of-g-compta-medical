@@ -99,6 +99,13 @@
       "when": 1791041311173,
       "tag": "0013_sante_fix_regle_r4s",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791042676274,
+      "tag": "0014_sante_rappels_sms",
+      "breakpoints": true
     }
   ]
 }

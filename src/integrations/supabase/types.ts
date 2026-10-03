@@ -3843,6 +3843,57 @@ export type Database = {
           },
         ]
       }
+      sante_rappels: {
+        Row: {
+          canal: string
+          created_at: string
+          envoye_le: string | null
+          erreur: string | null
+          fournisseur_id: string | null
+          id: string
+          rdv_id: string
+          statut: string
+          structure_id: string
+        }
+        Insert: {
+          canal?: string
+          created_at?: string
+          envoye_le?: string | null
+          erreur?: string | null
+          fournisseur_id?: string | null
+          id?: string
+          rdv_id: string
+          statut?: string
+          structure_id: string
+        }
+        Update: {
+          canal?: string
+          created_at?: string
+          envoye_le?: string | null
+          erreur?: string | null
+          fournisseur_id?: string | null
+          id?: string
+          rdv_id?: string
+          statut?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_rappels_rdv_id_fkey"
+            columns: ["rdv_id"]
+            isOneToOne: false
+            referencedRelation: "sante_rendez_vous"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_rappels_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_reactifs: {
         Row: {
           actif: boolean
@@ -4283,7 +4334,9 @@ export type Database = {
           logo_path: string | null
           ninea: string | null
           nom: string
+          rappels_sms_actifs: boolean
           rccm: string | null
+          sms_expediteur: string | null
           telephone: string | null
           theme_medical: Database["public"]["Enums"]["medical_theme"]
           type: Database["public"]["Enums"]["structure_type"]
@@ -4301,7 +4354,9 @@ export type Database = {
           logo_path?: string | null
           ninea?: string | null
           nom: string
+          rappels_sms_actifs?: boolean
           rccm?: string | null
+          sms_expediteur?: string | null
           telephone?: string | null
           theme_medical?: Database["public"]["Enums"]["medical_theme"]
           type: Database["public"]["Enums"]["structure_type"]
@@ -4319,7 +4374,9 @@ export type Database = {
           logo_path?: string | null
           ninea?: string | null
           nom?: string
+          rappels_sms_actifs?: boolean
           rccm?: string | null
+          sms_expediteur?: string | null
           telephone?: string | null
           theme_medical?: Database["public"]["Enums"]["medical_theme"]
           type?: Database["public"]["Enums"]["structure_type"]
@@ -4697,6 +4754,10 @@ export type Database = {
       }
       sante_cloturer_consultation: {
         Args: { _consultation_id: string }
+        Returns: undefined
+      }
+      sante_config_rappels: {
+        Args: { _actifs: boolean; _expediteur: string; _structure_id: string }
         Returns: undefined
       }
       sante_cq_bloquant: { Args: { _demande_id: string }; Returns: boolean }
