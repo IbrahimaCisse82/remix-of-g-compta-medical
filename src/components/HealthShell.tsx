@@ -15,6 +15,7 @@ import LaboratoirePage from '@/components/sante/LaboratoirePage';
 import CataloguePage from '@/components/sante/CataloguePage';
 import QualitePage from '@/components/sante/QualitePage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
+import RappelsSmsCard from '@/components/sante/RappelsSmsCard';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
 
@@ -131,6 +132,7 @@ export default function HealthShell() {
                 </section>
               </div>
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
+              {medicalStructure && <div className="mt-8"><RappelsSmsCard structureId={medicalStructure.id} /></div>}
             </div>
           )}
         </main>
