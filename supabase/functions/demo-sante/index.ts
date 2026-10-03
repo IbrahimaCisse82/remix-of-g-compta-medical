@@ -1,12 +1,8 @@
 // Prépare (idempotent) deux comptes de démonstration G-Santé isolés et renvoie les identifiants du compte A.
 // Données fictives uniquement. Aucune donnée de santé réelle.
+import { corsFor } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 const DEMOS = [
   { key: 'A', email: 'demo-sante@gcompta.sn', password: 'DemoSante#2026', nom: 'Clinique Démo Dakar', type: 'mixte', secteur: 'sante_mixte', theme: 'clinique',
@@ -20,6 +16,7 @@ const MODULES: Record<string, string[]> = {
 };
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   try {
