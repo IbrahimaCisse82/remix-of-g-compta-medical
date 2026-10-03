@@ -18,7 +18,6 @@ function AppContent() {
     );
   }
 
-  if (launched && workspace === 'sante') return medicalStructure ? <HealthShell /> : <HealthOnboarding />;
   if (launched) return <AppShell />;
   return <Landing />;
 }
