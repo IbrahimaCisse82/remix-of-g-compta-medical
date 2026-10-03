@@ -8,6 +8,7 @@ describe('Westgard', () => {
   it('rejet 1-3s', () => expect(evaluerWestgard(-3.2, null).regles).toContain('1-3s'));
   it('rejet 2-2s', () => expect(evaluerWestgard(2.3, 2.1).regles).toEqual(['2-2s']));
   it('rejet R-4s', () => expect(evaluerWestgard(2.4, -2.1).regles).toContain('R-4s'));
+  it('retour à la cible après un rejet = accepté', () => expect(evaluerWestgard(0, 6).statut).toBe('accepte'));
   it('pas de 2-2s si côtés opposés', () => expect(evaluerWestgard(2.3, -1).statut).toBe('alerte'));
 });
 

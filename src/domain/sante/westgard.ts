@@ -7,7 +7,7 @@ export function evaluerWestgard(z: number, zPrecedent: number | null): { statut:
   const regles: string[] = [];
   if (Math.abs(z) > 3) regles.push('1-3s');
   if (zPrecedent !== null && ((z > 2 && zPrecedent > 2) || (z < -2 && zPrecedent < -2))) regles.push('2-2s');
-  if (zPrecedent !== null && Math.abs(z - zPrecedent) > 4 && Math.sign(z) !== Math.sign(zPrecedent)) regles.push('R-4s');
+  if (zPrecedent !== null && ((z > 2 && zPrecedent < -2) || (z < -2 && zPrecedent > 2))) regles.push('R-4s');
   if (regles.length) return { statut: 'rejete', regles };
   if (Math.abs(z) > 2) return { statut: 'alerte', regles: ['1-2s'] };
   return { statut: 'accepte', regles: [] };
