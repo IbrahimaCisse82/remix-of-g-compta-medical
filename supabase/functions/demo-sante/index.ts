@@ -5,9 +5,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 
 const DEMOS = [
-  { key: 'A', email: 'demo-sante@gcompta.sn', password: 'DemoSante#2026', nom: 'Clinique Démo Dakar', type: 'mixte', secteur: 'sante_mixte', theme: 'clinique',
+  { key: 'A', email: 'demo-sante@gcompta.sn', nom: 'Clinique Démo Dakar', type: 'mixte', secteur: 'sante_mixte', theme: 'clinique',
     roles: ['admin_structure', 'medecin', 'biologiste', 'secretaire'] },
-  { key: 'B', email: 'demo-sante-b@gcompta.sn', password: 'DemoSanteB#2026', nom: 'Laboratoire Test Thiès', type: 'laboratoire', secteur: 'sante_laboratoire', theme: 'laboratoire',
+  { key: 'B', email: 'demo-sante-b@gcompta.sn', nom: 'Laboratoire Test Thiès', type: 'laboratoire', secteur: 'sante_laboratoire', theme: 'laboratoire',
     roles: ['admin_structure', 'technicien'] },
 ];
 const MODULES: Record<string, string[]> = {
@@ -18,14 +18,21 @@ const MODULES: Record<string, string[]> = {
 Deno.serve(async (req) => {
   const cors = corsFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (Deno.env.get('DEMO_SANTE_ENABLED') !== 'true') {
+    return new Response(JSON.stringify({ error: 'Démo désactivée sur cet environnement' }), { status: 403, headers: { ...cors, 'Content-Type': 'application/json' } });
+  }
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   try {
     let out: { email: string; password: string } | null = null;
     for (const d of DEMOS) {
       const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
       let user = list?.users.find(u => u.email === d.email);
-      if (!user) {
-        const { data, error } = await db.auth.admin.createUser({ email: d.email, password: d.password, email_confirm: true, user_metadata: { full_name: `Démo ${d.nom}` } });
+      // Mot de passe aléatoire à chaque lancement : jamais de mot de passe fixe dans le code.
+      const pwd = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, '0')).join('') + 'Aa#1';
+      if (user) {
+        if (d.key === 'A') await db.auth.admin.updateUserById(user.id, { password: pwd });
+      } else {
+        const { data, error } = await db.auth.admin.createUser({ email: d.email, password: pwd, email_confirm: true, user_metadata: { full_name: `Démo ${d.nom}` } });
         if (error) throw error;
         user = data.user!;
       }
@@ -41,7 +48,7 @@ Deno.serve(async (req) => {
         if (e3) throw e3;
         await db.from('medical_user_roles').insert(d.roles.map(role => ({ membership_id: m.id, role })));
       }
-      if (d.key === 'A') out = { email: d.email, password: d.password };
+      if (d.key === 'A') out = { email: d.email, password: pwd };
     }
     return new Response(JSON.stringify(out), { headers: { ...cors, 'Content-Type': 'application/json' } });
   } catch (e) {
