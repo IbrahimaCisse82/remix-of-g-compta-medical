@@ -23,5 +23,5 @@
 - [x] S1 : dossier patient (création, doublons + fusion tracée, recherche paginée, fiche à onglets, documents privés, journal d'accès)
 - [x] S2 Clinique (+ certificats, paramétrage praticiens/actes ; rappels SMS en attente d'un fournisseur SMS)
   - ancien détail : : praticiens, actes, médicaments, agenda/file d'attente, consultation verrouillée + addenda, constantes, ordonnance A4 — reste : certificats, rappels RDV, prescription d'analyses (avec S3), actes facturables (avec S4), écrans de paramétrage praticiens/actes
-- [~] S3 Laboratoire : catalogue + valeurs de référence sexe/âge, demandes, circuit prélèvement→réception→analyse, drapeaux et critiques acquittés, double validation, compte rendu A4 avec QR — reste : étiquettes code-barres, contrôle qualité Westgard, réactifs, rectificatif versionné, courbes
+- [x] S3 Laboratoire : catalogue, références sexe/âge, circuit complet, critiques acquittées, double validation, compte rendu A4 + QR, étiquettes code-barres, CQ Westgard bloquant + Levey-Jennings, réactifs/lots/péremption, rectificatif versionné, antériorités + delta-check — reste hors v1 : import CSV/ASTM automates
 - [ ] S4 Facturation · S5 Portail · S6 Conformité
