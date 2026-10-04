@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { bordereauParOrganisme, fcfa, type LigneBordereau } from '@/domain/sante/tiers-payant';
-import { exportToCSV } from '@/lib/csv-export';
+import { exportCsv } from '@/lib/csv-export';
 
 type Lien = { source_type: string; statut: string; erreur: string | null; created_at: string };
 
@@ -47,7 +47,7 @@ export default function BordereauCompta({ structureId }: { structureId: string }
           <span><b>{g.organisme}</b> · {g.lignes.length} pièce(s) · {fcfa(g.total)}</span>
           <span className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => imprimer(g)}>Imprimer A4</Button>
-            <Button size="sm" variant="outline" onClick={() => exportToCSV(g.lignes.map(l => ({ Date: l.date, Facture: l.numero, Dossier: l.dossier, Patient: l.patient, Montant: l.part_organisme })), `bordereau-${g.organisme}-${mois}`)}>CSV</Button>
+            <Button size="sm" variant="outline" onClick={() => exportCsv(['Date', 'Facture', 'Dossier', 'Patient', 'Montant'], g.lignes.map(l => [l.date, l.numero, l.dossier, l.patient, l.part_organisme]), `bordereau-${g.organisme}-${mois}.csv`)}>CSV</Button>
           </span>
         </div>
       ))}
