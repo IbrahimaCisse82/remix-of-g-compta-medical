@@ -35,4 +35,8 @@
 - [x] P0 : fonctions base fermées aux visiteurs, portail (code secret + 5 essais/h), notifications (appartenance vérifiée), démo Santé (mot de passe aléatoire, activable), DGID (adresse autorisée + « simulée »), clôture/réouverture d'exercice par la base
 - [ ] P0 : code à usage unique par e-mail pour le portail — attend un domaine d'envoi d'e-mails
 - [ ] P0 : CORS restreint — le serveur renvoie encore l'origine appelante (à revoir)
-- [ ] P1 conformité · P1bis écritures auto factures santé · P2 workflows · P3 nettoyage — attend validation P0
+- [x] P1bis : écritures automatiques facture/avoir/encaissement santé (VT/CA/BQ, 4111/4114/706/57X/52X) + bordereau mensuel par organisme
+- [x] P1 : note de conformité, registre des violations, consentement vérifié en base
+- [ ] P1 : bris de glace avec motif + alerte ; durée de conservation médicale — attend avis juriste / CDP
+- [ ] P1bis : facture créée automatiquement à la clôture de consultation (paramétrable)
+- [ ] P2 workflows · P3 nettoyage
