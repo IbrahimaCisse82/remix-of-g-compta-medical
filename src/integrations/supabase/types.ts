@@ -2944,6 +2944,47 @@ export type Database = {
           },
         ]
       }
+      sante_compta_liens: {
+        Row: {
+          created_at: string
+          ecriture_id: string | null
+          erreur: string | null
+          id: string
+          source_id: string
+          source_type: string
+          statut: string
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          ecriture_id?: string | null
+          erreur?: string | null
+          id?: string
+          source_id: string
+          source_type: string
+          statut: string
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          ecriture_id?: string | null
+          erreur?: string | null
+          id?: string
+          source_id?: string
+          source_type?: string
+          statut?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_compta_liens_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_consentements: {
         Row: {
           accorde: boolean
@@ -4507,6 +4548,56 @@ export type Database = {
           },
         ]
       }
+      sante_violations: {
+        Row: {
+          created_at: string
+          declare_par: string
+          detectee_le: string
+          donnees_concernees: string
+          id: string
+          mesures: string | null
+          nature: string
+          nb_personnes: number | null
+          notifiee_cdp_le: string | null
+          personnes_informees_le: string | null
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          declare_par?: string
+          detectee_le?: string
+          donnees_concernees: string
+          id?: string
+          mesures?: string | null
+          nature: string
+          nb_personnes?: number | null
+          notifiee_cdp_le?: string | null
+          personnes_informees_le?: string | null
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          declare_par?: string
+          detectee_le?: string
+          donnees_concernees?: string
+          id?: string
+          mesures?: string | null
+          nature?: string
+          nb_personnes?: number | null
+          notifiee_cdp_le?: string | null
+          personnes_informees_le?: string | null
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_violations_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sites: {
         Row: {
           actif: boolean
@@ -5037,6 +5128,19 @@ export type Database = {
       }
       sante_cloturer_consultation: {
         Args: { _consultation_id: string }
+        Returns: undefined
+      }
+      sante_comptabiliser: {
+        Args: {
+          _date: string
+          _journal: string
+          _libelle: string
+          _lignes: Json
+          _piece: string
+          _source: string
+          _structure_id: string
+          _type: string
+        }
         Returns: undefined
       }
       sante_config_rappels: {
