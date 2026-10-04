@@ -134,6 +134,13 @@
       "when": 1791049057035,
       "tag": "0018_p0_exercices_portail_tentatives",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791146634307,
+      "tag": "0019_sante_comptabilisation_auto",
+      "breakpoints": true
     }
   ]
 }

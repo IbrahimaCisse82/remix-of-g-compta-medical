@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import BordereauCompta from './BordereauCompta';
 import { MODES_PAIEMENT, fcfa, resteDu, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
 
 type Item = { code: string; libelle: string; tarif: number };
@@ -134,6 +135,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
             </tr>;
           })}</tbody></table>
       </section>
+      <BordereauCompta structureId={structureId} />
     </div>
   );
 }
