@@ -17,6 +17,7 @@ import QualitePage from '@/components/sante/QualitePage';
 import FacturationPage from '@/components/sante/FacturationPage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 import RappelsSmsCard from '@/components/sante/RappelsSmsCard';
+import ViolationsCard from '@/components/sante/ViolationsCard';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
 
@@ -111,6 +112,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               </div>
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
               {medicalStructure && <div className="mt-8"><RappelsSmsCard structureId={medicalStructure.id} /></div>}
+              {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
             </div>
           )}
         </main>
