@@ -10,3 +10,12 @@ describe('tiers-payant', () => {
   it('refuse une remise excessive', () => expect(() => ventiler(1000, 2000)).toThrow());
   it('reste dû jamais négatif', () => expect(resteDu(1000, 1500)).toBe(0));
 });
+
+import { bordereauParOrganisme } from './tiers-payant';
+describe('bordereau', () => {
+  const b = (o: string | null, m: number) => ({ numero: 'F', date: '2026-10-01', patient: 'X', dossier: 'P', organisme: o, part_organisme: m, type: m < 0 ? 'avoir' : 'facture', annulee: false });
+  it('groupe par organisme et nette les avoirs', () => {
+    const r = bordereauParOrganisme([b('IPM', 8000), b('IPM', -8000), b('IPM', 5000), b('AXA', 3000), b(null, 0)]);
+    expect(r.map(g => [g.organisme, g.total])).toEqual([['AXA', 3000], ['IPM', 5000]]);
+  });
+});

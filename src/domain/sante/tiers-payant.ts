@@ -24,3 +24,17 @@ export const MODES_PAIEMENT = [
 ] as const;
 
 export const fcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
+
+export interface LigneBordereau { numero: string; date: string; patient: string; dossier: string; organisme: string | null; part_organisme: number; type: string; annulee: boolean }
+
+/** Bordereau mensuel : factures (et avoirs) avec part organisme, groupées par organisme. */
+export function bordereauParOrganisme(lignes: LigneBordereau[]) {
+  const groupes = new Map<string, { lignes: LigneBordereau[]; total: number }>();
+  for (const l of lignes) {
+    if (!l.organisme || l.part_organisme === 0) continue;
+    const g = groupes.get(l.organisme) ?? { lignes: [], total: 0 };
+    g.lignes.push(l); g.total += l.part_organisme;
+    groupes.set(l.organisme, g);
+  }
+  return [...groupes.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([organisme, g]) => ({ organisme, ...g }));
+}
