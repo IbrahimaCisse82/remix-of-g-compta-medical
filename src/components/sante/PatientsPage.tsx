@@ -1,5 +1,6 @@
 import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
+import ExportDossierButton from './ExportDossierButton';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -173,6 +174,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         <FusionPatient patientId={id} structureId={p.structure_id} onDone={onBack} />
         <BrisGlaceButton patientId={id} onOpened={loadItems} />
         <LienPortailButton patientId={id} />
+        <ExportDossierButton patientId={id} numero={p.numero_dossier} />
         <p className="text-sm text-fg2">{p.sexe === 'F' ? 'Féminin' : 'Masculin'}{p.date_naissance ? ` · ${libelleAge(p.date_naissance)} (${new Date(p.date_naissance).toLocaleDateString('fr-FR')})` : ''}</p>
       </div>
       <div className="flex gap-1 border-b border-border mb-4 overflow-x-auto" role="tablist">

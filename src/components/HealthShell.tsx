@@ -19,6 +19,7 @@ import FacturationPage from '@/components/sante/FacturationPage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 import RappelsSmsCard from '@/components/sante/RappelsSmsCard';
 import ViolationsCard from '@/components/sante/ViolationsCard';
+import ConformiteCard from '@/components/sante/ConformiteCard';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
@@ -106,7 +107,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
                   <div className="flex items-center gap-2 mb-5"><Users className="text-primary" /><h2 className="font-semibold">Invitations</h2></div>
                   <form onSubmit={invite} className="space-y-3 mb-5">
                     <div><Label htmlFor="invite-email" className="sr-only">Email</Label><Input id="invite-email" type="email" required value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="collaborateur@structure.sn" /></div>
-                    <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['medecin','biologiste','technicien','preleveur','secretaire','caissier','comptable','lecteur'].map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
+                    <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['medecin','biologiste','technicien','preleveur','secretaire','caissier','tiers_payant','comptable','lecteur'].map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
                     <Button type="submit" className="w-full"><Send />Enregistrer l’invitation</Button>
                   </form>
                   <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p></div>)}</div>
@@ -116,6 +117,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               {medicalStructure && <div className="mt-8"><RappelsSmsCard structureId={medicalStructure.id} /></div>}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
+              {medicalStructure && <ConformiteCard structureId={medicalStructure.id} />}
             </div>
           )}
         </main>
