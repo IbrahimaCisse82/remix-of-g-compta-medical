@@ -293,6 +293,6 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     // La matrice attendue décrit la CIBLE « besoin d'en connaître » (P1.2). Les écarts sont
     // rapportés (fichier ci-dessus) ; ils deviendront bloquants à la livraison de P1.
     if (ecarts.length) console.warn(`Écarts matrice (cible P1) : ${ecarts.length}\n` + ecarts.join('\n'));
-    expect(Object.keys(constatee)).toHaveLength(ROLES.length);
+    expect(ecarts, 'écarts à la matrice d’accès (bloquant depuis P1)').toHaveLength(0);
   }, 120_000);
 });
