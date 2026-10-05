@@ -193,6 +193,83 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     });
   });
 
+  describe('P1 — cloisonnement, besoin d’en connaître, bris de glace', () => {
+    let medecin2: SupabaseClient, admin2: SupabaseClient;
+    async function membre(email: string, role: string) {
+      const c = await compte(email);
+      const m = await admin.from('structure_memberships').upsert({ structure_id: S.A.structure, user_id: await uid(c), statut: 'actif' }, { onConflict: 'structure_id,user_id' }).select('id').single();
+      if (m.error) throw m.error;
+      await admin.from('medical_user_roles').upsert({ membership_id: m.data.id, role }, { onConflict: 'membership_id,role' });
+      return c;
+    }
+    beforeAll(async () => {
+      medecin2 = await membre('p1-medecin2-a@gsante.test', 'medecin');
+      admin2 = await membre('p1-admin2-a@gsante.test', 'admin_structure');
+      await admin.from('sante_bris_glace').delete().eq('patient_id', S.A.patient);
+      await admin.from('structures').update({ acces_tous_dossiers: false }).eq('id', S.A.structure);
+    }, 60_000);
+
+    const CLINIQUES = ['sante_consultations', 'sante_ordonnances', 'sante_constantes', 'sante_antecedents', 'sante_documents_patient', 'sante_resultats'] as const;
+    for (const role of ['admin_structure', 'secretaire', 'caissier', 'comptable', 'lecteur'] as const) {
+      it(`${role} : aucune donnée clinique lisible`, async () => {
+        for (const t of CLINIQUES) {
+          const col = t === 'sante_resultats' ? 'structure_id' : 'patient_id';
+          const val = t === 'sante_resultats' ? S.A.structure : S.A.patient;
+          const { data } = await S.A.users[role].from(t).select('id').eq(col, val).limit(1);
+          expect(data ?? [], `${role} lit ${t}`).toHaveLength(0);
+        }
+      });
+    }
+    it('comptable et lecteur : ni identité patient ni libellés d’actes, mais ventes agrégées', async () => {
+      for (const role of ['comptable', 'lecteur'] as const) {
+        expect((await S.A.users[role].from('sante_patients').select('id').eq('structure_id', S.A.structure)).data ?? []).toHaveLength(0);
+        expect((await S.A.users[role].from('sante_facture_lignes').select('libelle').eq('structure_id', S.A.structure)).data ?? []).toHaveLength(0);
+      }
+      const agg = await S.A.users.comptable.rpc('sante_ventes_par_categorie', { _structure_id: S.A.structure, _debut: '2020-01-01', _fin: '2100-01-01' });
+      expect(agg.error).toBeNull();
+      expect(JSON.stringify(agg.data)).not.toMatch(/TEST|Patient/);
+    });
+    it('écritures santé : aucune identité patient transmise à la comptabilité', async () => {
+      const { data: lignes } = await admin.from('ecriture_lignes').select('libelle, intitule, ecritures!inner(origine)').eq('ecritures.origine', 'sante').limit(500);
+      for (const l of lignes ?? []) expect(`${l.libelle} ${l.intitule}`).not.toMatch(/TESTA|TESTB/);
+    });
+    it('médecin sans relation de soin : pas de contenu clinique, sauf option structure', async () => {
+      expect((await medecin2.from('sante_consultations').select('id').eq('patient_id', S.A.patient)).data ?? []).toHaveLength(0);
+      expect((await S.A.users.medecin.from('sante_consultations').select('id').eq('patient_id', S.A.patient)).data ?? []).not.toHaveLength(0);
+      await admin.from('structures').update({ acces_tous_dossiers: true }).eq('id', S.A.structure);
+      expect((await medecin2.from('sante_consultations').select('id').eq('patient_id', S.A.patient)).data ?? []).not.toHaveLength(0);
+      await admin.from('structures').update({ acces_tous_dossiers: false }).eq('id', S.A.structure);
+    });
+    it('bris de glace : motif codé + 20 caractères, accès 1 h, revue par un autre administrateur', async () => {
+      expect((await medecin2.rpc('sante_bris_de_glace', { _patient_id: S.A.patient, _motif: 'trop court', _motif_code: 'urgence_vitale' })).error).toBeTruthy();
+      expect((await medecin2.rpc('sante_bris_de_glace', { _patient_id: S.A.patient, _motif: 'Patient admis inconscient aux urgences', _motif_code: 'inconnu' })).error).toBeTruthy();
+      expect((await medecin2.rpc('sante_bris_de_glace' as never, { _patient_id: S.A.patient, _motif: 'Patient admis inconscient aux urgences' } as never)).error).toBeTruthy();
+      const ok = await medecin2.rpc('sante_bris_de_glace', { _patient_id: S.A.patient, _motif: 'Patient admis inconscient aux urgences', _motif_code: 'patient_inconscient' });
+      expect(ok.error).toBeNull();
+      expect((await medecin2.from('sante_consultations').select('id').eq('patient_id', S.A.patient)).data ?? []).not.toHaveLength(0);
+      // Auto-revue interdite (admin qui a lui-même ouvert un accès)
+      const own = await S.A.users.admin_structure.rpc('sante_bris_de_glace', { _patient_id: S.A.patient, _motif: 'Contrôle qualité dossier urgent', _motif_code: 'autre' });
+      expect(own.error).toBeNull();
+      expect((await S.A.users.admin_structure.rpc('sante_revoir_bris_glace', { _id: own.data as string, _commentaire: 'ok vu' })).error).toBeTruthy();
+      expect((await admin2.rpc('sante_revoir_bris_glace', { _id: own.data as string, _commentaire: 'Justifié, vérifié' })).error).toBeNull();
+      expect((await admin2.rpc('sante_revoir_bris_glace', { _id: ok.data as string, _commentaire: 'Justifié, vérifié' })).error).toBeNull();
+      expect((await medecin2.from('sante_consultations').select('id').eq('patient_id', S.A.patient)).data ?? [], 'accès fermé après revue').toHaveLength(0);
+    }, 60_000);
+    it('renouvellement plafonné', async () => {
+      const args = { _patient_id: S.A.patient, _motif: 'Continuité des soins, médecin traitant absent', _motif_code: 'continuite_soins' };
+      let refus = false;
+      for (let i = 0; i < 4; i++) if ((await medecin2.rpc('sante_bris_de_glace', args)).error) { refus = true; break; }
+      expect(refus).toBe(true);
+    });
+    it('export droit d’accès : réservé (refusé au secrétariat), tracé', async () => {
+      expect((await S.A.users.secretaire.rpc('sante_export_dossier', { _patient_id: S.A.patient })).error).toBeTruthy();
+      const r = await S.A.users.medecin.rpc('sante_export_dossier', { _patient_id: S.A.patient });
+      expect(r.error).toBeNull();
+      const { data } = await admin.from('medical_access_log').select('id').eq('patient_id', S.A.patient).eq('ecran', 'export_droit_acces').limit(1);
+      expect(data ?? []).toHaveLength(1);
+    });
+  });
+
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
     for (const role of ROLES) {
@@ -216,6 +293,6 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     // La matrice attendue décrit la CIBLE « besoin d'en connaître » (P1.2). Les écarts sont
     // rapportés (fichier ci-dessus) ; ils deviendront bloquants à la livraison de P1.
     if (ecarts.length) console.warn(`Écarts matrice (cible P1) : ${ecarts.length}\n` + ecarts.join('\n'));
-    expect(Object.keys(constatee)).toHaveLength(ROLES.length);
+    expect(ecarts, 'écarts à la matrice d’accès (bloquant depuis P1)').toHaveLength(0);
   }, 120_000);
 });

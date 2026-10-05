@@ -2834,10 +2834,13 @@ export type Database = {
       }
       sante_bris_glace: {
         Row: {
+          commentaire_revue: string | null
           created_at: string
+          escalade_le: string | null
           expire_le: string
           id: string
           motif: string
+          motif_code: string | null
           patient_id: string
           revu_le: string | null
           revu_par: string | null
@@ -2845,10 +2848,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          commentaire_revue?: string | null
           created_at?: string
+          escalade_le?: string | null
           expire_le?: string
           id?: string
           motif: string
+          motif_code?: string | null
           patient_id: string
           revu_le?: string | null
           revu_par?: string | null
@@ -2856,10 +2862,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          commentaire_revue?: string | null
           created_at?: string
+          escalade_le?: string | null
           expire_le?: string
           id?: string
           motif?: string
+          motif_code?: string | null
           patient_id?: string
           revu_le?: string | null
           revu_par?: string | null
@@ -3044,6 +3053,7 @@ export type Database = {
           patient_id: string
           preuve: string | null
           recueilli_par: string | null
+          texte: string | null
           type: string
           version_texte: string
         }
@@ -3054,6 +3064,7 @@ export type Database = {
           patient_id: string
           preuve?: string | null
           recueilli_par?: string | null
+          texte?: string | null
           type: string
           version_texte: string
         }
@@ -3064,6 +3075,7 @@ export type Database = {
           patient_id?: string
           preuve?: string | null
           recueilli_par?: string | null
+          texte?: string | null
           type?: string
           version_texte?: string
         }
@@ -3073,6 +3085,38 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_conservation_regles: {
+        Row: {
+          duree_annees: number
+          id: string
+          structure_id: string
+          type_document: string
+          updated_at: string
+        }
+        Insert: {
+          duree_annees?: number
+          id?: string
+          structure_id: string
+          type_document: string
+          updated_at?: string
+        }
+        Update: {
+          duree_annees?: number
+          id?: string
+          structure_id?: string
+          type_document?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_conservation_regles_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
             referencedColumns: ["id"]
           },
         ]
@@ -4694,42 +4738,63 @@ export type Database = {
       }
       sante_violations: {
         Row: {
+          cloturee_le: string | null
+          conclusion: string | null
           created_at: string
           declare_par: string
           detectee_le: string
           donnees_concernees: string
+          echeance_notification: string | null
+          gravite: string | null
           id: string
           mesures: string | null
           nature: string
           nb_personnes: number | null
           notifiee_cdp_le: string | null
           personnes_informees_le: string | null
+          qualification: string | null
+          qualifiee_le: string | null
+          statut: string
           structure_id: string
         }
         Insert: {
+          cloturee_le?: string | null
+          conclusion?: string | null
           created_at?: string
           declare_par?: string
           detectee_le?: string
           donnees_concernees: string
+          echeance_notification?: string | null
+          gravite?: string | null
           id?: string
           mesures?: string | null
           nature: string
           nb_personnes?: number | null
           notifiee_cdp_le?: string | null
           personnes_informees_le?: string | null
+          qualification?: string | null
+          qualifiee_le?: string | null
+          statut?: string
           structure_id: string
         }
         Update: {
+          cloturee_le?: string | null
+          conclusion?: string | null
           created_at?: string
           declare_par?: string
           detectee_le?: string
           donnees_concernees?: string
+          echeance_notification?: string | null
+          gravite?: string | null
           id?: string
           mesures?: string | null
           nature?: string
           nb_personnes?: number | null
           notifiee_cdp_le?: string | null
           personnes_informees_le?: string | null
+          qualification?: string | null
+          qualifiee_le?: string | null
+          statut?: string
           structure_id?: string
         }
         Relationships: [
@@ -4833,9 +4898,12 @@ export type Database = {
       }
       structures: {
         Row: {
+          acces_tous_dossiers: boolean
           acte_consultation_code: string | null
           adresse: string | null
           autorisation_exercice: string | null
+          bris_glace_renouvellements_max: number
+          bris_glace_seuil_semaine: number
           created_at: string
           created_by: string
           devise: string
@@ -4855,9 +4923,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acces_tous_dossiers?: boolean
           acte_consultation_code?: string | null
           adresse?: string | null
           autorisation_exercice?: string | null
+          bris_glace_renouvellements_max?: number
+          bris_glace_seuil_semaine?: number
           created_at?: string
           created_by: string
           devise?: string
@@ -4877,9 +4948,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acces_tous_dossiers?: boolean
           acte_consultation_code?: string | null
           adresse?: string | null
           autorisation_exercice?: string | null
+          bris_glace_renouvellements_max?: number
+          bris_glace_seuil_semaine?: number
           created_at?: string
           created_by?: string
           devise?: string
@@ -5278,10 +5352,16 @@ export type Database = {
         Args: { _demande_id: string; _motif?: string; _statut: string }
         Returns: undefined
       }
-      sante_bris_de_glace: {
-        Args: { _motif: string; _patient_id: string }
-        Returns: string
+      sante_avancer_violation: {
+        Args: { _gravite: string; _id: string; _statut: string; _texte: string }
+        Returns: undefined
       }
+      sante_bris_de_glace:
+        | { Args: { _motif: string; _patient_id: string }; Returns: string }
+        | {
+            Args: { _motif: string; _motif_code: string; _patient_id: string }
+            Returns: string
+          }
       sante_cloturer_consultation: {
         Args: { _consultation_id: string }
         Returns: undefined
@@ -5297,6 +5377,19 @@ export type Database = {
           _structure_id: string
           _type: string
         }
+        Returns: undefined
+      }
+      sante_config_acces: {
+        Args: {
+          _renouv: number
+          _seuil: number
+          _structure_id: string
+          _tous: boolean
+        }
+        Returns: undefined
+      }
+      sante_config_conservation: {
+        Args: { _annees: number; _structure_id: string; _type: string }
         Returns: undefined
       }
       sante_config_facturation: {
@@ -5373,6 +5466,10 @@ export type Database = {
           telephone: string
         }[]
       }
+      sante_duree_conservation: {
+        Args: { _structure_id: string; _type: string }
+        Returns: number
+      }
       sante_emettre_certificat: {
         Args: {
           _consultation_id: string
@@ -5399,6 +5496,8 @@ export type Database = {
         }
         Returns: string
       }
+      sante_escalader_bris_glace: { Args: never; Returns: number }
+      sante_export_dossier: { Args: { _patient_id: string }; Returns: Json }
       sante_fermer_caisse: {
         Args: { _compte: number; _session_id: string }
         Returns: number
@@ -5430,6 +5529,10 @@ export type Database = {
         Args: { _prefixe: string; _structure_id: string; _type: string }
         Returns: string
       }
+      sante_purger_documents_echus: {
+        Args: { _structure_id: string }
+        Returns: number
+      }
       sante_rechercher_patients: {
         Args: {
           _limit?: number
@@ -5458,7 +5561,10 @@ export type Database = {
         }
         Returns: number
       }
-      sante_revoir_bris_glace: { Args: { _id: string }; Returns: undefined }
+      sante_relation_soin: { Args: { _patient_id: string }; Returns: boolean }
+      sante_revoir_bris_glace:
+        | { Args: { _id: string }; Returns: undefined }
+        | { Args: { _commentaire: string; _id: string }; Returns: undefined }
       sante_saisir_cq: {
         Args: { _controle_id: string; _valeur: number }
         Returns: string
@@ -5484,6 +5590,14 @@ export type Database = {
       sante_valider_demande: {
         Args: { _demande_id: string; _niveau: string }
         Returns: undefined
+      }
+      sante_ventes_par_categorie: {
+        Args: { _debut: string; _fin: string; _structure_id: string }
+        Returns: {
+          categorie: string
+          montant: number
+          nb_lignes: number
+        }[]
       }
       set_medical_theme: {
         Args: {
@@ -5513,6 +5627,7 @@ export type Database = {
         | "caissier"
         | "comptable"
         | "lecteur"
+        | "tiers_payant"
       medical_theme: "clinique" | "laboratoire" | "urgences"
       membership_status: "invite" | "actif" | "suspendu"
       structure_type: "cabinet" | "laboratoire" | "mixte"
@@ -5654,6 +5769,7 @@ export const Constants = {
         "caissier",
         "comptable",
         "lecteur",
+        "tiers_payant",
       ],
       medical_theme: ["clinique", "laboratoire", "urgences"],
       membership_status: ["invite", "actif", "suspendu"],

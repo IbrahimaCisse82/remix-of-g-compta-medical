@@ -11,6 +11,7 @@ export default function BordereauCompta({ structureId }: { structureId: string }
   const [mois, setMois] = useState(new Date().toISOString().slice(0, 7));
   const [lignes, setLignes] = useState<LigneBordereau[]>([]);
   const [liens, setLiens] = useState<Lien[]>([]);
+  const [cats, setCats] = useState<{ categorie: string; nb_lignes: number; montant: number }[]>([]);
 
   useEffect(() => {
     const debut = `${mois}-01`;
@@ -23,6 +24,8 @@ export default function BordereauCompta({ structureId }: { structureId: string }
         numero: f.numero, type: f.type, annulee: f.annulee, organisme: f.organisme, part_organisme: Number(f.part_organisme),
         date: f.created_at.slice(0, 10), patient: `${f.patient?.nom ?? ''} ${f.patient?.prenoms ?? ''}`.trim(), dossier: f.patient?.numero_dossier ?? '',
       }))));
+    supabase.rpc('sante_ventes_par_categorie', { _structure_id: structureId, _debut: debut, _fin: new Date(d.getTime() - 86400000).toISOString().slice(0, 10) })
+      .then(({ data }) => setCats((data ?? []) as typeof cats));
     supabase.from('sante_compta_liens').select('source_type, statut, erreur, created_at')
       .eq('structure_id', structureId).neq('statut', 'comptabilise').order('created_at', { ascending: false }).limit(20)
       .then(({ data }) => setLiens(data ?? []));
@@ -38,6 +41,12 @@ export default function BordereauCompta({ structureId }: { structureId: string }
 
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
+      {cats.length > 0 && (
+        <div className="border border-border rounded-md p-3 text-sm">
+          <div className="font-semibold mb-1">Ventes du mois par catégorie (sans données patients)</div>
+          {cats.map(c => <div key={c.categorie} className="flex justify-between"><span>{c.categorie} · {c.nb_lignes} ligne(s)</span><span>{fcfa(Number(c.montant))}</span></div>)}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold">Bordereaux mensuels par organisme</h3>
         <Input type="month" value={mois} onChange={e => setMois(e.target.value)} className="w-44" aria-label="Mois" />

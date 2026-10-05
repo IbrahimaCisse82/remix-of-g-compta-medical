@@ -13,7 +13,8 @@
     "sante_bris_glace": true,
     "medical_access_log": true,
     "medical_audit_log": true,
-    "sante_violations": true
+    "sante_violations": true,
+    "sante_facture_lignes": true
   },
   "medecin": {
     "sante_patients": true,
@@ -29,7 +30,8 @@
     "sante_bris_glace": false,
     "medical_access_log": false,
     "medical_audit_log": false,
-    "sante_violations": false
+    "sante_violations": false,
+    "sante_facture_lignes": false
   },
   "biologiste": {
     "sante_patients": true,
@@ -45,7 +47,8 @@
     "sante_bris_glace": false,
     "medical_access_log": false,
     "medical_audit_log": false,
-    "sante_violations": false
+    "sante_violations": false,
+    "sante_facture_lignes": false
   },
   "technicien": {
     "sante_patients": true,
@@ -61,7 +64,8 @@
     "sante_bris_glace": false,
     "medical_access_log": false,
     "medical_audit_log": false,
-    "sante_violations": false
+    "sante_violations": false,
+    "sante_facture_lignes": false
   },
   "secretaire": {
     "sante_patients": true,
@@ -72,12 +76,13 @@
     "sante_demandes_labo": false,
     "sante_resultats": false,
     "sante_documents_patient": false,
-    "sante_factures": false,
-    "sante_encaissements": false,
+    "sante_factures": true,
+    "sante_encaissements": true,
     "sante_bris_glace": false,
     "medical_access_log": false,
     "medical_audit_log": false,
-    "sante_violations": false
+    "sante_violations": false,
+    "sante_facture_lignes": true
   },
   "caissier": {
     "sante_patients": true,
@@ -93,7 +98,8 @@
     "sante_bris_glace": false,
     "medical_access_log": false,
     "medical_audit_log": false,
-    "sante_violations": false
+    "sante_violations": false,
+    "sante_facture_lignes": true
   },
   "comptable": {
     "sante_patients": false,
@@ -109,7 +115,8 @@
     "sante_bris_glace": false,
     "medical_access_log": false,
     "medical_audit_log": false,
-    "sante_violations": false
+    "sante_violations": false,
+    "sante_facture_lignes": false
   },
   "lecteur": {
     "sante_patients": false,
@@ -125,7 +132,8 @@
     "sante_bris_glace": false,
     "medical_access_log": false,
     "medical_audit_log": false,
-    "sante_violations": false
+    "sante_violations": false,
+    "sante_facture_lignes": false
   },
-  "_note": "Cible P1.2 'besoin d'en connaître' (à valider par le porteur de projet). admin_structure sans accès clinique hors bris de glace : choix le plus restrictif, à confirmer. Une case 'refus' constatée peut aussi signifier 'aucune donnée de test' pour les tables non alimentées par le jeu de test."
+  "_note": "Matrice P1 appliquée en base (besoin d'en connaître). admin_structure : identité + facturation + journaux, aucun contenu clinique hors bris de glace. medecin : contenu clinique limité à la relation de soin (option structure 'accès à tous'). comptable/lecteur : aucune identité ni libellé d'acte. Une case 'refus' constatée peut aussi signifier 'aucune donnée de test'."
 }
