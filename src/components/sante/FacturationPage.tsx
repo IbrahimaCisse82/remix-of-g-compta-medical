@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BordereauCompta from './BordereauCompta';
-import { OutboxCard, RemboursementsCard, ReglementOrganismeCard } from './FinanceSante';
+import { OutboxCard, RemboursementsCard, ReglementOrganismeCard, ConventionsCard, BonsPecCard, CreancesOrganismesCard, AnalytiqueSanteCard, SaisieSecoursCard } from './FinanceSante';
 import { MODES_PAIEMENT, fcfa, resteDu, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
 
 type Item = { code: string; libelle: string; tarif: number };
@@ -107,6 +107,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
           <div><div className="flex gap-2"><Input placeholder="Nom, téléphone ou n° de dossier" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && chercher()} /><Button onClick={chercher}>Chercher</Button></div>
             <div className="mt-2 space-y-1">{patients.map(p => <button key={p.id} className="block w-full text-left text-sm border border-border rounded p-2 hover:bg-muted" onClick={() => choisir(p)}>{p.nom} {p.prenoms} · {p.numero_dossier}</button>)}</div></div>
         )}
+        {patient && <BonsPecCard structureId={structureId} patientId={patient.id} organismes={[...new Set(assurances.map(a => a.organisme))]} />}
         <div className="flex flex-wrap gap-2">{catalogue.map(i => <Button key={i.code} size="sm" variant="outline" onClick={() => setPanier([...panier, i])}>{i.libelle} · {fcfa(i.tarif)}</Button>)}</div>
         {panier.length > 0 && <ul className="text-sm space-y-1">{panier.map((p, k) => <li key={k} className="flex justify-between border-b border-border py-1"><span>{p.libelle}</span><span>{fcfa(p.tarif)} <button className="text-destructive ml-2" onClick={() => setPanier(panier.filter((_, j) => j !== k))}>×</button></span></li>)}</ul>}
         <div className="grid sm:grid-cols-3 gap-3">
@@ -147,6 +148,10 @@ export default function FacturationPage({ structureId }: { structureId: string }
       </section>
       <RemboursementsCard structureId={structureId} />
       <ReglementOrganismeCard structureId={structureId} />
+      <CreancesOrganismesCard structureId={structureId} />
+      <ConventionsCard structureId={structureId} />
+      <SaisieSecoursCard structureId={structureId} />
+      <AnalytiqueSanteCard structureId={structureId} />
       <OutboxCard structureId={structureId} />
       <BordereauCompta structureId={structureId} />
     </div>

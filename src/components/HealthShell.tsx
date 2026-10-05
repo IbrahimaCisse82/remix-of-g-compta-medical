@@ -20,7 +20,7 @@ import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 import RappelsSmsCard from '@/components/sante/RappelsSmsCard';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
-import { ParametresFinanceCard } from '@/components/sante/FinanceSante';
+import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
@@ -120,6 +120,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
               {medicalStructure && <ConformiteCard structureId={medicalStructure.id} />}
               {medicalStructure && <ParametresFinanceCard structureId={medicalStructure.id} />}
+              {medicalStructure && <FiscalSecoursCard structureId={medicalStructure.id} />}
             </div>
           )}
         </main>

@@ -134,7 +134,9 @@ export function ReglementOrganismeCard({ structureId }: { structureId: string })
 const CLES: [string, string][] = [
   ['patients', 'Clients — patients'], ['organismes', 'Clients — organismes (collectif)'], ['produits', 'Produits des prestations'],
   ['especes', 'Caisse espèces'], ['mobile_money', 'Mobile Money'], ['carte', 'Cartes bancaires'], ['cheques_a_encaisser', 'Chèques à encaisser'],
-  ['banque', 'Banque (virements, remises)'], ['ecart_caisse_perte', 'Écart de caisse — manquant'], ['ecart_caisse_gain', 'Écart de caisse — excédent'], ['perte_creance', 'Pertes sur créances'],
+  ['produits_consultation', 'Produits — consultations'], ['produits_acte', 'Produits — actes'], ['produits_analyses', 'Produits — analyses'],
+  ['produits_medicaments', 'Produits — médicaments'], ['produits_autres', 'Produits — autres'], ['tva_collectee', 'TVA collectée'],
+  ['banque', 'Banque (virements, remises)'], ['ecart_caisse_perte', 'Écart de caisse — manquant'], ['ecart_caisse_gain', 'Écart de caisse — excédent'], ['perte_creance', 'Pertes sur créances'], ['dotation_provision', 'Dotation provisions créances'], ['provision_creance', 'Provision créances douteuses'],
 ];
 
 /** Correspondance des comptes, organismes payeurs et réglages de facturation (administrateur / comptable). */
@@ -209,6 +211,215 @@ export function ParametresFinanceCard({ structureId }: { structureId: string }) 
           </div>
         ))}
         <div className="flex gap-2"><Input placeholder="Nouvel organisme" value={nouvel} onChange={e => setNouvel(e.target.value)} /><Button size="sm" onClick={ajouter}>Ajouter</Button></div>
+      </div>
+    </section>
+  );
+}
+
+const CATS = ['consultation', 'acte', 'analyses', 'medicaments', 'autres'];
+
+/** Conventions par organisme : taux par catégorie, plafond, franchise, exclusions, tarifs conventionnés. */
+export function ConventionsCard({ structureId }: { structureId: string }) {
+  const [orgs, setOrgs] = useState<string[]>([]);
+  const [org, setOrg] = useState('');
+  const [conv, setConv] = useState<any[]>([]);
+  const [tarifs, setTarifs] = useState<any[]>([]);
+  const [excl, setExcl] = useState<any[]>([]);
+  const [f, setF] = useState({ categorie: 'consultation', taux: '80', plafond: '', franchise: '0', code: '', tarif: '', exclu: '' });
+  useEffect(() => { db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data }: any) => setOrgs((data ?? []).map((o: any) => o.nom))); }, [structureId]);
+  const charger = async (o: string) => {
+    setOrg(o); if (!o) return;
+    const [a, b, c] = await Promise.all([
+      db.from('sante_conventions').select('*').eq('structure_id', structureId).eq('organisme', o),
+      db.from('sante_tarifs_convention').select('*').eq('structure_id', structureId).eq('organisme', o),
+      db.from('sante_convention_exclusions').select('*').eq('structure_id', structureId).eq('organisme', o),
+    ]);
+    setConv(a.data ?? []); setTarifs(b.data ?? []); setExcl(c.data ?? []);
+  };
+  const ok = (r: any) => { if (r.error) toast.error(r.error.message); else void charger(org); };
+  return (
+    <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
+      <h3 className="font-semibold">Conventions tiers-payant</h3>
+      <select aria-label="Organisme" className="bg-bg3 border border-border rounded-md px-2 py-1.5 text-sm" value={org} onChange={e => charger(e.target.value)}>
+        <option value="">— Organisme —</option>{orgs.map(o => <option key={o}>{o}</option>)}
+      </select>
+      {org && <>
+        <div className="text-sm space-y-1">{conv.map(c => <div key={c.id} className="flex justify-between border border-border rounded p-2"><span>{c.categorie} · {c.taux} %{c.plafond ? ` · plafond ${fcfa(c.plafond)}` : ''}{Number(c.franchise) ? ` · franchise ${fcfa(c.franchise)}` : ''}</span><Button size="sm" variant="ghost" onClick={async () => ok(await db.from('sante_conventions').delete().eq('id', c.id))}>×</Button></div>)}</div>
+        <div className="flex flex-wrap gap-2 items-end">
+          <select aria-label="Catégorie" className="bg-bg3 border border-border rounded px-2 py-1.5 text-sm" value={f.categorie} onChange={e => setF({ ...f, categorie: e.target.value })}>{CATS.map(c => <option key={c}>{c}</option>)}</select>
+          <Input className="w-20" type="number" placeholder="Taux %" value={f.taux} onChange={e => setF({ ...f, taux: e.target.value })} />
+          <Input className="w-28" type="number" placeholder="Plafond" value={f.plafond} onChange={e => setF({ ...f, plafond: e.target.value })} />
+          <Input className="w-28" type="number" placeholder="Franchise" value={f.franchise} onChange={e => setF({ ...f, franchise: e.target.value })} />
+          <Button size="sm" onClick={async () => ok(await db.from('sante_conventions').upsert({ structure_id: structureId, organisme: org, categorie: f.categorie, taux: Number(f.taux), plafond: f.plafond ? Number(f.plafond) : null, franchise: Number(f.franchise) || 0 }, { onConflict: 'structure_id,organisme,categorie' }))}>Enregistrer le taux</Button>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3 text-sm">
+          <div className="space-y-1"><b>Tarifs conventionnés</b>
+            {tarifs.map(t => <div key={t.id} className="flex justify-between"><span>{t.code} · {fcfa(t.tarif)}</span><button className="text-destructive" onClick={async () => ok(await db.from('sante_tarifs_convention').delete().eq('id', t.id))}>×</button></div>)}
+            <div className="flex gap-1"><Input placeholder="Code acte/analyse" value={f.code} onChange={e => setF({ ...f, code: e.target.value })} /><Input type="number" placeholder="Tarif" value={f.tarif} onChange={e => setF({ ...f, tarif: e.target.value })} />
+              <Button size="sm" onClick={async () => ok(await db.from('sante_tarifs_convention').upsert({ structure_id: structureId, organisme: org, code: f.code.trim(), tarif: Number(f.tarif) }, { onConflict: 'structure_id,organisme,code' }))}>+</Button></div>
+          </div>
+          <div className="space-y-1"><b>Exclusions</b>
+            {excl.map(x => <div key={x.id} className="flex justify-between"><span>{x.code}</span><button className="text-destructive" onClick={async () => ok(await db.from('sante_convention_exclusions').delete().eq('id', x.id))}>×</button></div>)}
+            <div className="flex gap-1"><Input placeholder="Code exclu" value={f.exclu} onChange={e => setF({ ...f, exclu: e.target.value })} />
+              <Button size="sm" onClick={async () => ok(await db.from('sante_convention_exclusions').insert({ structure_id: structureId, organisme: org, code: f.exclu.trim() }))}>+</Button></div>
+          </div>
+        </div>
+        <p className="text-xs text-fg3">Sans taux pour une catégorie, le taux de la prise en charge du patient s'applique. Les actes « accord préalable » exigent un bon avec accord.</p>
+      </>}
+    </section>
+  );
+}
+
+/** Bons de prise en charge (numéro, validité, plafond, consommation, accord préalable). */
+export function BonsPecCard({ structureId, patientId, organismes }: { structureId: string; patientId: string; organismes: string[] }) {
+  const [bons, setBons] = useState<any[]>([]);
+  const [f, setF] = useState({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false });
+  const load = () => db.from('sante_bons_pec').select('*').eq('patient_id', patientId).order('date_fin', { ascending: false }).then(({ data }: any) => setBons(data ?? []));
+  useEffect(() => { load(); }, [patientId]);
+  const ajouter = async () => {
+    const { error } = await db.from('sante_bons_pec').insert({ structure_id: structureId, patient_id: patientId, organisme: f.organisme, numero: f.numero.trim(), date_fin: f.date_fin, plafond: f.plafond ? Number(f.plafond) : null, accord_prealable: f.accord });
+    if (error) toast.error(error.message); else { setF({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false }); load(); }
+  };
+  return (
+    <div className="space-y-2 text-sm">
+      <b>Bons de prise en charge</b>
+      {bons.map(b => <div key={b.id} className="border border-border rounded p-2">{b.organisme} · n° {b.numero} · jusqu'au {new Date(b.date_fin).toLocaleDateString('fr-FR')}{b.plafond ? ` · ${fcfa(b.consomme)} / ${fcfa(b.plafond)}` : ''}{b.accord_prealable ? ' · accord préalable' : ''}</div>)}
+      {organismes.length > 0 && <div className="flex flex-wrap gap-1 items-center">
+        <select aria-label="Organisme du bon" className="bg-bg3 border border-border rounded px-2 py-1 text-sm" value={f.organisme} onChange={e => setF({ ...f, organisme: e.target.value })}><option value="">Organisme</option>{organismes.map(o => <option key={o}>{o}</option>)}</select>
+        <Input className="w-28 h-8" placeholder="N° du bon" value={f.numero} onChange={e => setF({ ...f, numero: e.target.value })} />
+        <Input className="w-36 h-8" type="date" value={f.date_fin} onChange={e => setF({ ...f, date_fin: e.target.value })} />
+        <Input className="w-24 h-8" type="number" placeholder="Plafond" value={f.plafond} onChange={e => setF({ ...f, plafond: e.target.value })} />
+        <label className="text-xs flex items-center gap-1"><input type="checkbox" checked={f.accord} onChange={e => setF({ ...f, accord: e.target.checked })} />Accord préalable</label>
+        <Button size="sm" disabled={!f.organisme || !f.numero || !f.date_fin} onClick={ajouter}>Ajouter</Button>
+      </div>}
+    </div>
+  );
+}
+
+/** Créances par organisme (âge), relances imprimables, provision des créances douteuses. */
+export function CreancesOrganismesCard({ structureId }: { structureId: string }) {
+  const [rows, setRows] = useState<any[]>([]);
+  const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { if (!error) setRows(data ?? []); });
+  useEffect(() => { load(); }, [structureId]);
+  if (!rows.length) return null;
+  const relancer = async (o: string) => {
+    const { data, error } = await db.rpc('sante_relancer', { _structure_id: structureId, _organisme: o });
+    if (error) { toast.error(error.message); return; }
+    const { data: r } = await db.from('sante_relances').select('niveau, montant, factures').eq('id', data).single();
+    const { data: fs } = await db.from('sante_factures').select('numero, created_at, part_organisme').in('id', r.factures);
+    const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${o}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${o}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map((f: any) => `<tr><td>${f.numero}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
+    load();
+  };
+  const provisionner = async (o: string, total: number) => {
+    const m = Number(prompt('Montant à provisionner :', String(total))); if (!m) return;
+    const motif = prompt('Motif (créance douteuse) :'); if (!motif) return;
+    const { error } = await db.rpc('sante_provisionner_creance', { _structure_id: structureId, _organisme: o, _montant: m, _motif: motif });
+    if (error) toast.error(error.message); else toast.success('Provision enregistrée (module Provisions + écriture)');
+  };
+  return (
+    <section className="border border-border bg-bg2 rounded-md p-4 overflow-x-auto">
+      <h3 className="font-semibold mb-2">Créances par organisme</h3>
+      <table className="w-full text-sm"><thead className="text-xs text-fg3 text-left"><tr><th>Organisme</th><th>0-30 j</th><th>31-60 j</th><th>61-90 j</th><th>&gt; 90 j</th><th>Total</th><th>Relance</th><th /></tr></thead>
+        <tbody>{rows.map(r => <tr key={r.organisme} className="border-t border-border">
+          <td className="py-1">{r.organisme}</td>{[r.j0_30, r.j31_60, r.j61_90, r.plus_90, r.total].map((v, i) => <td key={i}>{v ? fcfa(Number(v)) : '—'}</td>)}
+          <td className="text-xs">{r.niveau ? `n° ${r.niveau} le ${new Date(r.derniere_relance).toLocaleDateString('fr-FR')}` : '—'}</td>
+          <td className="space-x-1 whitespace-nowrap"><Button size="sm" variant="outline" onClick={() => relancer(r.organisme)}>Relancer</Button><Button size="sm" variant="ghost" onClick={() => provisionner(r.organisme, Number(r.total))}>Provisionner</Button></td>
+        </tr>)}</tbody></table>
+    </section>
+  );
+}
+
+/** Chiffre d'affaires par axe analytique (catégorie, section, praticien, site). */
+export function AnalytiqueSanteCard({ structureId }: { structureId: string }) {
+  const [axe, setAxe] = useState('categorie');
+  const [mois, setMois] = useState(new Date().toISOString().slice(0, 7));
+  const [rows, setRows] = useState<{ axe: string; montant: number; nb: number }[]>([]);
+  useEffect(() => {
+    const d = new Date(`${mois}-01`); const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+    db.rpc('sante_ca_analytique', { _structure_id: structureId, _debut: `${mois}-01`, _fin: fin, _axe: axe }).then(({ data, error }: any) => setRows(error ? [] : data ?? []));
+  }, [structureId, axe, mois]);
+  return (
+    <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
+      <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold flex-1">Analyse du chiffre d'affaires</h3>
+        <select aria-label="Axe" className="bg-bg3 border border-border rounded px-2 py-1 text-sm" value={axe} onChange={e => setAxe(e.target.value)}>
+          <option value="categorie">Par catégorie</option><option value="section">Par section labo</option><option value="praticien">Par praticien</option><option value="site">Par site</option>
+        </select>
+        <Input type="month" className="w-40" value={mois} onChange={e => setMois(e.target.value)} />
+      </div>
+      {rows.length === 0 ? <p className="text-xs text-fg3">Aucune donnée.</p> : rows.map(r => <div key={r.axe} className="flex justify-between text-sm"><span>{r.axe} · {r.nb} ligne(s)</span><span>{fcfa(Number(r.montant))}</span></div>)}
+    </section>
+  );
+}
+
+/** Régime de TVA, prorata, compte rendu conditionné, blocs de numéros secours. */
+export function FiscalSecoursCard({ structureId }: { structureId: string }) {
+  const [regime, setRegime] = useState('exonere');
+  const [prorata, setProrata] = useState('0');
+  const [cr, setCr] = useState(false);
+  const [blocs, setBlocs] = useState<any[]>([]);
+  const load = async () => {
+    const [s, b] = await Promise.all([
+      db.from('structures').select('regime_tva, prorata_tva, cr_conditionne_reglement').eq('id', structureId).maybeSingle(),
+      db.from('sante_blocs_secours').select('*').eq('structure_id', structureId).order('created_at', { ascending: false }),
+    ]);
+    if (s.data) { setRegime(s.data.regime_tva); setProrata(String(s.data.prorata_tva)); setCr(s.data.cr_conditionne_reglement); }
+    setBlocs(b.data ?? []);
+  };
+  useEffect(() => { void load(); }, [structureId]);
+  const enregistrer = async () => {
+    const { error } = await db.rpc('sante_config_fiscal', { _structure_id: structureId, _regime: regime, _prorata: Number(prorata) || 0, _cr_conditionne: cr });
+    if (error) toast.error(error.message); else toast.success('Réglages enregistrés');
+  };
+  const reserver = async () => {
+    const poste = prompt('Nom du poste (ex. Accueil) :'); if (!poste) return;
+    const taille = Number(prompt('Nombre de numéros à réserver (10 à 500) :', '50'));
+    const { error } = await db.rpc('sante_reserver_bloc', { _structure_id: structureId, _poste: poste, _taille: taille });
+    if (error) toast.error(error.message); else void load();
+  };
+  return (
+    <section className="mt-8 border border-border bg-bg2 rounded-md p-4 space-y-3">
+      <h3 className="font-semibold">Fiscalité et continuité</h3>
+      <div className="flex flex-wrap gap-3 items-end text-sm">
+        <label className="flex flex-col gap-1">Régime de TVA
+          <select className="bg-bg3 border border-border rounded px-2 py-1.5" value={regime} onChange={e => setRegime(e.target.value)}>
+            <option value="exonere">Exonéré (TVA sur achats non récupérable)</option><option value="assujetti">Assujetti</option><option value="mixte">Mixte (prorata)</option>
+          </select></label>
+        {regime === 'mixte' && <label className="flex flex-col gap-1">Prorata de déduction (%)<Input className="w-24" type="number" value={prorata} onChange={e => setProrata(e.target.value)} /></label>}
+        <label className="flex items-center gap-2"><input type="checkbox" checked={cr} onChange={e => setCr(e.target.checked)} />Compte rendu remis seulement après règlement de la part patient</label>
+        <Button size="sm" onClick={enregistrer}>Enregistrer</Button>
+      </div>
+      <p className="text-xs text-destructive">Régime, taux et taxabilité des actes : à valider avec votre fiscaliste.</p>
+      <div className="border-t border-border pt-3 space-y-1 text-sm">
+        <div className="flex items-center justify-between"><b>Mode secours papier — numéros réservés</b><Button size="sm" variant="outline" onClick={reserver}>Réserver un bloc</Button></div>
+        {blocs.map(b => <div key={b.id} className="text-xs">{b.poste} · FAC{b.annee}-{String(b.debut).padStart(6, '0')} à FAC{b.annee}-{String(b.fin).padStart(6, '0')}</div>)}
+        <p className="text-xs text-fg3">En cas de panne, le poste utilise ces numéros sur papier ; les factures sont ressaisies ensuite avec le même numéro (sans trou dans la numérotation).</p>
+      </div>
+    </section>
+  );
+}
+
+/** Saisie a posteriori d'une facture papier du mode secours. */
+export function SaisieSecoursCard({ structureId }: { structureId: string }) {
+  const [blocs, setBlocs] = useState<any[]>([]);
+  const [f, setF] = useState({ bloc: '', rang: '', dossier: '', libelle: '', montant: '' });
+  useEffect(() => { db.from('sante_blocs_secours').select('*').eq('structure_id', structureId).then(({ data }: any) => setBlocs(data ?? [])); }, [structureId]);
+  if (!blocs.length) return null;
+  const saisir = async () => {
+    const { data: p } = await db.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: f.dossier, _limit: 1, _offset: 0 });
+    if (!p?.[0]) { toast.error('Patient introuvable'); return; }
+    const { error } = await db.rpc('sante_saisir_facture_secours', { _bloc_id: f.bloc, _rang: Number(f.rang), _patient_id: p[0].id, _lignes: [{ libelle: f.libelle, prix_unitaire: Number(f.montant) }], _assurance_id: null });
+    if (error) toast.error(error.message); else { toast.success('Facture secours saisie'); setF({ ...f, rang: '', libelle: '', montant: '' }); }
+  };
+  return (
+    <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
+      <h3 className="font-semibold">Ressaisie des factures papier (mode secours)</h3>
+      <div className="flex flex-wrap gap-2">
+        <select aria-label="Bloc" className="bg-bg3 border border-border rounded px-2 py-1.5 text-sm" value={f.bloc} onChange={e => setF({ ...f, bloc: e.target.value })}><option value="">Bloc</option>{blocs.map(b => <option key={b.id} value={b.id}>{b.poste} ({b.debut}–{b.fin})</option>)}</select>
+        <Input className="w-24" type="number" placeholder="N°" value={f.rang} onChange={e => setF({ ...f, rang: e.target.value })} />
+        <Input className="w-40" placeholder="N° de dossier" value={f.dossier} onChange={e => setF({ ...f, dossier: e.target.value })} />
+        <Input className="w-48" placeholder="Prestation" value={f.libelle} onChange={e => setF({ ...f, libelle: e.target.value })} />
+        <Input className="w-28" type="number" placeholder="Montant" value={f.montant} onChange={e => setF({ ...f, montant: e.target.value })} />
+        <Button size="sm" disabled={!f.bloc || !f.rang || !f.libelle || !f.montant} onClick={saisir}>Saisir</Button>
       </div>
     </section>
   );
