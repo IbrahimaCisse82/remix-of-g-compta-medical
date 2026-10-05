@@ -253,6 +253,13 @@
       "when": 1791229503214,
       "tag": "0035_p2_compte_divisionnaire_repli",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791230081068,
+      "tag": "0036_p3_lis_preanalytique_validation_figee",
+      "breakpoints": true
     }
   ]
 }
