@@ -7,7 +7,7 @@
  * Variables : SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (création des comptes de test), SUPABASE_PUBLISHABLE_KEY.
  * Sortie : la matrice constatée rôle × table est écrite dans tests/db/matrice-constatee.json.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
@@ -268,6 +268,132 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
       const { data } = await admin.from('medical_access_log').select('id').eq('patient_id', S.A.patient).eq('ecran', 'export_droit_acces').limit(1);
       expect(data ?? []).toHaveLength(1);
     });
+  });
+
+  describe('P2 — facturation, caisse, outbox comptable, tiers-payant', () => {
+    let entreprise = '';
+    const st = () => S.A.structure;
+    async function evt(source: string) {
+      return (await admin.from('sante_compta_evenements').select('id, statut, ecriture_id, tentatives').eq('source_id', source)).data ?? [];
+    }
+    async function fermerCaisseOuverte() {
+      const { data } = await admin.from('sante_sessions_caisse').select('id').eq('structure_id', st()).is('fermee_le', null);
+      for (const x of data ?? []) await S.A.users.caissier.rpc('sante_fermer_caisse', { _session_id: x.id, _compte: 0 });
+    }
+    beforeAll(async () => {
+      let { data: e } = await admin.from('entreprises').select('id').eq('nom', 'TEST P2 A').maybeSingle();
+      if (!e) e = (await admin.from('entreprises').insert({ nom: 'TEST P2 A', secteur_activite: 'sante_mixte' }).select('id').single()).data;
+      entreprise = e!.id;
+      for (const module of ['sante_patients', 'sante_clinique', 'sante_laboratoire', 'sante_tiers_payant', 'sante_portail_resultats']) {
+        const ex = await admin.from('entreprise_modules').select('id').eq('entreprise_id', entreprise).eq('module', module).maybeSingle();
+        if (!ex.data) await admin.from('entreprise_modules').insert({ entreprise_id: entreprise, module, actif: true });
+      }
+      const an = new Date().getFullYear();
+      const ex = await admin.from('exercices').select('id').eq('entreprise_id', entreprise).eq('annee', an).maybeSingle();
+      if (!ex.data) await admin.from('exercices').insert({ entreprise_id: entreprise, annee: an, date_debut: `${an}-01-01`, date_fin: `${an}-12-31` });
+      await admin.from('structures').update({ entreprise_id: entreprise, compta_panne_simulee: false, facturation_labo_moment: 'enregistrement' }).eq('id', st());
+      await admin.from('sante_comptes_parametres').delete().eq('structure_id', st());
+      await fermerCaisseOuverte();
+    }, 60_000);
+    afterAll(async () => {
+      await admin.from('structures').update({ entreprise_id: null, compta_panne_simulee: false }).eq('id', st());
+    });
+
+    let factureLabo = '';
+    it('demande de laboratoire facturée à l’enregistrement et comptabilisée', async () => {
+      const { data: an } = await admin.from('sante_analyses').select('id').eq('structure_id', st()).eq('code', 'P0GLY').single();
+      const d = await S.A.users.secretaire.rpc('sante_creer_demande_labo', { _patient_id: S.A.patient, _analyses: [an!.id], _prescripteur: 'Dr TEST', _urgence: false, _renseignements: null, _consultation_id: null });
+      expect(d.error).toBeNull();
+      const { data: f } = await admin.from('sante_factures').select('id, total').eq('demande_id', d.data as string).eq('type', 'facture').single();
+      factureLabo = f!.id;
+      expect(Number(f!.total)).toBe(1000);
+      const e = await evt(f!.id);
+      expect(e).toHaveLength(1);
+      expect(e[0].statut).toBe('comptabilise');
+      // Aucune analyse facturable deux fois
+      const bis = await S.A.users.caissier.rpc('sante_creer_facture', { _patient_id: S.A.patient, _lignes: [{ libelle: 'x', prix_unitaire: 1 }], _assurance_id: null, _remise: 0, _motif_remise: null, _consultation_id: null, _demande_id: d.data as string });
+      expect(bis.error?.message).toMatch(/Déjà facturé/);
+    }, 60_000);
+
+    it('panne simulée du module comptable puis rejeu sans doublon', async () => {
+      await admin.from('structures').update({ compta_panne_simulee: true }).eq('id', st());
+      expect((await S.A.users.caissier.rpc('sante_ouvrir_caisse', { _structure_id: st(), _fond: 10000 })).error).toBeNull();
+      const enc = await S.A.users.caissier.rpc('sante_encaisser', { _facture_id: factureLabo, _mode: 'especes', _montant: 1000, _reference: null });
+      expect(enc.error, 'le soin et la facture ne sont jamais bloqués').toBeNull();
+      expect((await evt(enc.data as string))[0].statut).toBe('en_erreur');
+      expect((await S.A.users.admin_structure.rpc('sante_outbox_resume', { _structure_id: st() })).data).toMatchObject({ en_erreur: expect.any(Number) });
+      await admin.from('structures').update({ compta_panne_simulee: false }).eq('id', st());
+      expect((await S.A.users.lecteur.rpc('sante_rejouer_outbox', { _structure_id: st() })).error).toBeTruthy();
+      await S.A.users.comptable.rpc('sante_rejouer_outbox', { _structure_id: st() });
+      await S.A.users.comptable.rpc('sante_rejouer_outbox', { _structure_id: st() });
+      const e = await evt(enc.data as string);
+      expect(e).toHaveLength(1);
+      expect(e[0].statut).toBe('comptabilise');
+      const { count } = await admin.from('journal').select('id', { count: 'exact', head: true }).eq('ecriture_id', e[0].ecriture_id!);
+      expect(count).toBe(2);
+    }, 60_000);
+
+    it('clôture de caisse avec écart comptabilisé, session verrouillée', async () => {
+      const { data: sess } = await admin.from('sante_sessions_caisse').select('id').eq('structure_id', st()).is('fermee_le', null).single();
+      const r = await S.A.users.caissier.rpc('sante_fermer_caisse', { _session_id: sess!.id, _compte: 10500 }); // attendu 11 000
+      expect(r.error).toBeNull();
+      expect(Number(r.data)).toBe(-500);
+      expect((await evt(sess!.id))[0]?.statut).toBe('comptabilise');
+      const rap = await S.A.users.caissier.rpc('sante_rapport_caisse', { _session_id: sess!.id });
+      expect(rap.error).toBeNull();
+      expect((await admin.from('sante_sessions_caisse').update({ ecart: 0 }).eq('id', sess!.id)).error).toBeTruthy();
+    }, 60_000);
+
+    it('règlement partiel d’un organisme imputé sur trois factures', async () => {
+      const org = 'IPM TEST P2';
+      await admin.from('sante_patient_assurances').delete().eq('patient_id', S.A.patient);
+      const { data: ass } = await admin.from('sante_patient_assurances').insert({ patient_id: S.A.patient, organisme: org, taux_couverture: 80 }).select('id').single();
+      const ids: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        const f = await S.A.users.caissier.rpc('sante_creer_facture', { _patient_id: S.A.patient, _lignes: [{ libelle: 'Acte', prix_unitaire: 10000 }], _assurance_id: ass!.id, _remise: 0, _motif_remise: null, _consultation_id: null, _demande_id: null });
+        expect(f.error).toBeNull(); ids.push(f.data as string);
+      }
+      const mauvais = await S.A.users.comptable.rpc('sante_imputer_reglement', { _structure_id: st(), _organisme: org, _montant: 20000, _mode: 'virement', _reference: 'VIR-1',
+        _imputations: [{ facture_id: ids[0], montant: 8000 }] });
+      expect(mauvais.error?.message).toMatch(/ventilation/i);
+      const ok = await S.A.users.comptable.rpc('sante_imputer_reglement', { _structure_id: st(), _organisme: org, _montant: 20000, _mode: 'virement', _reference: 'VIR-1',
+        _imputations: [{ facture_id: ids[0], montant: 8000 }, { facture_id: ids[1], montant: 8000 }, { facture_id: ids[2], montant: 4000 }] });
+      expect(ok.error).toBeNull();
+      const { data: fs } = await admin.from('sante_factures').select('id, statut_tiers').in('id', ids);
+      const statut = Object.fromEntries((fs ?? []).map(f => [f.id, f.statut_tiers]));
+      expect([statut[ids[0]], statut[ids[1]]]).toEqual(['paye', 'paye']);
+      expect(statut[ids[2]]).not.toBe('paye');
+      expect(Number((await admin.rpc('sante_reste_organisme', { _facture_id: ids[2] })).data)).toBe(4000);
+      expect((await evt(ok.data as string))[0].statut).toBe('comptabilise');
+      // Rejet « non-prise en charge » refusé si la convention ne l'autorise pas
+      expect((await S.A.users.admin_structure.rpc('sante_rejet_tiers', { _facture_id: ids[2], _type: 'non_prise_en_charge', _motif: 'Acte exclu', _montant: null as never })).error).toBeTruthy();
+      expect((await S.A.users.admin_structure.rpc('sante_rejet_tiers', { _facture_id: ids[2], _type: 'perte', _motif: 'Créance irrécouvrable', _montant: 4000 })).error).toBeNull();
+      await admin.from('sante_patient_assurances').delete().eq('patient_id', S.A.patient);
+    }, 90_000);
+
+    it('avoir sur facture encaissée → remboursement approuvé puis payé', async () => {
+      const f = await S.A.users.caissier.rpc('sante_creer_facture', { _patient_id: S.A.patient, _lignes: [{ libelle: 'Acte', prix_unitaire: 3000 }], _assurance_id: null, _remise: 0, _motif_remise: null, _consultation_id: null, _demande_id: null });
+      await S.A.users.caissier.rpc('sante_ouvrir_caisse', { _structure_id: st(), _fond: 0 });
+      expect((await S.A.users.caissier.rpc('sante_encaisser', { _facture_id: f.data as string, _mode: 'especes', _montant: 3000, _reference: null })).error).toBeNull();
+      expect((await S.A.users.admin_structure.rpc('sante_annuler_facture', { _facture_id: f.data as string, _motif: 'Erreur de saisie' })).error).toBeNull();
+      const { data: r } = await admin.from('sante_remboursements').select('id, montant, statut').eq('facture_id', f.data as string).single();
+      expect(Number(r!.montant)).toBe(3000);
+      expect((await S.A.users.caissier.rpc('sante_payer_remboursement', { _id: r!.id, _mode: 'especes' })).error, 'paiement avant approbation').toBeTruthy();
+      expect((await S.A.users.admin_structure.rpc('sante_decider_remboursement', { _id: r!.id, _approuver: true, _motif: 'Erreur confirmée' })).error).toBeNull();
+      expect((await S.A.users.caissier.rpc('sante_payer_remboursement', { _id: r!.id, _mode: 'especes' })).error).toBeNull();
+      expect((await evt(r!.id))[0].statut).toBe('comptabilise');
+      await fermerCaisseOuverte();
+    }, 60_000);
+
+    it('comptes paramétrables : la correspondance est appliquée, réservée au comptable/admin', async () => {
+      expect((await S.A.users.lecteur.rpc('sante_definir_compte', { _structure_id: st(), _cle: 'produits', _compte: '7061' })).error).toBeTruthy();
+      expect((await S.A.users.comptable.rpc('sante_definir_compte', { _structure_id: st(), _cle: 'produits', _compte: '7061' })).error).toBeNull();
+      const f = await S.A.users.caissier.rpc('sante_creer_facture', { _patient_id: S.A.patient, _lignes: [{ libelle: 'Acte', prix_unitaire: 2000 }], _assurance_id: null, _remise: 0, _motif_remise: null, _consultation_id: null, _demande_id: null });
+      const e = (await evt(f.data as string))[0];
+      const { data: l } = await admin.from('ecriture_lignes').select('compte').eq('ecriture_id', e.ecriture_id!);
+      expect((l ?? []).map(x => x.compte)).toContain('7061');
+      await admin.from('sante_comptes_parametres').delete().eq('structure_id', st());
+    }, 60_000);
   });
 
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
