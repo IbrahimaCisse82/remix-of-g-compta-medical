@@ -147,9 +147,9 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     beforeAll(async () => {
       const st = S.A.structure;
       let { data: an } = await admin.from('sante_analyses').select('id').eq('structure_id', st).eq('code', 'P0GLY').maybeSingle();
-      if (!an) an = (await admin.from('sante_analyses').insert({ structure_id: st, code: 'P0GLY', libelle: 'Glycémie test', tarif: 1000 }).select('id').single()).data;
+      if (!an) { const ins = await admin.from('sante_analyses').insert({ structure_id: st, code: 'P0GLY', libelle: 'Glycémie test', tarif: 1000 }).select('id').single(); if (ins.error) throw ins.error; an = ins.data; }
       const { data: pa } = await admin.from('sante_analyse_parametres').select('id').eq('analyse_id', an!.id).maybeSingle();
-      if (!pa) await admin.from('sante_analyse_parametres').insert({ structure_id: st, analyse_id: an!.id, code: 'GLY', libelle: 'Glycémie', unite: 'g/L', type: 'numerique' });
+      if (!pa) { const ip = await admin.from('sante_analyse_parametres').insert({ structure_id: st, analyse_id: an!.id, code: 'GLY', libelle: 'Glycémie', unite: 'g/L', type: 'numerique' }); if (ip.error) throw ip.error; }
       const r = await S.A.users.secretaire.rpc('sante_creer_demande_labo', { _patient_id: S.A.patient, _analyses: [an!.id], _prescripteur: 'Dr TEST', _urgence: false, _renseignements: null, _consultation_id: null });
       if (r.error) throw r.error;
       demande = r.data as string;
