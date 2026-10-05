@@ -297,6 +297,11 @@ export default function FacturationPage() {
           <button onClick={() => setTab('factures')} className={`px-3 py-1 rounded-md text-xs ${tab === 'factures' ? 'bg-primary text-primary-foreground' : 'border border-border text-fg2'}`}>Factures</button>
           <button onClick={() => setTab('clients')} className={`px-3 py-1 rounded-md text-xs ${tab === 'clients' ? 'bg-primary text-primary-foreground' : 'border border-border text-fg2'}`}>Clients</button>
         </div>
+      {String((entreprise as any)?.secteur_activite ?? '').startsWith('sante') && (
+        <div className="mx-5 mt-3 px-3 py-2 rounded-md border border-border bg-bg2 text-xs text-fg2 print:hidden">
+          Honoraires réservés à la facturation d'entreprises clientes (conventions, prestations). Les patients se facturent dans <b>Facturation santé</b> : un même acte ou une même analyse ne peut être facturé qu'une seule fois, tous modules confondus.
+        </div>
+      )}
       </div>
 
       <div className="p-5 space-y-4 print:hidden">
