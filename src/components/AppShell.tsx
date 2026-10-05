@@ -55,6 +55,7 @@ const NAV: { section: string; items: { id: PageId; icon: string; label: string; 
     { id: 'sante_laboratoire', icon: '🧪', label: 'Laboratoire' },
     { id: 'sante_qualite', icon: '🧫', label: 'Qualité & réactifs' },
     { id: 'sante_facturation', icon: '💳', label: 'Factures & caisse' },
+    { id: 'sante_pilotage', icon: '📊', label: 'Pilotage & tableaux de bord' },
     { id: 'sante_catalogue', icon: '📋', label: 'Catalogue & tarifs' },
     { id: 'sante_parametres', icon: '🏥', label: 'Structure & équipe' },
   ]},
