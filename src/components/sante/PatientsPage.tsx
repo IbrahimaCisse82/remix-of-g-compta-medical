@@ -1,3 +1,4 @@
+import { BrisGlaceButton } from './BrisGlace';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -169,6 +170,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         <p className="font-mono text-xs text-primary">{p.numero_dossier}</p>
         <h1 className="font-serif text-2xl">{p.nom} {p.prenoms}</h1>
         <FusionPatient patientId={id} structureId={p.structure_id} onDone={onBack} />
+        <BrisGlaceButton patientId={id} onOpened={loadItems} />
         <p className="text-sm text-fg2">{p.sexe === 'F' ? 'Féminin' : 'Masculin'}{p.date_naissance ? ` · ${libelleAge(p.date_naissance)} (${new Date(p.date_naissance).toLocaleDateString('fr-FR')})` : ''}</p>
       </div>
       <div className="flex gap-1 border-b border-border mb-4 overflow-x-auto" role="tablist">
