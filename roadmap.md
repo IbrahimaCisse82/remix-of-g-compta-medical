@@ -49,3 +49,11 @@
 - [x] Tableaux de bord direction, laboratoire (délais), tiers-payant
 - [ ] EN PAUSE (décision utilisateur) : paramétrage SMS Twilio — passage compte payant, enregistrement Sender ID G-SANTE (défaut dans le code), Geo permissions Sénégal
 - [ ] ÉCARTÉ (décision utilisateur 05/10) : module Hospitalisation & lits — ne pas développer sans demande explicite
+
+## Mise à jour suite à l'analyse critique (document « MAJ G-SANTE ERP », 5 oct.) — phase par phase, validation entre chaque
+- [ ] P0 Sécurité — PARTIEL (voir docs/securite/P0-rapport.md) : tests base 16/16, fonctions durcies, CORS fait ; reste MFA, jeton dans le coffre (refusé à l'agent), préprod (bloqué : 2e environnement), CI
+- [ ] P1 Cloisonnement, accès besoin d'en connaître, bris de glace, conformité technique — attend validation P0
+- [ ] P2 Facturation/caisse/tiers-payant/comptabilisation (outbox, comptes paramétrables)
+- [ ] P3 Laboratoire (pré-analytique, microbiologie, sous-traitance, dérogation)
+- [ ] P4 Patient/clinique/portail
+- [ ] P5 Stocks, personnel, rétrocessions, exploitation

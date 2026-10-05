@@ -19,6 +19,9 @@ const POLES = [
 
 const CHAIN = ['Accueil patient', 'Consultation', 'Analyses', 'Facture', 'Encaissement', 'Écriture comptable', 'Bilan annuel'];
 
+// La démo n'existe que sur l'aperçu (build de développement) : absente du site publié.
+const DEMO_DISPONIBLE = !import.meta.env.PROD || import.meta.env.VITE_DEMO_ENABLED === 'true';
+
 export default function Landing() {
   const { launchHealth } = useApp();
   const { user } = useAuth();
@@ -72,11 +75,11 @@ export default function Landing() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[760px]">
-          <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">
+          {DEMO_DISPONIBLE && <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">
             <div className="font-serif text-lg text-primary text-center mb-3">Démo Clinique</div>
             <p className="text-xs text-fg2 text-center leading-relaxed mb-4">Clinique fictive à Dakar : patients, consultations, laboratoire, caisse et comptabilité. Données de test uniquement.</p>
             <Button className="w-full" disabled={demoBusy} onClick={launchDemo}><Stethoscope />{demoBusy ? 'Préparation…' : 'Lancer la démo Clinique'}</Button>
-          </div>
+          </div>}
           <div className="bg-bg2 border border-border rounded-xl p-6 flex-1">
             <div className="font-serif text-lg text-primary text-center mb-3">Mon espace</div>
             {user ? (
