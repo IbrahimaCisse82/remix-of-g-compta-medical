@@ -41,3 +41,9 @@
 - [ ] P1 : durée de conservation médicale — attend avis juriste / CDP
 - [x] P1bis : facturation automatique (clôture consultation, validation labo), réglable par structure
 - [ ] P2 workflows · P3 nettoyage
+
+## Portail patient, automatisations, pilotage (5 oct.)
+- [x] Portail patient : lien 48 h/24 h depuis la fiche, ou n° dossier + code SMS (session 24 h), téléchargement A4
+- [x] Rappels SMS automatiques chaque soir à 18 h
+- [ ] E-mail au prescripteur/patient à la validation d'un compte rendu — attend un domaine d'envoi d'e-mails
+- [x] Tableaux de bord direction, laboratoire (délais), tiers-payant
