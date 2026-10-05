@@ -176,6 +176,13 @@
       "when": 1791219346827,
       "tag": "0024_sante_praticiens_email",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791225183771,
+      "tag": "0025_p0_durcissement_fonctions",
+      "breakpoints": true
     }
   ]
 }

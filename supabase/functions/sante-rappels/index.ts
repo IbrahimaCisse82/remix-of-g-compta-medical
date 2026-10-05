@@ -24,9 +24,8 @@ Deno.serve(async (req) => {
   let isCron = false;
   const tache = req.headers.get('x-tache-planifiee') ?? '';
   if (/^[0-9a-f]{64}$/.test(tache)) {
-    // Jeton stocké dans le coffre de secrets, comparé côté base (jamais renvoyé).
-    const { data: ok } = await admin.rpc('sante_verifier_jeton_cron', { _jeton: tache });
-    isCron = ok === true;
+    const { data: cfg } = await admin.from('sante_cron_config').select('jeton').eq('id', 1).maybeSingle();
+    isCron = Boolean(cfg?.jeton) && cfg!.jeton === tache;
   }
   if (!isCron && Deno.env.get('LOVABLE_CRON_SECRET')) isCron = authenticateCronRequest(req.clone()) === null;
   if (!isCron) {
