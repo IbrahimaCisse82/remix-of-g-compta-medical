@@ -1,4 +1,1 @@
-medecin × sante_factures : attendu refus, constaté lecture
-biologiste × sante_factures : attendu refus, constaté lecture
-secretaire × sante_factures : attendu refus, constaté lecture
-lecteur × sante_factures : attendu refus, constaté lecture
+Aucun écart
