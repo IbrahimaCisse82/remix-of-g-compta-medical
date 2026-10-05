@@ -47,72 +47,89 @@ import AnomaliesPage from '@/pages/AnomaliesPage';
 import HealthShell, { type HealthView } from '@/components/HealthShell';
 import HealthOnboarding from '@/components/HealthOnboarding';
 
-const NAV: { section: string; items: { id: PageId; icon: string; label: string; shortcut?: string; cabinet?: boolean }[] }[] = [
-  { section: 'Santé', items: [
+type NavItem = { id: PageId; icon: string; label: string; shortcut?: string; cabinet?: boolean };
+type NavSection = { key: string; section: string; icon: string; groups: { title?: string; items: NavItem[] }[] };
+
+const NAV: NavSection[] = [
+  { key: 'clinique', section: 'Clinique & soins', icon: '🏥', groups: [{ items: [
     { id: 'sante_accueil', icon: '✚', label: 'Accueil santé' },
     { id: 'sante_patients', icon: '🩺', label: 'Patients', shortcut: 'Alt+N' },
     { id: 'sante_agenda', icon: '📅', label: 'Agenda & consultations' },
+    { id: 'stocks', icon: '💊', label: 'Pharmacie & consommables' },
+  ]}]},
+  { key: 'labo', section: 'Laboratoire & qualité', icon: '🧪', groups: [{ items: [
     { id: 'sante_laboratoire', icon: '🧪', label: 'Laboratoire' },
     { id: 'sante_qualite', icon: '🧫', label: 'Qualité & réactifs' },
+  ]}]},
+  { key: 'factu', section: 'Facturation & tiers-payant', icon: '💳', groups: [{ items: [
     { id: 'sante_facturation', icon: '💳', label: 'Factures & caisse' },
-    { id: 'sante_pilotage', icon: '📊', label: 'Pilotage & tableaux de bord' },
-    { id: 'sante_catalogue', icon: '📋', label: 'Catalogue & tarifs' },
-    { id: 'sante_parametres', icon: '🏥', label: 'Structure & équipe' },
-  ]},
-  { section: 'Synthèse', items: [
-    { id: 'dashboard', icon: '◈', label: 'Tableau de bord', shortcut: 'Alt+D' },
-    { id: 'clients', icon: '👥', label: 'Mes Clients', cabinet: true },
-    { id: 'cabinet_mgmt', icon: '🏛️', label: 'Gestion Cabinet', cabinet: true },
-    { id: 'kpi_collab', icon: '📊', label: 'KPI Collaborateurs', cabinet: true },
-    { id: 'abonnements_clients', icon: '🗂️', label: 'Abonnements Clients', cabinet: true },
-  ]},
-  { section: 'Comptabilité', items: [
-    { id: 'saisie', icon: '✏️', label: "Saisie d'écritures", shortcut: 'Alt+S' },
-    { id: 'journal', icon: '📋', label: 'Journal', shortcut: 'Alt+J' },
-    { id: 'balance', icon: '⚖️', label: 'Balance', shortcut: 'Alt+B' },
-    { id: 'anomalies', icon: '🩺', label: 'Contrôles de cohérence' },
-    { id: 'grandlivre', icon: '📖', label: 'Grand Livre', shortcut: 'Alt+G' },
-    { id: 'lettrage', icon: '🔗', label: 'Lettrage' },
-    { id: 'rapprochement', icon: '🏦', label: 'Rapprochement' },
-    { id: 'mobile_money', icon: '📱', label: 'Mobile Money' },
-    { id: 'import', icon: '📥', label: 'Import FEC/CSV' },
-    { id: 'immobilisations', icon: '🏭', label: 'Immobilisations' },
-    { id: 'stocks', icon: '📦', label: 'Pharmacie & consommables' },
-    { id: 'provisions', icon: '🛡️', label: 'Provisions & Dépréc.' },
     { id: 'facturation', icon: '🧾', label: 'Honoraires & facturation' },
     { id: 'factures_dgid', icon: '📄', label: 'e-Facturation DGID' },
     { id: 'fournisseurs', icon: '📥', label: 'Fournisseurs & laboratoires' },
-    { id: 'paie', icon: '💼', label: 'Paie du personnel' },
-    { id: 'validation', icon: '✅', label: 'Validation Écritures' },
+  ]}]},
+  { key: 'pilotage', section: 'Pilotage', icon: '📊', groups: [{ items: [
+    { id: 'sante_pilotage', icon: '📊', label: 'Tableaux de bord santé' },
+    { id: 'dashboard', icon: '◈', label: 'Tableau de bord financier', shortcut: 'Alt+D' },
+    { id: 'clients', icon: '👥', label: 'Mes Clients', cabinet: true },
+    { id: 'cabinet_mgmt', icon: '🏛️', label: 'Gestion Cabinet', cabinet: true },
+    { id: 'kpi_collab', icon: '📈', label: 'KPI Collaborateurs', cabinet: true },
+    { id: 'abonnements_clients', icon: '🗂️', label: 'Abonnements Clients', cabinet: true },
+  ]}]},
+  { key: 'compta', section: 'Comptabilité SYSCOHADA', icon: '⚖️', groups: [
+    { title: 'Écritures', items: [
+      { id: 'saisie', icon: '✏️', label: "Saisie d'écritures", shortcut: 'Alt+S' },
+      { id: 'journal', icon: '📋', label: 'Journal', shortcut: 'Alt+J' },
+      { id: 'grandlivre', icon: '📖', label: 'Grand Livre', shortcut: 'Alt+G' },
+      { id: 'lettrage', icon: '🔗', label: 'Lettrage' },
+      { id: 'validation', icon: '✅', label: 'Validation écritures' },
+      { id: 'import', icon: '📥', label: 'Import FEC/CSV' },
+      { id: 'abonnement', icon: '🔄', label: 'Écritures récurrentes' },
+    ]},
+    { title: 'Trésorerie', items: [
+      { id: 'rapprochement', icon: '🏦', label: 'Rapprochement' },
+      { id: 'mobile_money', icon: '📱', label: 'Mobile Money' },
+      { id: 'balance_agee', icon: '⏳', label: 'Balance âgée' },
+    ]},
+    { title: 'Contrôles', items: [
+      { id: 'balance', icon: '⚖️', label: 'Balance', shortcut: 'Alt+B' },
+      { id: 'anomalies', icon: '🔎', label: 'Contrôles de cohérence' },
+      { id: 'audit', icon: '🔍', label: "Piste d'audit" },
+    ]},
+    { title: 'Actifs & personnel', items: [
+      { id: 'immobilisations', icon: '🏭', label: 'Immobilisations' },
+      { id: 'provisions', icon: '🛡️', label: 'Provisions & dépréc.' },
+      { id: 'paie', icon: '💼', label: 'Paie du personnel' },
+    ]},
+    { title: 'Fiscalité & gestion', items: [
+      { id: 'tva', icon: '🧾', label: 'TVA & fiscalité' },
+      { id: 'echeancier', icon: '📅', label: 'Échéancier fiscal' },
+      { id: 'analytique', icon: '📊', label: 'Comptabilité analytique' },
+      { id: 'budget', icon: '💰', label: 'Gestion budgétaire' },
+    ]},
   ]},
-  { section: 'GED & Collaboration', items: [
-    { id: 'documents', icon: '📁', label: 'Documents (GED)' },
-    { id: 'portail', icon: '🌐', label: 'Portail Client' },
-  ]},
-  { section: 'États Financiers', items: [
+  { key: 'etats', section: 'États financiers', icon: '🏛️', groups: [{ items: [
     { id: 'bilan', icon: '🏛️', label: 'Bilan', shortcut: 'Alt+I' },
-    { id: 'resultat', icon: '📊', label: 'Compte de Résultat', shortcut: 'Alt+R' },
-    { id: 'tft', icon: '💸', label: 'Flux de Trésorerie' },
-    { id: 'note34', icon: '📝', label: 'Notes Annexes' },
-    { id: 'liasse', icon: '📦', label: 'Liasse Fiscale DSF' },
-  ]},
-  { section: 'Analyse & Gestion', items: [
-    { id: 'analytique', icon: '📊', label: 'Comptabilité Analytique' },
-    { id: 'budget', icon: '💰', label: 'Gestion Budgétaire' },
-    { id: 'tva', icon: '🧾', label: 'TVA & Fiscalité' },
-    { id: 'echeancier', icon: '📅', label: 'Échéancier Fiscal' },
-    { id: 'balance_agee', icon: '⏳', label: 'Balance Âgée' },
-    { id: 'audit', icon: '🔍', label: "Piste d'Audit" },
-  ]},
-  { section: 'Paramètres', items: [
-    { id: 'plan', icon: '🗂️', label: 'Plan Comptable', shortcut: 'Alt+P' },
+    { id: 'resultat', icon: '📊', label: 'Compte de résultat', shortcut: 'Alt+R' },
+    { id: 'tft', icon: '💸', label: 'Flux de trésorerie' },
+    { id: 'note34', icon: '📝', label: 'Notes annexes' },
+    { id: 'liasse', icon: '📦', label: 'Liasse fiscale DSF' },
+  ]}]},
+  { key: 'docs', section: 'Documents & partage', icon: '📁', groups: [{ items: [
+    { id: 'documents', icon: '📁', label: 'Documents (GED)' },
+    { id: 'portail', icon: '🌐', label: 'Portail client' },
+  ]}]},
+  { key: 'params', section: 'Structure & paramètres', icon: '⚙️', groups: [{ items: [
+    { id: 'sante_parametres', icon: '🏥', label: 'Structure & équipe' },
+    { id: 'sante_catalogue', icon: '📋', label: 'Catalogue & tarifs' },
+    { id: 'plan', icon: '🗂️', label: 'Plan comptable', shortcut: 'Alt+P' },
     { id: 'exercices', icon: '📅', label: 'Exercices', shortcut: 'Alt+E' },
-    { id: 'cloture', icon: '🔒', label: 'Clôture / Réouverture' },
-    { id: 'abonnement', icon: '🔄', label: 'Écritures Récurrentes' },
-    { id: 'mon_abonnement', icon: '💳', label: 'Mon Abonnement' },
+    { id: 'cloture', icon: '🔒', label: 'Clôture / réouverture' },
+    { id: 'mon_abonnement', icon: '💳', label: 'Mon abonnement' },
     { id: 'parametres', icon: '⚙️', label: 'Paramètres' },
-  ]},
+  ]}]},
 ];
+
+const NAV_STORAGE = 'gsante.nav.open';
 
 const PAGES: Record<string, React.ComponentType> = {
   dashboard: Dashboard, journal: JournalPage, balance: BalancePage,
