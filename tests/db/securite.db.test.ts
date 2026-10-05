@@ -142,6 +142,57 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     });
   });
 
+  describe('Laboratoire, facturation et comptabilité', () => {
+    let demande = '';
+    beforeAll(async () => {
+      const st = S.A.structure;
+      let { data: an } = await admin.from('sante_analyses').select('id').eq('structure_id', st).eq('code', 'P0GLY').maybeSingle();
+      if (!an) an = (await admin.from('sante_analyses').insert({ structure_id: st, code: 'P0GLY', libelle: 'Glycémie test', tarif: 1000 }).select('id').single()).data;
+      const { data: pa } = await admin.from('sante_analyse_parametres').select('id').eq('analyse_id', an!.id).maybeSingle();
+      if (!pa) await admin.from('sante_analyse_parametres').insert({ structure_id: st, analyse_id: an!.id, code: 'GLY', libelle: 'Glycémie', unite: 'g/L', type: 'numerique' });
+      const r = await S.A.users.secretaire.rpc('sante_creer_demande_labo', { _patient_id: S.A.patient, _analyses: [an!.id], _prescripteur: 'Dr TEST', _urgence: false, _renseignements: null, _consultation_id: null });
+      if (r.error) throw r.error;
+      demande = r.data as string;
+    }, 60_000);
+
+    it('saut d’étape (enregistrée → validée) refusé', async () => {
+      const r = await S.A.users.biologiste.from('sante_demandes_labo').update({ statut: 'validee' }).eq('id', demande).select('id');
+      expect(r.error || (r.data ?? []).length === 0).toBeTruthy();
+      expect((await S.A.users.biologiste.rpc('sante_valider_demande', { _demande_id: demande, _niveau: 'biologique' })).error).toBeTruthy();
+    });
+    it('double validation : saisie, validation technique et biologique par des personnes distinctes', async () => {
+      const t = S.A.users.technicien, b = S.A.users.biologiste;
+      for (const st of ['prelevee', 'recue', 'en_analyse']) expect((await t.rpc('sante_avancer_demande', { _demande_id: demande, _statut: st, _motif: null })).error).toBeNull();
+      const { data: pa } = await admin.from('sante_analyse_parametres').select('id').eq('structure_id', S.A.structure).eq('code', 'GLY').limit(1).single();
+      expect((await t.rpc('sante_saisir_resultat', { _demande_id: demande, _parametre_id: pa!.id, _valeur_num: 1, _valeur_texte: null })).error).toBeNull();
+      // Le technicien qui a saisi ne peut pas valider
+      expect((await t.rpc('sante_valider_demande', { _demande_id: demande, _niveau: 'technique' })).error).toBeTruthy();
+      expect((await b.rpc('sante_valider_demande', { _demande_id: demande, _niveau: 'technique' })).error).toBeNull();
+      // Le même biologiste ne peut pas faire la validation biologique
+      expect((await b.rpc('sante_valider_demande', { _demande_id: demande, _niveau: 'biologique' })).error).toBeTruthy();
+      // Un technicien n'est pas habilité à la validation biologique
+      expect((await t.rpc('sante_valider_demande', { _demande_id: demande, _niveau: 'biologique' })).error).toBeTruthy();
+    }, 60_000);
+    it('facture émise : ni modifiable ni supprimable', async () => {
+      const c = S.A.users.caissier;
+      const f = await c.rpc('sante_creer_facture', { _patient_id: S.A.patient, _lignes: [{ libelle: 'Test', quantite: 1, prix_unitaire: 1000 }], _assurance_id: null, _remise: 0, _motif_remise: null, _consultation_id: null, _demande_id: null });
+      expect(f.error).toBeNull();
+      const up = await S.A.users.admin_structure.from('sante_factures').update({ total: 1 }).eq('id', f.data as string).select('id');
+      expect(up.error || (up.data ?? []).length === 0).toBeTruthy();
+      const del = await S.A.users.admin_structure.from('sante_factures').delete().eq('id', f.data as string).select('id');
+      expect(del.error || (del.data ?? []).length === 0).toBeTruthy();
+      const { data } = await admin.from('sante_factures').select('total').eq('id', f.data as string).single();
+      expect(Number(data!.total)).toBe(1000);
+    });
+    it('écriture comptable validée : immuable même pour le serveur', async () => {
+      const { data: e } = await admin.from('ecritures').select('id, total_debit').eq('statut', 'validee').limit(1).maybeSingle();
+      if (!e) { console.warn('Aucune écriture validée disponible : test non exécuté'); return; }
+      const up = await admin.from('ecritures').update({ total_debit: Number(e.total_debit) + 1 }).eq('id', e.id);
+      expect(up.error).toBeTruthy();
+      expect((await admin.from('ecritures').delete().eq('id', e.id)).error).toBeTruthy();
+    });
+  });
+
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
     for (const role of ROLES) {
