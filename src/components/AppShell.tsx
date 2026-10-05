@@ -304,8 +304,8 @@ export default function AppShell() {
         <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto w-[225px] h-full bg-bg2 border-r border-border flex flex-col overflow-y-auto shrink-0 sidebar transition-transform duration-200`}>
           <nav className="py-1.5 flex-1">
             {NAV.map(section => {
-              const groups = section.groups
-                .map(g => ({ ...g, items: g.items.filter(i => !i.cabinet || env === 'cabinet') }))
+              const groups = (section.groups ?? [])
+                .map(g => ({ ...g, items: (g.items ?? []).filter(i => !i.cabinet || env === 'cabinet') }))
                 .filter(g => g.items.length);
               if (!groups.length) return null;
               const hasActive = groups.some(g => g.items.some(i => i.id === currentPage));
