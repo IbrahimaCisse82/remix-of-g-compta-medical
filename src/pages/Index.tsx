@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Landing from '@/components/Landing';
 import AuthPage from '@/pages/AuthPage';
 import AppShell from '@/components/AppShell';
+import MfaGate from '@/components/MfaGate';
 
 function AppContent() {
   const { launched } = useApp();
@@ -16,7 +17,7 @@ function AppContent() {
     );
   }
 
-  if (launched) return <AppShell />;
+  if (launched) return <MfaGate><AppShell /></MfaGate>;
   return <Landing />;
 }
 

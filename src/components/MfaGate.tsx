@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 
 /** Exige le code TOTP lorsque le compte a un facteur vérifié mais que la session est encore en aal1. */
 export default function MfaGate({ children }: { children: ReactNode }) {
-  const { user, signOut } = useAuth() as { user: unknown; signOut?: () => Promise<void> };
+  const { user, signOut } = useAuth();
   const [besoin, setBesoin] = useState<boolean | null>(null);
   const [code, setCode] = useState('');
   const [err, setErr] = useState('');
@@ -39,7 +39,7 @@ export default function MfaGate({ children }: { children: ReactNode }) {
         <Input inputMode="numeric" autoFocus maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="123456" />
         {err && <p className="text-sm text-destructive">{err}</p>}
         <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>{busy ? 'Vérification…' : 'Valider'}</Button>
-        <button type="button" className="w-full text-xs text-muted-foreground underline" onClick={() => (signOut ? signOut() : supabase.auth.signOut())}>Se déconnecter</button>
+        <button type="button" className="w-full text-xs text-muted-foreground underline" onClick={() => signOut()}>Se déconnecter</button>
       </form>
     </div>
   );
