@@ -15,6 +15,11 @@ export function origineAutorisee(origin: string): boolean {
   return LOCAL && /^http:\/\/localhost(:\d+)?$/.test(origin);
 }
 
+/** Vrai seulement pour l'aperçu (pas le site publié) : sert à interdire la démo en production. */
+export function estOrigineApercu(origin: string): boolean {
+  return FIXES.includes(origin) || (LOCAL && /^http:\/\/localhost(:\d+)?$/.test(origin));
+}
+
 export function corsFor(req: Request): Record<string, string> {
   const origin = req.headers.get('Origin') || '';
   return {
