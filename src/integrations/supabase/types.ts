@@ -5260,6 +5260,7 @@ export type Database = {
         Args: { _entreprise_id: string; _structure_id: string }
         Returns: undefined
       }
+      mfa_conforme: { Args: never; Returns: boolean }
       module_actif: {
         Args: { _entreprise_id: string; _module: string }
         Returns: boolean

@@ -183,6 +183,13 @@
       "when": 1791225183771,
       "tag": "0025_p0_durcissement_fonctions",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791225872179,
+      "tag": "0026_p0_finalisation_mfa_labo_journal",
+      "breakpoints": true
     }
   ]
 }
