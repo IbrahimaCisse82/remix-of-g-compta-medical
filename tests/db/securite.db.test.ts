@@ -122,6 +122,8 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
       const m = S.A.users.medecin;
       const direct = await m.from('sante_consultations').update({ statut: 'cloturee' }).eq('id', S.A.consultation).select('id');
       expect(direct.error).toBeTruthy();
+      const prep = await m.from('sante_consultations').update({ motif: 'test', diagnostic: 'test' }).eq('id', S.A.consultation).select('id');
+      expect(prep.error).toBeNull();
       const cl = await m.rpc('sante_cloturer_consultation', { _consultation_id: S.A.consultation });
       expect(cl.error).toBeNull();
       const apres = await m.from('sante_consultations').update({ diagnostic: 'modifié' }).eq('id', S.A.consultation).select('id');
@@ -153,7 +155,9 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     const att = attendue as unknown as Record<string, Record<string, boolean>>;
     for (const role of ROLES) for (const t of Object.keys(constatee[role])) {
       if (att[role]?.[t] === undefined) continue;
-      if (att[role][t] !== constatee[role][t]) ecarts.push(`${role} × ${t} : attendu ${att[role][t] ? 'lecture' : 'refus'}, constaté ${constatee[role][t] ? 'lecture' : 'refus'}`);
+      // Seules les FUITES sont fiables ici (lecture constatée alors que refus attendu) : un « refus »
+      // constaté peut venir d'une table sans donnée de test.
+      if (att[role][t] === false && constatee[role][t]) ecarts.push(`${role} × ${t} : attendu ${att[role][t] ? 'lecture' : 'refus'}, constaté ${constatee[role][t] ? 'lecture' : 'refus'}`);
     }
     writeFileSync('tests/db/matrice-ecarts.txt', ecarts.join('\n') || 'Aucun écart');
     // La matrice attendue décrit la CIBLE « besoin d'en connaître » (P1.2). Les écarts sont
