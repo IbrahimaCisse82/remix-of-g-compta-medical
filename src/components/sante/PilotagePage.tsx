@@ -67,8 +67,8 @@ export default function PilotagePage({ structureId }: { structureId: string }) {
         </div>
         <Table titre="Volume par technicien" cols={['Technicien', 'Résultats saisis', 'Demandes']} rows={(d.techniciens ?? []).map((t: any) => [t.nom, t.resultats, t.demandes])} />
         <h2 className="font-semibold pt-2">Tiers-payant (IPM / assurances)</h2>
-        <Table titre="Recouvrement par organisme" cols={['Organisme', 'Factures', 'Part organisme', 'Payé', 'Créances', 'Rejets', 'Taux de rejet', 'Délai de règlement']}
-          rows={(d.tiers ?? []).map((t: any) => [t.organisme ?? '—', t.factures, xof(t.montant), xof(t.paye), xof(t.creances), t.rejets, v(t.taux_rejet, ' %'), v(t.delai_jours, ' j')])} />
+        <Table titre="Recouvrement par organisme" cols={['Organisme', 'Factures', 'Part organisme', 'Payé', 'Créances', 'Rejets', 'Taux de rejet', 'Délai avant envoi', 'Délai de règlement']}
+          rows={(d.tiers ?? []).map((t: any) => [t.organisme ?? '—', t.factures, xof(t.montant), xof(t.paye), xof(t.creances), t.rejets, v(t.taux_rejet, ' %'), v(t.delai_envoi_jours, ' j'), v(t.delai_jours, ' j')])} />
       </>}
     </div>
   );

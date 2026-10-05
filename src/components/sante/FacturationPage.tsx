@@ -9,7 +9,7 @@ import BordereauCompta from './BordereauCompta';
 import { MODES_PAIEMENT, fcfa, resteDu, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
 
 type Item = { code: string; libelle: string; tarif: number };
-type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
+type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; envoye_tiers_le: string | null; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
 type Session = { id: string; fond_initial: number; ouverte_le: string } | null;
 
 const db = supabase as any;
@@ -33,7 +33,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
   const load = async () => {
     const [s, f, a, an] = await Promise.all([
       db.from('sante_sessions_caisse').select('id, fond_initial, ouverte_le').eq('structure_id', structureId).is('fermee_le', null).maybeSingle(),
-      db.from('sante_factures').select('id, numero, type, total, part_patient, part_organisme, organisme, statut_tiers, annulee, created_at, patient:sante_patients(nom, prenoms, numero_dossier), enc:sante_encaissements(montant, mode)').eq('structure_id', structureId).order('created_at', { ascending: false }).limit(50),
+      db.from('sante_factures').select('id, numero, type, total, part_patient, part_organisme, organisme, statut_tiers, envoye_tiers_le, annulee, created_at, patient:sante_patients(nom, prenoms, numero_dossier), enc:sante_encaissements(montant, mode)').eq('structure_id', structureId).order('created_at', { ascending: false }).limit(50),
       db.from('sante_actes').select('code, libelle, tarif').eq('structure_id', structureId).eq('actif', true),
       db.from('sante_analyses').select('code, libelle, tarif').eq('structure_id', structureId).eq('actif', true),
     ]);
@@ -119,7 +119,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
               <td>{f.patient?.nom} {f.patient?.prenoms}</td>
               <td>{fcfa(f.total)}</td>
               <td>{fcfa(f.part_patient)}<span className="block text-xs text-fg3">reste {fcfa(reste)}</span></td>
-              <td>{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}</span>
+              <td>{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}{f.envoye_tiers_le ? ` · envoyé le ${new Date(f.envoye_tiers_le).toLocaleDateString("fr-FR")}` : ""}</span>
                 {f.statut_tiers === 'a_facturer' || f.statut_tiers === 'rejete' ? <Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'envoye' }, 'Envoyé.')}>Envoyer</Button> : null}
                 {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'paye' }, 'Réglé.')}>Payé</Button><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'rejete' }, 'Rejet noté.')}>Rejeté</Button></>}
               </> : '—'}</td>

@@ -3685,6 +3685,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           demande_id: string | null
+          envoye_tiers_le: string | null
           facture_origine_id: string | null
           id: string
           motif_remise: string | null
@@ -3706,6 +3707,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           demande_id?: string | null
+          envoye_tiers_le?: string | null
           facture_origine_id?: string | null
           id?: string
           motif_remise?: string | null
@@ -3727,6 +3729,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           demande_id?: string | null
+          envoye_tiers_le?: string | null
           facture_origine_id?: string | null
           id?: string
           motif_remise?: string | null
