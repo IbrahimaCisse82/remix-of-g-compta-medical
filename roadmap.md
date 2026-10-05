@@ -47,3 +47,4 @@
 - [x] Rappels SMS automatiques chaque soir à 18 h
 - [ ] E-mail au prescripteur/patient à la validation d'un compte rendu — attend un domaine d'envoi d'e-mails
 - [x] Tableaux de bord direction, laboratoire (délais), tiers-payant
+- [ ] EN PAUSE (décision utilisateur) : paramétrage SMS Twilio — passage compte payant, enregistrement Sender ID G-SANTE (défaut dans le code), Geo permissions Sénégal
