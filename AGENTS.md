@@ -3,3 +3,4 @@
 - G-Santé uses dedicated structure, membership, role, invitation, and audit objects while sharing only account identity with G-Compta, preventing health-data scope from weakening accounting tenancy.
 - G-Santé structures may be linked to a G-Compta entreprise; health modules are gated server-side by entreprise sector + entreprise_modules, so non-health entreprises see no change.
 - Single shell: health pages render inside AppShell via 'sante_*' page ids (HealthShell embeddedView); why: one ERP environment for health structures.
+- Database security is proven by tests/db (real API, dedicated p0-*@gsante.test accounts, one token per role; run 'bun run test:db'); why: the agent role cannot assume 'authenticated', so pgTAP cannot exercise RLS here.
