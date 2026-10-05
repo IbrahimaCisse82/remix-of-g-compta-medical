@@ -1,9 +1,10 @@
 // Rappels de rendez-vous par SMS (J-1). Aucun contenu clinique dans le message.
 // Déclenchement : appel planifié (secret cron) ou bouton d'un administrateur/secrétaire (JWT + rôle vérifié).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsFor } from '../_shared/cors.ts';
 import { authenticateCronRequest } from '../_shared/cron-auth.ts';
 
+let corsHeaders: Record<string, string> = {};
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const EXPEDITEUR_DEFAUT = 'G-SANTE'; // Sender ID commun enregistré sur Twilio
@@ -17,6 +18,7 @@ function e164(tel: string | null): string | null {
 }
 
 Deno.serve(async (req) => {
+  corsHeaders = corsFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   let structureFiltre: string | null = null;
