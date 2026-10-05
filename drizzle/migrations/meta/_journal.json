@@ -197,6 +197,13 @@
       "when": 1791226826482,
       "tag": "0027_p1_cloisonnement_acces_bris_glace_conformite",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791226859639,
+      "tag": "0028_p1_correctifs_colonnes_cron",
+      "breakpoints": true
     }
   ]
 }
