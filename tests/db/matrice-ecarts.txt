@@ -1,2 +1,1 @@
-medecin × medical_access_log : attendu refus, constaté lecture
-biologiste × medical_access_log : attendu refus, constaté lecture
+Aucun écart

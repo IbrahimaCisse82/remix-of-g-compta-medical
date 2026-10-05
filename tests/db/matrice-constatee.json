@@ -29,7 +29,7 @@
     "sante_facture_lignes": false,
     "sante_encaissements": false,
     "sante_bris_glace": false,
-    "medical_access_log": true,
+    "medical_access_log": false,
     "medical_audit_log": false,
     "sante_violations": false
   },
@@ -46,7 +46,7 @@
     "sante_facture_lignes": false,
     "sante_encaissements": false,
     "sante_bris_glace": false,
-    "medical_access_log": true,
+    "medical_access_log": false,
     "medical_audit_log": false,
     "sante_violations": false
   },
