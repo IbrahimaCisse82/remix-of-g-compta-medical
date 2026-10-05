@@ -2705,10 +2705,16 @@ export type Database = {
       sante_analyse_parametres: {
         Row: {
           analyse_id: string
+          choix: string[] | null
           code: string
+          cq_absent: string
           decimales: number
+          formule: string | null
           id: string
+          impossible_bas: number | null
+          impossible_haut: number | null
           libelle: string
+          methode: string | null
           ordre: number
           structure_id: string
           type: string
@@ -2716,10 +2722,16 @@ export type Database = {
         }
         Insert: {
           analyse_id: string
+          choix?: string[] | null
           code: string
+          cq_absent?: string
           decimales?: number
+          formule?: string | null
           id?: string
+          impossible_bas?: number | null
+          impossible_haut?: number | null
           libelle: string
+          methode?: string | null
           ordre?: number
           structure_id: string
           type?: string
@@ -2727,10 +2739,16 @@ export type Database = {
         }
         Update: {
           analyse_id?: string
+          choix?: string[] | null
           code?: string
+          cq_absent?: string
           decimales?: number
+          formule?: string | null
           id?: string
+          impossible_bas?: number | null
+          impossible_haut?: number | null
           libelle?: string
+          methode?: string | null
           ordre?: number
           structure_id?: string
           type?: string
@@ -2852,6 +2870,41 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_antibiogrammes: {
+        Row: {
+          antibiotique: string
+          cmi: string | null
+          germe_id: string
+          id: string
+          interpretation: string
+          structure_id: string
+        }
+        Insert: {
+          antibiotique: string
+          cmi?: string | null
+          germe_id: string
+          id?: string
+          interpretation: string
+          structure_id: string
+        }
+        Update: {
+          antibiotique?: string
+          cmi?: string | null
+          germe_id?: string
+          id?: string
+          interpretation?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_antibiogrammes_germe_id_fkey"
+            columns: ["germe_id"]
+            isOneToOne: false
+            referencedRelation: "sante_micro_germes"
             referencedColumns: ["id"]
           },
         ]
@@ -3779,12 +3832,22 @@ export type Database = {
       sante_demandes_labo: {
         Row: {
           consultation_id: string | null
+          cr_hash: string | null
+          cr_token: string | null
           created_at: string
           created_by: string | null
+          demande_origine_id: string | null
+          derogation: boolean
+          echantillon_elimine_le: string | null
+          grossesse: boolean
           id: string
           motif_rejet: string | null
+          motif_rejet_code: string | null
           numero: string
           patient_id: string
+          prelev_conditions: Json | null
+          prelev_identifiants: string[] | null
+          prelev_site: string | null
           preleve_le: string | null
           preleve_par: string | null
           prescripteur: string | null
@@ -3801,12 +3864,22 @@ export type Database = {
         }
         Insert: {
           consultation_id?: string | null
+          cr_hash?: string | null
+          cr_token?: string | null
           created_at?: string
           created_by?: string | null
+          demande_origine_id?: string | null
+          derogation?: boolean
+          echantillon_elimine_le?: string | null
+          grossesse?: boolean
           id?: string
           motif_rejet?: string | null
+          motif_rejet_code?: string | null
           numero: string
           patient_id: string
+          prelev_conditions?: Json | null
+          prelev_identifiants?: string[] | null
+          prelev_site?: string | null
           preleve_le?: string | null
           preleve_par?: string | null
           prescripteur?: string | null
@@ -3823,12 +3896,22 @@ export type Database = {
         }
         Update: {
           consultation_id?: string | null
+          cr_hash?: string | null
+          cr_token?: string | null
           created_at?: string
           created_by?: string | null
+          demande_origine_id?: string | null
+          derogation?: boolean
+          echantillon_elimine_le?: string | null
+          grossesse?: boolean
           id?: string
           motif_rejet?: string | null
+          motif_rejet_code?: string | null
           numero?: string
           patient_id?: string
+          prelev_conditions?: Json | null
+          prelev_identifiants?: string[] | null
+          prelev_site?: string | null
           preleve_le?: string | null
           preleve_par?: string | null
           prescripteur?: string | null
@@ -4252,6 +4335,51 @@ export type Database = {
           },
         ]
       }
+      sante_habilitations: {
+        Row: {
+          accorde_par: string | null
+          analyse_id: string
+          created_at: string
+          id: string
+          structure_id: string
+          user_id: string
+          valide_jusqu: string | null
+        }
+        Insert: {
+          accorde_par?: string | null
+          analyse_id: string
+          created_at?: string
+          id?: string
+          structure_id: string
+          user_id: string
+          valide_jusqu?: string | null
+        }
+        Update: {
+          accorde_par?: string | null
+          analyse_id?: string
+          created_at?: string
+          id?: string
+          structure_id?: string
+          user_id?: string
+          valide_jusqu?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_habilitations_analyse_id_fkey"
+            columns: ["analyse_id"]
+            isOneToOne: false
+            referencedRelation: "sante_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_habilitations_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_lots_reactifs: {
         Row: {
           id: string
@@ -4299,6 +4427,53 @@ export type Database = {
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_micro_germes: {
+        Row: {
+          commentaire: string | null
+          demande_id: string
+          germe: string
+          id: string
+          quantification: string | null
+          saisi_le: string
+          saisi_par: string | null
+          statut: string
+          structure_id: string
+          type_examen: string
+        }
+        Insert: {
+          commentaire?: string | null
+          demande_id: string
+          germe: string
+          id?: string
+          quantification?: string | null
+          saisi_le?: string
+          saisi_par?: string | null
+          statut?: string
+          structure_id: string
+          type_examen?: string
+        }
+        Update: {
+          commentaire?: string | null
+          demande_id?: string
+          germe?: string
+          id?: string
+          quantification?: string | null
+          saisi_le?: string
+          saisi_par?: string | null
+          statut?: string
+          structure_id?: string
+          type_examen?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_micro_germes_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "sante_demandes_labo"
             referencedColumns: ["id"]
           },
         ]
@@ -4717,6 +4892,38 @@ export type Database = {
           },
         ]
       }
+      sante_profils: {
+        Row: {
+          analyses: string[]
+          code: string
+          id: string
+          libelle: string
+          structure_id: string
+        }
+        Insert: {
+          analyses: string[]
+          code: string
+          id?: string
+          libelle: string
+          structure_id: string
+        }
+        Update: {
+          analyses?: string[]
+          code?: string
+          id?: string
+          libelle?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_profils_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_rappels: {
         Row: {
           canal: string
@@ -4820,6 +5027,7 @@ export type Database = {
           par: string
           parametre_id: string
           structure_id: string
+          traitement_deja_prescrit: boolean
           version: number
         }
         Insert: {
@@ -4835,6 +5043,7 @@ export type Database = {
           par: string
           parametre_id: string
           structure_id: string
+          traitement_deja_prescrit?: boolean
           version: number
         }
         Update: {
@@ -4850,6 +5059,7 @@ export type Database = {
           par?: string
           parametre_id?: string
           structure_id?: string
+          traitement_deja_prescrit?: boolean
           version?: number
         }
         Relationships: [
@@ -5233,47 +5443,65 @@ export type Database = {
       }
       sante_resultats: {
         Row: {
+          a_refaire: boolean
           critique_acquitte_le: string | null
           critique_acquitte_par: string | null
           demande_id: string
           drapeau: string
           id: string
+          libelle_fige: string | null
+          lot_id: string | null
+          methode_fige: string | null
+          motif_refaire: string | null
           parametre_id: string
           ref_bas: number | null
           ref_haut: number | null
           saisi_le: string
           saisi_par: string
           structure_id: string
+          unite_fige: string | null
           valeur_num: number | null
           valeur_texte: string | null
         }
         Insert: {
+          a_refaire?: boolean
           critique_acquitte_le?: string | null
           critique_acquitte_par?: string | null
           demande_id: string
           drapeau?: string
           id?: string
+          libelle_fige?: string | null
+          lot_id?: string | null
+          methode_fige?: string | null
+          motif_refaire?: string | null
           parametre_id: string
           ref_bas?: number | null
           ref_haut?: number | null
           saisi_le?: string
           saisi_par: string
           structure_id: string
+          unite_fige?: string | null
           valeur_num?: number | null
           valeur_texte?: string | null
         }
         Update: {
+          a_refaire?: boolean
           critique_acquitte_le?: string | null
           critique_acquitte_par?: string | null
           demande_id?: string
           drapeau?: string
           id?: string
+          libelle_fige?: string | null
+          lot_id?: string | null
+          methode_fige?: string | null
+          motif_refaire?: string | null
           parametre_id?: string
           ref_bas?: number | null
           ref_haut?: number | null
           saisi_le?: string
           saisi_par?: string
           structure_id?: string
+          unite_fige?: string | null
           valeur_num?: number | null
           valeur_texte?: string | null
         }
@@ -5283,6 +5511,13 @@ export type Database = {
             columns: ["demande_id"]
             isOneToOne: false
             referencedRelation: "sante_demandes_labo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_resultats_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "sante_lots_reactifs"
             referencedColumns: ["id"]
           },
           {
@@ -5300,6 +5535,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sante_resultats_historique: {
+        Row: {
+          demande_id: string
+          drapeau: string | null
+          id: string
+          motif: string | null
+          parametre_id: string
+          remplace_le: string
+          resultat_id: string
+          saisi_le: string | null
+          saisi_par: string | null
+          structure_id: string
+          valeur_num: number | null
+          valeur_texte: string | null
+        }
+        Insert: {
+          demande_id: string
+          drapeau?: string | null
+          id?: string
+          motif?: string | null
+          parametre_id: string
+          remplace_le?: string
+          resultat_id: string
+          saisi_le?: string | null
+          saisi_par?: string | null
+          structure_id: string
+          valeur_num?: number | null
+          valeur_texte?: string | null
+        }
+        Update: {
+          demande_id?: string
+          drapeau?: string | null
+          id?: string
+          motif?: string | null
+          parametre_id?: string
+          remplace_le?: string
+          resultat_id?: string
+          saisi_le?: string | null
+          saisi_par?: string | null
+          structure_id?: string
+          valeur_num?: number | null
+          valeur_texte?: string | null
+        }
+        Relationships: []
       }
       sante_sequences: {
         Row: {
@@ -5460,8 +5740,10 @@ export type Database = {
           bas: number | null
           critique_bas: number | null
           critique_haut: number | null
+          grossesse: boolean | null
           haut: number | null
           id: string
+          methode: string | null
           parametre_id: string
           sexe: string | null
           structure_id: string
@@ -5472,8 +5754,10 @@ export type Database = {
           bas?: number | null
           critique_bas?: number | null
           critique_haut?: number | null
+          grossesse?: boolean | null
           haut?: number | null
           id?: string
+          methode?: string | null
           parametre_id: string
           sexe?: string | null
           structure_id: string
@@ -5484,8 +5768,10 @@ export type Database = {
           bas?: number | null
           critique_bas?: number | null
           critique_haut?: number | null
+          grossesse?: boolean | null
           haut?: number | null
           id?: string
+          methode?: string | null
           parametre_id?: string
           sexe?: string | null
           structure_id?: string
@@ -5676,13 +5962,16 @@ export type Database = {
           bris_glace_renouvellements_max: number
           bris_glace_seuil_semaine: number
           compta_panne_simulee: boolean
+          conservation_echantillons_jours: number
           cr_conditionne_reglement: boolean
           created_at: string
           created_by: string
+          derogation_validation_unique: boolean
           devise: string
           entreprise_id: string | null
           facturation_auto: boolean
           facturation_labo_moment: string
+          habilitations_obligatoires: boolean
           id: string
           inscription_ordre: string | null
           logo_path: string | null
@@ -5706,13 +5995,16 @@ export type Database = {
           bris_glace_renouvellements_max?: number
           bris_glace_seuil_semaine?: number
           compta_panne_simulee?: boolean
+          conservation_echantillons_jours?: number
           cr_conditionne_reglement?: boolean
           created_at?: string
           created_by: string
+          derogation_validation_unique?: boolean
           devise?: string
           entreprise_id?: string | null
           facturation_auto?: boolean
           facturation_labo_moment?: string
+          habilitations_obligatoires?: boolean
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -5736,13 +6028,16 @@ export type Database = {
           bris_glace_renouvellements_max?: number
           bris_glace_seuil_semaine?: number
           compta_panne_simulee?: boolean
+          conservation_echantillons_jours?: number
           cr_conditionne_reglement?: boolean
           created_at?: string
           created_by?: string
+          derogation_validation_unique?: boolean
           devise?: string
           entreprise_id?: string | null
           facturation_auto?: boolean
           facturation_labo_moment?: string
+          habilitations_obligatoires?: boolean
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -6378,6 +6673,7 @@ export type Database = {
         Args: { _conserve: string; _fusionne: string; _motif: string }
         Returns: undefined
       }
+      sante_germe_definitif: { Args: { _germe_id: string }; Returns: undefined }
       sante_imputer_reglement: {
         Args: {
           _imputations: Json
@@ -6416,6 +6712,15 @@ export type Database = {
       }
       sante_payer_remboursement: {
         Args: { _id: string; _mode: string }
+        Returns: undefined
+      }
+      sante_prelever: {
+        Args: {
+          _conditions: Json
+          _demande_id: string
+          _identifiants: string[]
+          _site: string
+        }
         Returns: undefined
       }
       sante_prochain_numero: {
@@ -6464,12 +6769,36 @@ export type Database = {
         }
         Returns: number
       }
+      sante_rectifier_resultat_v2: {
+        Args: {
+          _demande_id: string
+          _motif: string
+          _parametre_id: string
+          _traitement_deja_prescrit: boolean
+          _valeur_num: number
+          _valeur_texte: string
+        }
+        Returns: number
+      }
+      sante_refaire_resultat: {
+        Args: { _demande_id: string; _motif: string; _parametre_id: string }
+        Returns: undefined
+      }
       sante_rejet_tiers: {
         Args: {
           _facture_id: string
           _montant: number
           _motif: string
           _type: string
+        }
+        Returns: string
+      }
+      sante_rejeter_echantillon: {
+        Args: {
+          _code: string
+          _commentaire: string
+          _demande_id: string
+          _nouveau_prelevement: boolean
         }
         Returns: string
       }
@@ -6506,12 +6835,34 @@ export type Database = {
         }
         Returns: string
       }
+      sante_saisir_germe: {
+        Args: {
+          _antibiogramme: Json
+          _commentaire: string
+          _definitif: boolean
+          _demande_id: string
+          _germe: string
+          _quantification: string
+          _type: string
+        }
+        Returns: string
+      }
       sante_saisir_resultat: {
         Args: {
           _demande_id: string
           _parametre_id: string
           _valeur_num: number
           _valeur_texte?: string
+        }
+        Returns: string
+      }
+      sante_saisir_resultat_v2: {
+        Args: {
+          _demande_id: string
+          _lot_id: string
+          _parametre_id: string
+          _valeur_num: number
+          _valeur_texte: string
         }
         Returns: string
       }
@@ -6537,6 +6888,7 @@ export type Database = {
           nb_lignes: number
         }[]
       }
+      sante_verifier_cr: { Args: { _token: string }; Returns: Json }
       set_medical_theme: {
         Args: {
           _structure_id: string
