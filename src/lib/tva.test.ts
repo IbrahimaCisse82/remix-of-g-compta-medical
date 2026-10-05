@@ -39,3 +39,10 @@ describe('TVA — déclaration', () => {
     expect(r.aPayer).toBe(-100000);
   });
 });
+
+import { ventilerTvaDeductible } from './tva';
+describe('TVA déductible (structures de santé)', () => {
+  it('assujetti : tout récupérable', () => expect(ventilerTvaDeductible(1800, 1)).toEqual({ deductible: 1800, nonDeductible: 0 }));
+  it('exonéré : rien de récupérable', () => expect(ventilerTvaDeductible(1800, 0)).toEqual({ deductible: 0, nonDeductible: 1800 }));
+  it('prorata 40 %', () => expect(ventilerTvaDeductible(1800, 0.4)).toEqual({ deductible: 720, nonDeductible: 1080 }));
+});

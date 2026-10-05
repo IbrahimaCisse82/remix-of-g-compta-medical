@@ -37,6 +37,8 @@ ${c.jours_arret ? `<p>Un arrêt de travail de <strong>${c.jours_arret} jour(s)</
 }
 
 export async function imprimerCompteRendu(demandeId: string) {
+  const { data: remettable } = await supabase.rpc('sante_cr_remettable' as never, { _demande_id: demandeId } as never);
+  if (remettable === false) return toast.error('Compte rendu non remis : la part patient n\'est pas réglée (option de la structure).');
   const { data: d } = await supabase.from('sante_demandes_labo')
     .select('*, patient:sante_patients(nom, prenoms, sexe, date_naissance, numero_dossier), structure:structures(nom, adresse, telephone, ninea, rccm, autorisation_exercice)')
     .eq('id', demandeId).maybeSingle();
