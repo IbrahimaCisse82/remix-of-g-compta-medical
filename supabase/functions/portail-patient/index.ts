@@ -108,8 +108,11 @@ Deno.serve(async (req) => {
       admin.from('sante_ordonnances').select('id, numero, emise_le, recommandations, praticien:sante_praticiens(nom, specialite), lignes:sante_ordonnance_lignes(ordre, medicament, posologie, duree, quantite)').eq('patient_id', acc.patient_id).order('emise_le', { ascending: false }).limit(50),
       admin.from('sante_demandes_labo').select('id, numero, created_at, validee_le, prescripteur, resultats:sante_resultats(valeur_num, valeur_texte, drapeau, ref_bas, ref_haut, parametre:sante_analyse_parametres(libelle, unite, ordre))').eq('patient_id', acc.patient_id).eq('statut', 'validee').order('validee_le', { ascending: false }).limit(50),
     ]);
+    // Compte rendu remis seulement si la part patient est réglée (option de la structure)
+    const remettables = [];
+    for (const d of dems ?? []) { const { data: ok } = await admin.rpc('sante_cr_remettable', { _demande_id: d.id }); if (ok !== false) remettables.push(d); }
     await admin.from('medical_access_log').insert({ structure_id: acc.structure_id, patient_id: acc.patient_id, user_id: null, ecran: 'portail', motif: 'Consultation par le patient' }).then(() => {}, () => {});
-    return json({ patient, structure, ordonnances: ords ?? [], comptes_rendus: dems ?? [], expire_le: acc.expire_le });
+    return json({ patient, structure, ordonnances: ords ?? [], comptes_rendus: remettables, en_attente_reglement: (dems ?? []).length - remettables.length, expire_le: acc.expire_le });
   }
 
   return json({ error: 'Action inconnue' }, 400);
