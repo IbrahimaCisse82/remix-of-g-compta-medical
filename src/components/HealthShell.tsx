@@ -37,7 +37,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
   const [invitations, setInvitations] = useState<{ id: string; email: string; role: string; statut: string }[]>([]);
   const [siteName, setSiteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'medecin' | 'biologiste' | 'technicien' | 'preleveur' | 'secretaire' | 'caissier' | 'comptable' | 'lecteur'>('medecin');
+  const [inviteRole, setInviteRole] = useState<'medecin' | 'biologiste' | 'technicien' | 'preleveur' | 'secretaire' | 'caissier' | 'tiers_payant' | 'comptable' | 'lecteur'>('medecin');
 
   const refreshSettings = async () => {
     if (!medicalStructure) return;
