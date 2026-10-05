@@ -45,6 +45,20 @@ export default function HealthOnboarding() {
       setSaving(false);
       return;
     }
+    // Dossier comptable SYSCOHADA créé et relié automatiquement (best effort, non bloquant).
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user) {
+        const { data: ent } = await supabase.from('entreprises')
+          .insert({ nom, user_id: auth.user.id, monnaie: 'FCFA', ninea: ninea || null, adresse: adresse || null })
+          .select('id').single();
+        if (ent) {
+          const secteur = type === 'laboratoire' ? 'sante_laboratoire' : type === 'cabinet' ? 'sante_clinique' : 'sante_mixte';
+          await supabase.rpc('set_secteur_activite', { _entreprise_id: ent.id, _secteur: secteur });
+          await supabase.rpc('lier_structure_entreprise', { _structure_id: data, _entreprise_id: ent.id });
+        }
+      }
+    } catch { /* la liaison reste possible depuis Structure & équipe */ }
     completeHealthOnboarding({ id: data, nom, type, theme_medical: palette });
     toast.success('Votre structure Santé est prête.');
   };
