@@ -53,7 +53,8 @@
 ## Mise à jour suite à l'analyse critique (document « MAJ G-SANTE ERP », 5 oct.) — phase par phase, validation entre chaque
 - [x] P0 Sécurité — tests base 20/20, fonctions durcies, MFA TOTP, double validation labo, journal d'accès admin, CI prête. Bloqués : préprod (2e environnement), jeton dans le coffre, CORS passerelle
 - [x] P1 Cloisonnement, besoin d'en connaître, bris de glace, conformité technique (docs/securite/P1-rapport.md). Contenus juridiques à compléter par le porteur
-- [ ] P2 Facturation/caisse/tiers-payant/comptabilisation (outbox, comptes paramétrables)
+- [x] P2 critères de sortie atteints (docs/securite/P2-rapport.md)
+- [ ] P2 suite : TVA (attend fiscaliste), matrice couverture/conventions/bons, honoraires, analytique, blocs secours, CR conditionné au règlement, relances/provisions/lettrage auto
 - [ ] P3 Laboratoire (pré-analytique, microbiologie, sous-traitance, dérogation)
 - [ ] P4 Patient/clinique/portail
 - [ ] P5 Stocks, personnel, rétrocessions, exploitation

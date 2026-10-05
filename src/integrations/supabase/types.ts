@@ -3004,6 +3004,68 @@ export type Database = {
           },
         ]
       }
+      sante_compta_evenements: {
+        Row: {
+          created_at: string
+          date_piece: string
+          derniere_erreur: string | null
+          ecriture_id: string | null
+          id: string
+          journal: string
+          libelle: string
+          lignes: Json
+          piece: string | null
+          source_id: string
+          source_type: string
+          statut: string
+          structure_id: string
+          tentatives: number
+          traite_le: string | null
+        }
+        Insert: {
+          created_at?: string
+          date_piece: string
+          derniere_erreur?: string | null
+          ecriture_id?: string | null
+          id?: string
+          journal: string
+          libelle: string
+          lignes: Json
+          piece?: string | null
+          source_id: string
+          source_type: string
+          statut?: string
+          structure_id: string
+          tentatives?: number
+          traite_le?: string | null
+        }
+        Update: {
+          created_at?: string
+          date_piece?: string
+          derniere_erreur?: string | null
+          ecriture_id?: string | null
+          id?: string
+          journal?: string
+          libelle?: string
+          lignes?: Json
+          piece?: string | null
+          source_id?: string
+          source_type?: string
+          statut?: string
+          structure_id?: string
+          tentatives?: number
+          traite_le?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_compta_evenements_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_compta_liens: {
         Row: {
           created_at: string
@@ -3038,6 +3100,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sante_compta_liens_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_comptes_parametres: {
+        Row: {
+          cle: string
+          compte: string
+          id: string
+          structure_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cle: string
+          compte: string
+          id?: string
+          structure_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cle?: string
+          compte?: string
+          id?: string
+          structure_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_comptes_parametres_structure_id_fkey"
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
@@ -3681,6 +3778,51 @@ export type Database = {
           },
         ]
       }
+      sante_facturation_sources: {
+        Row: {
+          actif: boolean
+          created_at: string
+          facture_id: string
+          id: string
+          source_id: string
+          source_type: string
+          structure_id: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          facture_id: string
+          id?: string
+          source_id: string
+          source_type: string
+          structure_id: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          facture_id?: string
+          id?: string
+          source_id?: string
+          source_type?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_facturation_sources_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "sante_factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_facturation_sources_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_facture_lignes: {
         Row: {
           code: string | null
@@ -4026,6 +4168,47 @@ export type Database = {
           },
           {
             foreignKeyName: "sante_ordonnances_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_organismes: {
+        Row: {
+          actif: boolean
+          bascule_patient_autorisee: boolean
+          compte_auxiliaire: string | null
+          created_at: string
+          id: string
+          nom: string
+          structure_id: string
+          type: string
+        }
+        Insert: {
+          actif?: boolean
+          bascule_patient_autorisee?: boolean
+          compte_auxiliaire?: string | null
+          created_at?: string
+          id?: string
+          nom: string
+          structure_id: string
+          type?: string
+        }
+        Update: {
+          actif?: boolean
+          bascule_patient_autorisee?: boolean
+          compte_auxiliaire?: string | null
+          created_at?: string
+          id?: string
+          nom?: string
+          structure_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_organismes_structure_id_fkey"
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
@@ -4462,6 +4645,243 @@ export type Database = {
           },
         ]
       }
+      sante_reglement_imputations: {
+        Row: {
+          facture_id: string
+          id: string
+          montant: number
+          reglement_id: string
+          structure_id: string
+        }
+        Insert: {
+          facture_id: string
+          id?: string
+          montant: number
+          reglement_id: string
+          structure_id: string
+        }
+        Update: {
+          facture_id?: string
+          id?: string
+          montant?: number
+          reglement_id?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_reglement_imputations_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "sante_factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_reglement_imputations_reglement_id_fkey"
+            columns: ["reglement_id"]
+            isOneToOne: false
+            referencedRelation: "sante_reglements_organisme"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_reglements_organisme: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_reglement: string
+          id: string
+          mode: string
+          montant: number
+          organisme: string
+          reference: string | null
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_reglement?: string
+          id?: string
+          mode: string
+          montant: number
+          organisme: string
+          reference?: string | null
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_reglement?: string
+          id?: string
+          mode?: string
+          montant?: number
+          organisme?: string
+          reference?: string | null
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_reglements_organisme_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_remboursements: {
+        Row: {
+          approuve_le: string | null
+          approuve_par: string | null
+          avoir_id: string
+          created_at: string
+          demande_par: string | null
+          facture_id: string
+          id: string
+          mode: string | null
+          montant: number
+          motif: string
+          motif_decision: string | null
+          paye_le: string | null
+          paye_par: string | null
+          session_id: string | null
+          statut: string
+          structure_id: string
+        }
+        Insert: {
+          approuve_le?: string | null
+          approuve_par?: string | null
+          avoir_id: string
+          created_at?: string
+          demande_par?: string | null
+          facture_id: string
+          id?: string
+          mode?: string | null
+          montant: number
+          motif: string
+          motif_decision?: string | null
+          paye_le?: string | null
+          paye_par?: string | null
+          session_id?: string | null
+          statut?: string
+          structure_id: string
+        }
+        Update: {
+          approuve_le?: string | null
+          approuve_par?: string | null
+          avoir_id?: string
+          created_at?: string
+          demande_par?: string | null
+          facture_id?: string
+          id?: string
+          mode?: string | null
+          montant?: number
+          motif?: string
+          motif_decision?: string | null
+          paye_le?: string | null
+          paye_par?: string | null
+          session_id?: string | null
+          statut?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_remboursements_avoir_id_fkey"
+            columns: ["avoir_id"]
+            isOneToOne: false
+            referencedRelation: "sante_factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_remboursements_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "sante_factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_remboursements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sante_sessions_caisse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_remboursements_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_remise_cheque_lignes: {
+        Row: {
+          encaissement_id: string
+          remise_id: string
+          structure_id: string
+        }
+        Insert: {
+          encaissement_id: string
+          remise_id: string
+          structure_id: string
+        }
+        Update: {
+          encaissement_id?: string
+          remise_id?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_remise_cheque_lignes_encaissement_id_fkey"
+            columns: ["encaissement_id"]
+            isOneToOne: true
+            referencedRelation: "sante_encaissements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_remise_cheque_lignes_remise_id_fkey"
+            columns: ["remise_id"]
+            isOneToOne: false
+            referencedRelation: "sante_remises_cheques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_remises_cheques: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_remise: string
+          id: string
+          montant: number
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_remise?: string
+          id?: string
+          montant: number
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_remise?: string
+          id?: string
+          montant?: number
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_remises_cheques_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_rendez_vous: {
         Row: {
           arrive_le: string | null
@@ -4678,6 +5098,53 @@ export type Database = {
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_tiers_rejets: {
+        Row: {
+          avoir_id: string | null
+          created_at: string
+          created_by: string | null
+          facture_bascule_id: string | null
+          facture_id: string
+          id: string
+          montant: number
+          motif: string
+          structure_id: string
+          type: string
+        }
+        Insert: {
+          avoir_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          facture_bascule_id?: string | null
+          facture_id: string
+          id?: string
+          montant?: number
+          motif: string
+          structure_id: string
+          type: string
+        }
+        Update: {
+          avoir_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          facture_bascule_id?: string | null
+          facture_id?: string
+          id?: string
+          montant?: number
+          motif?: string
+          structure_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_tiers_rejets_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "sante_factures"
             referencedColumns: ["id"]
           },
         ]
@@ -4904,11 +5371,13 @@ export type Database = {
           autorisation_exercice: string | null
           bris_glace_renouvellements_max: number
           bris_glace_seuil_semaine: number
+          compta_panne_simulee: boolean
           created_at: string
           created_by: string
           devise: string
           entreprise_id: string | null
           facturation_auto: boolean
+          facturation_labo_moment: string
           id: string
           inscription_ordre: string | null
           logo_path: string | null
@@ -4929,11 +5398,13 @@ export type Database = {
           autorisation_exercice?: string | null
           bris_glace_renouvellements_max?: number
           bris_glace_seuil_semaine?: number
+          compta_panne_simulee?: boolean
           created_at?: string
           created_by: string
           devise?: string
           entreprise_id?: string | null
           facturation_auto?: boolean
+          facturation_labo_moment?: string
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -4954,11 +5425,13 @@ export type Database = {
           autorisation_exercice?: string | null
           bris_glace_renouvellements_max?: number
           bris_glace_seuil_semaine?: number
+          compta_panne_simulee?: boolean
           created_at?: string
           created_by?: string
           devise?: string
           entreprise_id?: string | null
           facturation_auto?: boolean
+          facturation_labo_moment?: string
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -5347,7 +5820,15 @@ export type Database = {
         Args: { _facture_id: string; _motif: string }
         Returns: string
       }
+      sante_annuler_facture_interne: {
+        Args: { _facture_id: string; _motif: string }
+        Returns: string
+      }
       sante_assurance_active: { Args: { _patient_id: string }; Returns: string }
+      sante_aux_organisme: {
+        Args: { _nom: string; _structure_id: string }
+        Returns: string
+      }
       sante_avancer_demande: {
         Args: { _demande_id: string; _motif?: string; _statut: string }
         Returns: undefined
@@ -5379,6 +5860,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      sante_compte: {
+        Args: { _cle: string; _structure_id: string }
+        Returns: string
+      }
+      sante_compte_defaut: { Args: { _cle: string }; Returns: string }
+      sante_compte_tresorerie: {
+        Args: { _mode: string; _structure_id: string }
+        Returns: string
+      }
       sante_config_acces: {
         Args: {
           _renouv: number
@@ -5394,6 +5884,10 @@ export type Database = {
       }
       sante_config_facturation: {
         Args: { _acte_code: string; _auto: boolean; _structure_id: string }
+        Returns: undefined
+      }
+      sante_config_labo_moment: {
+        Args: { _moment: string; _structure_id: string }
         Returns: undefined
       }
       sante_config_rappels: {
@@ -5424,6 +5918,18 @@ export type Database = {
         }
         Returns: string
       }
+      sante_creer_facture_interne: {
+        Args: {
+          _assurance_id: string
+          _consultation_id: string
+          _demande_id: string
+          _lignes: Json
+          _motif_remise: string
+          _patient_id: string
+          _remise: number
+        }
+        Returns: string
+      }
       sante_creer_patient: {
         Args: {
           _adresse?: string
@@ -5439,6 +5945,14 @@ export type Database = {
           _telephone?: string
         }
         Returns: string
+      }
+      sante_decider_remboursement: {
+        Args: { _approuver: boolean; _id: string; _motif: string }
+        Returns: undefined
+      }
+      sante_definir_compte: {
+        Args: { _cle: string; _compte: string; _structure_id: string }
+        Returns: undefined
       }
       sante_demarrer_consultation: {
         Args: {
@@ -5506,6 +6020,17 @@ export type Database = {
         Args: { _conserve: string; _fusionne: string; _motif: string }
         Returns: undefined
       }
+      sante_imputer_reglement: {
+        Args: {
+          _imputations: Json
+          _mode: string
+          _montant: number
+          _organisme: string
+          _reference: string
+          _structure_id: string
+        }
+        Returns: string
+      }
       sante_mouvement_reactif: {
         Args: {
           _lot_id?: string
@@ -5517,12 +6042,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      sante_outbox_resume: { Args: { _structure_id: string }; Returns: Json }
       sante_ouvrir_caisse: {
         Args: { _fond: number; _structure_id: string }
         Returns: string
       }
       sante_ouvrir_dossier: {
         Args: { _ecran?: string; _patient_id: string }
+        Returns: undefined
+      }
+      sante_payer_remboursement: {
+        Args: { _id: string; _mode: string }
         Returns: undefined
       }
       sante_prochain_numero: {
@@ -5533,6 +6063,7 @@ export type Database = {
         Args: { _structure_id: string }
         Returns: number
       }
+      sante_rapport_caisse: { Args: { _session_id: string }; Returns: Json }
       sante_rechercher_patients: {
         Args: {
           _limit?: number
@@ -5561,7 +6092,23 @@ export type Database = {
         }
         Returns: number
       }
+      sante_rejet_tiers: {
+        Args: {
+          _facture_id: string
+          _montant: number
+          _motif: string
+          _type: string
+        }
+        Returns: string
+      }
+      sante_rejouer_outbox: { Args: { _structure_id: string }; Returns: number }
+      sante_rejouer_outbox_auto: { Args: never; Returns: number }
       sante_relation_soin: { Args: { _patient_id: string }; Returns: boolean }
+      sante_remettre_cheques: {
+        Args: { _structure_id: string }
+        Returns: string
+      }
+      sante_reste_organisme: { Args: { _facture_id: string }; Returns: number }
       sante_revoir_bris_glace:
         | { Args: { _id: string }; Returns: undefined }
         | { Args: { _commentaire: string; _id: string }; Returns: undefined }
@@ -5587,6 +6134,7 @@ export type Database = {
         Args: { _debut: string; _fin: string; _structure_id: string }
         Returns: Json
       }
+      sante_traiter_evenement: { Args: { _id: string }; Returns: string }
       sante_valider_demande: {
         Args: { _demande_id: string; _niveau: string }
         Returns: undefined

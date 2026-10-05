@@ -6,3 +6,4 @@
 - Database security is proven by tests/db (real API, dedicated p0-*@gsante.test accounts, one token per role; run 'bun run test:db'); why: the agent role cannot assume 'authenticated', so pgTAP cannot exercise RLS here.
 - MFA is enforced in the database via RESTRICTIVE RLS policies calling mfa_conforme() (aal2 required once a verified factor exists); why: UI-only MFA can be bypassed with a direct API token.
 - Clinical content access goes through can_access_clinique() (care relationship, structure opt-in, or active break-glass) and accounting never receives patient identity or act labels; why: need-to-know model proven by tests/db matrix.
+- Health accounting goes through the sante_compta_evenements outbox (idempotent per source object x event, hourly retry) with per-structure account mapping via sante_compte(); why: care and invoices must never block on accounting, and replays must never duplicate entries.
