@@ -239,6 +239,13 @@
       "when": 1791229380165,
       "tag": "0033_p2_suite_conventions_tva_analytique_lettrage",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791229402835,
+      "tag": "0034_p2_provision_isolation",
+      "breakpoints": true
     }
   ]
 }
