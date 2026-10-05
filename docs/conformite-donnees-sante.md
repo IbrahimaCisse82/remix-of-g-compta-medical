@@ -19,7 +19,7 @@
 
 ## 4. Accès d'urgence (« bris de glace »)
 - Chaque ouverture de dossier est tracée (journal d'accès) et chaque modification est auditée.
-- Reste : un accès hors habilitation avec motif obligatoire et alerte à un responsable n'existe pas encore ; aujourd'hui, aucun accès hors habilitation n'est possible.
+- Bouton « Accès d'urgence » sur la fiche patient : motif obligatoire (10 caractères min.), accès limité à 1 heure, limité à la structure du patient, tracé dans le journal d'accès et notifié aux administrateurs, qui le revoient et peuvent le fermer.
 
 ## 5. Conservation
 - Comptabilité : 10 ans (OHADA).

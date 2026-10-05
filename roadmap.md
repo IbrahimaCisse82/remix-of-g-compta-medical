@@ -37,6 +37,7 @@
 - [ ] P0 : CORS restreint — le serveur renvoie encore l'origine appelante (à revoir)
 - [x] P1bis : écritures automatiques facture/avoir/encaissement santé (VT/CA/BQ, 4111/4114/706/57X/52X) + bordereau mensuel par organisme
 - [x] P1 : note de conformité, registre des violations, consentement vérifié en base
-- [ ] P1 : bris de glace avec motif + alerte ; durée de conservation médicale — attend avis juriste / CDP
-- [ ] P1bis : facture créée automatiquement à la clôture de consultation (paramétrable)
+- [x] P1 : accès d'urgence (motif, 1 h, alerte admin, revue)
+- [ ] P1 : durée de conservation médicale — attend avis juriste / CDP
+- [x] P1bis : facturation automatique (clôture consultation, validation labo), réglable par structure
 - [ ] P2 workflows · P3 nettoyage
