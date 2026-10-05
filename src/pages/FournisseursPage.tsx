@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
+import { ventilerTvaDeductible } from '@/lib/tva';
 import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
@@ -245,10 +246,14 @@ export default function FournisseursPage() {
     const lines: LigneJournalPlate[] = [];
     const byCharge: Record<string, number> = {};
     const byTva: Record<string, number> = {}; // TVA ventilée : 4451 (immo) ou 4452 (achats)
+    // Structure de santé exonérée / mixte : la TVA non récupérable s'incorpore à la charge ou à l'immobilisation (prorata).
+    const { data: coefData } = await (supabase as any).rpc('sante_coef_tva_deductible', { _entreprise_id: entreprise.id });
+    const coef = coefData == null ? 1 : Number(coefData);
     for (const l of lgs as any[]) {
       const ht = r2(Number(l.quantite) * Number(l.prix_unitaire));
-      byCharge[l.compte_charge] = r2((byCharge[l.compte_charge] || 0) + ht);
-      const tva = r2(ht * (Number(l.taux_tva) / 100));
+      const tvaBrute = r2(ht * (Number(l.taux_tva) / 100));
+      const { deductible: tva, nonDeductible } = ventilerTvaDeductible(tvaBrute, coef);
+      byCharge[l.compte_charge] = r2((byCharge[l.compte_charge] || 0) + ht + nonDeductible);
       if (tva > 0) {
         const compteTva = /^2/.test(String(l.compte_charge)) ? '4451' : '4452';
         byTva[compteTva] = r2((byTva[compteTva] || 0) + tva);

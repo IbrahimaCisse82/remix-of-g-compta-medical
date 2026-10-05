@@ -35,3 +35,11 @@ export function calculerTva(
   const aPayer = nette - creditPrec;
   return { collectee, deductible, nette, creditPrec, aPayer };
 }
+
+/** TVA sur achats : part récupérable selon le coefficient (0 = exonéré, prorata pour mixte, 1 = assujetti).
+ *  La part non récupérable s'incorpore au coût (charge ou immobilisation). À valider avec le fiscaliste. */
+export function ventilerTvaDeductible(tva: number, coef: number): { deductible: number; nonDeductible: number } {
+  const c = Math.min(1, Math.max(0, Number.isFinite(coef) ? coef : 1));
+  const deductible = Math.round(tva * c * 100) / 100;
+  return { deductible, nonDeductible: Math.round((tva - deductible) * 100) / 100 };
+}
