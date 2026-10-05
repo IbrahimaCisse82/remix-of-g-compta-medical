@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     const heures = body.heures === 24 ? 24 : 48;
     const t = rand(32);
     await admin.from('sante_portail_patient').insert({ structure_id: p.structure_id, patient_id: p.id, type: 'lien', secret_hash: await sha(t), expire_le: new Date(Date.now() + heures * 3600_000).toISOString(), cree_par: u.user.id });
-    await admin.from('medical_access_log').insert({ structure_id: p.structure_id, patient_id: p.id, user_id: u.user.id, action: 'portail_lien', ecran: 'portail' }).then(() => {}, () => {});
+    await admin.from('medical_access_log').insert({ structure_id: p.structure_id, patient_id: p.id, user_id: u.user.id, ecran: 'portail', motif: 'Lien portail patient créé' }).then(() => {}, () => {});
     return json({ token: t, expire_heures: heures });
   }
 
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       admin.from('sante_ordonnances').select('id, numero, emise_le, recommandations, praticien:sante_praticiens(nom, specialite), lignes:sante_ordonnance_lignes(ordre, medicament, posologie, duree, quantite)').eq('patient_id', acc.patient_id).order('emise_le', { ascending: false }).limit(50),
       admin.from('sante_demandes_labo').select('id, numero, created_at, validee_le, prescripteur, resultats:sante_resultats(valeur_num, valeur_texte, drapeau, ref_bas, ref_haut, parametre:sante_analyse_parametres(libelle, unite, ordre))').eq('patient_id', acc.patient_id).eq('statut', 'validee').order('validee_le', { ascending: false }).limit(50),
     ]);
-    await admin.from('medical_access_log').insert({ structure_id: acc.structure_id, patient_id: acc.patient_id, user_id: null, action: 'portail_consultation', ecran: 'portail' }).then(() => {}, () => {});
+    await admin.from('medical_access_log').insert({ structure_id: acc.structure_id, patient_id: acc.patient_id, user_id: null, ecran: 'portail', motif: 'Consultation par le patient' }).then(() => {}, () => {});
     return json({ patient, structure, ordonnances: ords ?? [], comptes_rendus: dems ?? [], expire_le: acc.expire_le });
   }
 
