@@ -1401,6 +1401,8 @@ export type Database = {
           numero: string
           objet: string | null
           qr_code: string | null
+          sante_source_id: string | null
+          sante_source_type: string | null
           statut: string
           statut_dgid: string
           taux_tva: number
@@ -1428,6 +1430,8 @@ export type Database = {
           numero: string
           objet?: string | null
           qr_code?: string | null
+          sante_source_id?: string | null
+          sante_source_type?: string | null
           statut?: string
           statut_dgid?: string
           taux_tva?: number
@@ -1455,6 +1459,8 @@ export type Database = {
           numero?: string
           objet?: string | null
           qr_code?: string | null
+          sante_source_id?: string | null
+          sante_source_type?: string | null
           statut?: string
           statut_dgid?: string
           taux_tva?: number
@@ -2648,7 +2654,9 @@ export type Database = {
       }
       sante_actes: {
         Row: {
+          accord_prealable: boolean
           actif: boolean
+          categorie: string
           code: string
           created_at: string
           id: string
@@ -2656,9 +2664,12 @@ export type Database = {
           regime_tva: string
           structure_id: string
           tarif: number
+          taux_tva: number
         }
         Insert: {
+          accord_prealable?: boolean
           actif?: boolean
+          categorie?: string
           code: string
           created_at?: string
           id?: string
@@ -2666,9 +2677,12 @@ export type Database = {
           regime_tva?: string
           structure_id: string
           tarif?: number
+          taux_tva?: number
         }
         Update: {
+          accord_prealable?: boolean
           actif?: boolean
+          categorie?: string
           code?: string
           created_at?: string
           id?: string
@@ -2676,6 +2690,7 @@ export type Database = {
           regime_tva?: string
           structure_id?: string
           tarif?: number
+          taux_tva?: number
         }
         Relationships: [
           {
@@ -2740,6 +2755,7 @@ export type Database = {
       }
       sante_analyses: {
         Row: {
+          accord_prealable: boolean
           actif: boolean
           code: string
           created_at: string
@@ -2748,13 +2764,16 @@ export type Database = {
           id: string
           jeune: boolean
           libelle: string
+          regime_tva: string
           section: string
           sous_traitee: boolean
           structure_id: string
           tarif: number
+          taux_tva: number
           tube: string | null
         }
         Insert: {
+          accord_prealable?: boolean
           actif?: boolean
           code: string
           created_at?: string
@@ -2763,13 +2782,16 @@ export type Database = {
           id?: string
           jeune?: boolean
           libelle: string
+          regime_tva?: string
           section: string
           sous_traitee?: boolean
           structure_id: string
           tarif?: number
+          taux_tva?: number
           tube?: string | null
         }
         Update: {
+          accord_prealable?: boolean
           actif?: boolean
           code?: string
           created_at?: string
@@ -2778,10 +2800,12 @@ export type Database = {
           id?: string
           jeune?: boolean
           libelle?: string
+          regime_tva?: string
           section?: string
           sous_traitee?: boolean
           structure_id?: string
           tarif?: number
+          taux_tva?: number
           tube?: string | null
         }
         Relationships: [
@@ -2828,6 +2852,107 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_blocs_secours: {
+        Row: {
+          annee: number
+          created_at: string
+          created_by: string | null
+          debut: number
+          fin: number
+          id: string
+          poste: string
+          structure_id: string
+        }
+        Insert: {
+          annee: number
+          created_at?: string
+          created_by?: string | null
+          debut: number
+          fin: number
+          id?: string
+          poste: string
+          structure_id: string
+        }
+        Update: {
+          annee?: number
+          created_at?: string
+          created_by?: string | null
+          debut?: number
+          fin?: number
+          id?: string
+          poste?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_blocs_secours_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_bons_pec: {
+        Row: {
+          accord_prealable: boolean
+          consomme: number
+          created_at: string
+          created_by: string | null
+          date_debut: string
+          date_fin: string
+          id: string
+          numero: string
+          organisme: string
+          patient_id: string
+          plafond: number | null
+          structure_id: string
+        }
+        Insert: {
+          accord_prealable?: boolean
+          consomme?: number
+          created_at?: string
+          created_by?: string | null
+          date_debut?: string
+          date_fin: string
+          id?: string
+          numero: string
+          organisme: string
+          patient_id: string
+          plafond?: number | null
+          structure_id: string
+        }
+        Update: {
+          accord_prealable?: boolean
+          consomme?: number
+          created_at?: string
+          created_by?: string | null
+          date_debut?: string
+          date_fin?: string
+          id?: string
+          numero?: string
+          organisme?: string
+          patient_id?: string
+          plafond?: number | null
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_bons_pec_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_bons_pec_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
             referencedColumns: ["id"]
           },
         ]
@@ -3463,6 +3588,82 @@ export type Database = {
           },
         ]
       }
+      sante_convention_exclusions: {
+        Row: {
+          code: string
+          id: string
+          organisme: string
+          structure_id: string
+        }
+        Insert: {
+          code: string
+          id?: string
+          organisme: string
+          structure_id: string
+        }
+        Update: {
+          code?: string
+          id?: string
+          organisme?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_convention_exclusions_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_conventions: {
+        Row: {
+          categorie: string
+          created_at: string
+          date_debut: string | null
+          date_fin: string | null
+          franchise: number
+          id: string
+          organisme: string
+          plafond: number | null
+          structure_id: string
+          taux: number
+        }
+        Insert: {
+          categorie: string
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          franchise?: number
+          id?: string
+          organisme: string
+          plafond?: number | null
+          structure_id: string
+          taux: number
+        }
+        Update: {
+          categorie?: string
+          created_at?: string
+          date_debut?: string | null
+          date_fin?: string | null
+          franchise?: number
+          id?: string
+          organisme?: string
+          plafond?: number | null
+          structure_id?: string
+          taux?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_conventions_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_cq_mesures: {
         Row: {
           controle_id: string
@@ -3782,7 +3983,8 @@ export type Database = {
         Row: {
           actif: boolean
           created_at: string
-          facture_id: string
+          facture_compta_id: string | null
+          facture_id: string | null
           id: string
           source_id: string
           source_type: string
@@ -3791,7 +3993,8 @@ export type Database = {
         Insert: {
           actif?: boolean
           created_at?: string
-          facture_id: string
+          facture_compta_id?: string | null
+          facture_id?: string | null
           id?: string
           source_id: string
           source_type: string
@@ -3800,7 +4003,8 @@ export type Database = {
         Update: {
           actif?: boolean
           created_at?: string
-          facture_id?: string
+          facture_compta_id?: string | null
+          facture_id?: string | null
           id?: string
           source_id?: string
           source_type?: string
@@ -3825,34 +4029,46 @@ export type Database = {
       }
       sante_facture_lignes: {
         Row: {
+          categorie: string | null
           code: string | null
           facture_id: string
           id: string
           libelle: string
           montant: number
+          montant_tva: number
+          part_organisme: number
           prix_unitaire: number
           quantite: number
           structure_id: string
+          taux_tva: number
         }
         Insert: {
+          categorie?: string | null
           code?: string | null
           facture_id: string
           id?: string
           libelle: string
           montant: number
+          montant_tva?: number
+          part_organisme?: number
           prix_unitaire: number
           quantite?: number
           structure_id: string
+          taux_tva?: number
         }
         Update: {
+          categorie?: string | null
           code?: string | null
           facture_id?: string
           id?: string
           libelle?: string
           montant?: number
+          montant_tva?: number
+          part_organisme?: number
           prix_unitaire?: number
           quantite?: number
           structure_id?: string
+          taux_tva?: number
         }
         Relationships: [
           {
@@ -3867,20 +4083,25 @@ export type Database = {
       sante_factures: {
         Row: {
           annulee: boolean
+          bon_id: string | null
           consultation_id: string | null
           created_at: string
           created_by: string | null
           demande_id: string | null
           envoye_tiers_le: string | null
           facture_origine_id: string | null
+          facture_secours: boolean
           id: string
+          montant_tva: number
           motif_remise: string | null
           numero: string
           organisme: string | null
           part_organisme: number
           part_patient: number
           patient_id: string
+          praticien_id: string | null
           remise: number
+          site_id: string | null
           statut_tiers: string
           structure_id: string
           taux_couverture: number
@@ -3889,20 +4110,25 @@ export type Database = {
         }
         Insert: {
           annulee?: boolean
+          bon_id?: string | null
           consultation_id?: string | null
           created_at?: string
           created_by?: string | null
           demande_id?: string | null
           envoye_tiers_le?: string | null
           facture_origine_id?: string | null
+          facture_secours?: boolean
           id?: string
+          montant_tva?: number
           motif_remise?: string | null
           numero: string
           organisme?: string | null
           part_organisme?: number
           part_patient: number
           patient_id: string
+          praticien_id?: string | null
           remise?: number
+          site_id?: string | null
           statut_tiers?: string
           structure_id: string
           taux_couverture?: number
@@ -3911,20 +4137,25 @@ export type Database = {
         }
         Update: {
           annulee?: boolean
+          bon_id?: string | null
           consultation_id?: string | null
           created_at?: string
           created_by?: string | null
           demande_id?: string | null
           envoye_tiers_le?: string | null
           facture_origine_id?: string | null
+          facture_secours?: boolean
           id?: string
+          montant_tva?: number
           motif_remise?: string | null
           numero?: string
           organisme?: string | null
           part_organisme?: number
           part_patient?: number
           patient_id?: string
+          praticien_id?: string | null
           remise?: number
+          site_id?: string | null
           statut_tiers?: string
           structure_id?: string
           taux_couverture?: number
@@ -4728,6 +4959,47 @@ export type Database = {
           },
         ]
       }
+      sante_relances: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          factures: string[]
+          id: string
+          montant: number
+          niveau: number
+          organisme: string
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          factures: string[]
+          id?: string
+          montant: number
+          niveau: number
+          organisme: string
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          factures?: string[]
+          id?: string
+          montant?: number
+          niveau?: number
+          organisme?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_relances_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_remboursements: {
         Row: {
           approuve_le: string | null
@@ -5102,6 +5374,38 @@ export type Database = {
           },
         ]
       }
+      sante_tarifs_convention: {
+        Row: {
+          code: string
+          id: string
+          organisme: string
+          structure_id: string
+          tarif: number
+        }
+        Insert: {
+          code: string
+          id?: string
+          organisme: string
+          structure_id: string
+          tarif: number
+        }
+        Update: {
+          code?: string
+          id?: string
+          organisme?: string
+          structure_id?: string
+          tarif?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_tarifs_convention_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_tiers_rejets: {
         Row: {
           avoir_id: string | null
@@ -5372,6 +5676,7 @@ export type Database = {
           bris_glace_renouvellements_max: number
           bris_glace_seuil_semaine: number
           compta_panne_simulee: boolean
+          cr_conditionne_reglement: boolean
           created_at: string
           created_by: string
           devise: string
@@ -5383,8 +5688,10 @@ export type Database = {
           logo_path: string | null
           ninea: string | null
           nom: string
+          prorata_tva: number
           rappels_sms_actifs: boolean
           rccm: string | null
+          regime_tva: string
           sms_expediteur: string | null
           telephone: string | null
           theme_medical: Database["public"]["Enums"]["medical_theme"]
@@ -5399,6 +5706,7 @@ export type Database = {
           bris_glace_renouvellements_max?: number
           bris_glace_seuil_semaine?: number
           compta_panne_simulee?: boolean
+          cr_conditionne_reglement?: boolean
           created_at?: string
           created_by: string
           devise?: string
@@ -5410,8 +5718,10 @@ export type Database = {
           logo_path?: string | null
           ninea?: string | null
           nom: string
+          prorata_tva?: number
           rappels_sms_actifs?: boolean
           rccm?: string | null
+          regime_tva?: string
           sms_expediteur?: string | null
           telephone?: string | null
           theme_medical?: Database["public"]["Enums"]["medical_theme"]
@@ -5426,6 +5736,7 @@ export type Database = {
           bris_glace_renouvellements_max?: number
           bris_glace_seuil_semaine?: number
           compta_panne_simulee?: boolean
+          cr_conditionne_reglement?: boolean
           created_at?: string
           created_by?: string
           devise?: string
@@ -5437,8 +5748,10 @@ export type Database = {
           logo_path?: string | null
           ninea?: string | null
           nom?: string
+          prorata_tva?: number
           rappels_sms_actifs?: boolean
           rccm?: string | null
+          regime_tva?: string
           sms_expediteur?: string | null
           telephone?: string | null
           theme_medical?: Database["public"]["Enums"]["medical_theme"]
@@ -5843,9 +6156,30 @@ export type Database = {
             Args: { _motif: string; _motif_code: string; _patient_id: string }
             Returns: string
           }
+      sante_ca_analytique: {
+        Args: {
+          _axe: string
+          _debut: string
+          _fin: string
+          _structure_id: string
+        }
+        Returns: {
+          axe: string
+          montant: number
+          nb: number
+        }[]
+      }
+      sante_categorie_code: {
+        Args: { _code: string; _structure_id: string }
+        Returns: string
+      }
       sante_cloturer_consultation: {
         Args: { _consultation_id: string }
         Returns: undefined
+      }
+      sante_coef_tva_deductible: {
+        Args: { _entreprise_id: string }
+        Returns: number
       }
       sante_comptabiliser: {
         Args: {
@@ -5886,6 +6220,15 @@ export type Database = {
         Args: { _acte_code: string; _auto: boolean; _structure_id: string }
         Returns: undefined
       }
+      sante_config_fiscal: {
+        Args: {
+          _cr_conditionne: boolean
+          _prorata: number
+          _regime: string
+          _structure_id: string
+        }
+        Returns: undefined
+      }
       sante_config_labo_moment: {
         Args: { _moment: string; _structure_id: string }
         Returns: undefined
@@ -5895,6 +6238,21 @@ export type Database = {
         Returns: undefined
       }
       sante_cq_bloquant: { Args: { _demande_id: string }; Returns: boolean }
+      sante_cr_remettable: { Args: { _demande_id: string }; Returns: boolean }
+      sante_creances_organismes: {
+        Args: { _structure_id: string }
+        Returns: {
+          derniere_relance: string
+          j0_30: number
+          j31_60: number
+          j61_90: number
+          nb: number
+          niveau: number
+          organisme: string
+          plus_90: number
+          total: number
+        }[]
+      }
       sante_creer_demande_labo: {
         Args: {
           _analyses: string[]
@@ -6031,6 +6389,11 @@ export type Database = {
         }
         Returns: string
       }
+      sante_lettrer_facture: { Args: { _facture_id: string }; Returns: number }
+      sante_lignes_compta_facture: {
+        Args: { _facture_id: string }
+        Returns: Json
+      }
       sante_mouvement_reactif: {
         Args: {
           _lot_id?: string
@@ -6057,6 +6420,15 @@ export type Database = {
       }
       sante_prochain_numero: {
         Args: { _prefixe: string; _structure_id: string; _type: string }
+        Returns: string
+      }
+      sante_provisionner_creance: {
+        Args: {
+          _montant: number
+          _motif: string
+          _organisme: string
+          _structure_id: string
+        }
         Returns: string
       }
       sante_purger_documents_echus: {
@@ -6103,9 +6475,17 @@ export type Database = {
       }
       sante_rejouer_outbox: { Args: { _structure_id: string }; Returns: number }
       sante_rejouer_outbox_auto: { Args: never; Returns: number }
+      sante_relancer: {
+        Args: { _organisme: string; _structure_id: string }
+        Returns: string
+      }
       sante_relation_soin: { Args: { _patient_id: string }; Returns: boolean }
       sante_remettre_cheques: {
         Args: { _structure_id: string }
+        Returns: string
+      }
+      sante_reserver_bloc: {
+        Args: { _poste: string; _structure_id: string; _taille: number }
         Returns: string
       }
       sante_reste_organisme: { Args: { _facture_id: string }; Returns: number }
@@ -6114,6 +6494,16 @@ export type Database = {
         | { Args: { _commentaire: string; _id: string }; Returns: undefined }
       sante_saisir_cq: {
         Args: { _controle_id: string; _valeur: number }
+        Returns: string
+      }
+      sante_saisir_facture_secours: {
+        Args: {
+          _assurance_id: string
+          _bloc_id: string
+          _lignes: Json
+          _patient_id: string
+          _rang: number
+        }
         Returns: string
       }
       sante_saisir_resultat: {

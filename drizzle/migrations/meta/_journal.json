@@ -232,6 +232,13 @@
       "when": 1791229041829,
       "tag": "0032_p2_config_labo_moment",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791229380165,
+      "tag": "0033_p2_suite_conventions_tva_analytique_lettrage",
+      "breakpoints": true
     }
   ]
 }
