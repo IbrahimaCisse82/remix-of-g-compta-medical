@@ -6,6 +6,7 @@ import { authenticateCronRequest } from '../_shared/cron-auth.ts';
 
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
+const EXPEDITEUR_DEFAUT = 'G-SANTE'; // Sender ID commun enregistré sur Twilio
 
 function e164(tel: string | null): string | null {
   if (!tel) return null;
@@ -64,8 +65,8 @@ Deno.serve(async (req) => {
     const { data: deja } = await admin.from('sante_rappels').select('id, statut').eq('rdv_id', r.id).eq('canal', 'sms').maybeSingle();
     if (deja && deja.statut === 'envoye') { bilan.ignores++; continue; }
     const base = { structure_id: r.structure_id, rdv_id: r.id, canal: 'sms' };
-    if (!fournisseur || !s.sms_expediteur) {
-      await admin.from('sante_rappels').upsert({ ...base, statut: 'sans_fournisseur', erreur: !fournisseur ? 'Fournisseur SMS non connecté' : 'Numéro expéditeur manquant' }, { onConflict: 'rdv_id,canal' });
+    if (!fournisseur) {
+      await admin.from('sante_rappels').upsert({ ...base, statut: 'sans_fournisseur', erreur: 'Fournisseur SMS non connecté' }, { onConflict: 'rdv_id,canal' });
       bilan.sans_fournisseur++; continue;
     }
     const h = new Date(r.debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Dakar' });
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
     const res = await fetch(`${GATEWAY_URL}/Messages.json`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TWILIO_API_KEY!, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ To: to, From: s.sms_expediteur, Body }),
+      body: new URLSearchParams({ To: to, From: s.sms_expediteur || EXPEDITEUR_DEFAUT, Body }),
     });
     const txt = await res.text();
     if (!res.ok) {
