@@ -227,6 +227,14 @@ export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const locked = isExerciceCloture();
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(NAV_STORAGE) || '{}'); } catch { return {}; }
+  });
+  const toggleSection = (key: string, open: boolean) => setOpenSections(prev => {
+    const next = { ...prev, [key]: open };
+    try { localStorage.setItem(NAV_STORAGE, JSON.stringify(next)); } catch { /* ignore */ }
+    return next;
+  });
 
   const toggleSidebar = useCallback(() => setSidebarOpen(o => !o), []);
 
@@ -295,26 +303,47 @@ export default function AppShell() {
         
         <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-50 lg:z-auto w-[225px] h-full bg-bg2 border-r border-border flex flex-col overflow-y-auto shrink-0 sidebar transition-transform duration-200`}>
           <nav className="py-1.5 flex-1">
-            {NAV.map(section => (
-              <div key={section.section}>
-                <div className="px-3.5 pt-2 pb-0.5 text-[9px] text-fg3 uppercase tracking-[2px] font-mono">{section.section}</div>
-                {section.items.filter(item => !item.cabinet || env === 'cabinet').map(item => (
-                  <button key={item.id} onClick={() => handlePageChange(item.id)}
-                    title={item.shortcut || undefined}
-                    className={`w-full flex items-center gap-2.5 px-3.5 py-1.5 text-xs border-l-2 transition-all group ${
-                      currentPage === item.id
-                        ? 'bg-gradient-to-r from-primary/10 to-transparent text-primary border-l-primary font-semibold'
-                        : 'text-fg2 border-l-transparent hover:bg-bg3 hover:text-foreground hover:border-l-border-2'
-                    }`}>
-                    <span className="text-[13px] w-4 text-center">{item.icon}</span>
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {item.shortcut && (
-                      <span className="hidden group-hover:inline text-[8px] text-fg3 font-mono">{item.shortcut}</span>
-                    )}
+            {NAV.map(section => {
+              const groups = section.groups
+                .map(g => ({ ...g, items: g.items.filter(i => !i.cabinet || env === 'cabinet') }))
+                .filter(g => g.items.length);
+              if (!groups.length) return null;
+              const hasActive = groups.some(g => g.items.some(i => i.id === currentPage));
+              const isOpen = openSections[section.key] ?? hasActive;
+              return (
+                <div key={section.key} className="border-b border-border/40 last:border-b-0">
+                  <button onClick={() => toggleSection(section.key, !isOpen)}
+                    aria-expanded={isOpen}
+                    className={`w-full flex items-center gap-2 px-3.5 py-2 text-[10px] uppercase tracking-[1.5px] font-mono transition-colors ${hasActive ? 'text-primary' : 'text-fg3 hover:text-foreground'}`}>
+                    <span className="text-[12px] w-4 text-center normal-case">{section.icon}</span>
+                    <span className="flex-1 text-left font-bold">{section.section}</span>
+                    <span className={`text-[9px] transition-transform ${isOpen ? 'rotate-90' : ''}`}>▶</span>
                   </button>
-                ))}
-              </div>
-            ))}
+                  {isOpen && (
+                    <div className="pb-1.5">
+                      {groups.map((g, gi) => (
+                        <div key={gi}>
+                          {g.title && <div className="pl-9 pr-3.5 pt-1.5 pb-0.5 text-[9px] text-fg3 uppercase tracking-[1px]">{g.title}</div>}
+                          {g.items.map(item => (
+                            <button key={item.id} onClick={() => handlePageChange(item.id)}
+                              title={item.shortcut || undefined}
+                              className={`w-full flex items-center gap-2.5 pl-5 pr-3.5 py-1.5 text-xs border-l-2 transition-all group ${
+                                currentPage === item.id
+                                  ? 'bg-gradient-to-r from-primary/10 to-transparent text-primary border-l-primary font-semibold'
+                                  : 'text-fg2 border-l-transparent hover:bg-bg3 hover:text-foreground hover:border-l-border-2'
+                              }`}>
+                              <span className="text-[13px] w-4 text-center">{item.icon}</span>
+                              <span className="flex-1 text-left">{item.label}</span>
+                              {item.shortcut && <span className="hidden group-hover:inline text-[8px] text-fg3 font-mono">{item.shortcut}</span>}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
           <div className="p-2.5 border-t border-border">
             <div className={`px-2.5 py-1 rounded-2xl text-[10px] font-extrabold font-mono text-center ${locked ? 'bg-destructive/10 text-destructive' : 'bg-accent text-accent-foreground'}`}>
