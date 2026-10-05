@@ -2832,6 +2832,57 @@ export type Database = {
           },
         ]
       }
+      sante_bris_glace: {
+        Row: {
+          created_at: string
+          expire_le: string
+          id: string
+          motif: string
+          patient_id: string
+          revu_le: string | null
+          revu_par: string | null
+          structure_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expire_le?: string
+          id?: string
+          motif: string
+          patient_id: string
+          revu_le?: string | null
+          revu_par?: string | null
+          structure_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expire_le?: string
+          id?: string
+          motif?: string
+          patient_id?: string
+          revu_le?: string | null
+          revu_par?: string | null
+          structure_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_bris_glace_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_bris_glace_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_catalogue_medicaments: {
         Row: {
           actif: boolean
@@ -4689,12 +4740,14 @@ export type Database = {
       }
       structures: {
         Row: {
+          acte_consultation_code: string | null
           adresse: string | null
           autorisation_exercice: string | null
           created_at: string
           created_by: string
           devise: string
           entreprise_id: string | null
+          facturation_auto: boolean
           id: string
           inscription_ordre: string | null
           logo_path: string | null
@@ -4709,12 +4762,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acte_consultation_code?: string | null
           adresse?: string | null
           autorisation_exercice?: string | null
           created_at?: string
           created_by: string
           devise?: string
           entreprise_id?: string | null
+          facturation_auto?: boolean
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -4729,12 +4784,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acte_consultation_code?: string | null
           adresse?: string | null
           autorisation_exercice?: string | null
           created_at?: string
           created_by?: string
           devise?: string
           entreprise_id?: string | null
+          facturation_auto?: boolean
           id?: string
           inscription_ordre?: string | null
           logo_path?: string | null
@@ -5122,9 +5179,14 @@ export type Database = {
         Args: { _facture_id: string; _motif: string }
         Returns: string
       }
+      sante_assurance_active: { Args: { _patient_id: string }; Returns: string }
       sante_avancer_demande: {
         Args: { _demande_id: string; _motif?: string; _statut: string }
         Returns: undefined
+      }
+      sante_bris_de_glace: {
+        Args: { _motif: string; _patient_id: string }
+        Returns: string
       }
       sante_cloturer_consultation: {
         Args: { _consultation_id: string }
@@ -5141,6 +5203,10 @@ export type Database = {
           _structure_id: string
           _type: string
         }
+        Returns: undefined
+      }
+      sante_config_facturation: {
+        Args: { _acte_code: string; _auto: boolean; _structure_id: string }
         Returns: undefined
       }
       sante_config_rappels: {
@@ -5298,6 +5364,7 @@ export type Database = {
         }
         Returns: number
       }
+      sante_revoir_bris_glace: { Args: { _id: string }; Returns: undefined }
       sante_saisir_cq: {
         Args: { _controle_id: string; _valeur: number }
         Returns: string
