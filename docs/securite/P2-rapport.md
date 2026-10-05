@@ -18,10 +18,16 @@ Tests base : **37/37 verts** (dont 6 tests P2 couvrant les 6 critères de sortie
 - P2.4 Organismes = tiers auxiliaires (compte auxiliaire par organisme sous le collectif paramétrable) ; écran de correspondance des comptes.
 - P2.7 Règlements multi-factures partiels, rejets en 3 traitements (administratif / non-prise en charge avec bascule seulement si la convention l'autorise / perte passée en charge).
 
-## Non fait (P2 partiel)
-- P2.1 option « compte rendu remis seulement si la part patient est réglée ».
-- P2.2 blocs de numéros réservés pour le mode secours papier.
-- P2.4 ventilation analytique (service, praticien, site).
-- P2.5 TVA par acte, non-récupération et prorata : **à valider avec le fiscaliste avant développement**.
-- P2.6 lien avec le module « Honoraires » de la comptabilité (l'unicité couvre les flux santé) et masquage pour les flux patients.
-- P2.7 matrice de couverture par catégorie, tarifs conventionnés, bons de prise en charge / accord préalable, relances, lien Provisions, lettrage automatique (les écritures portent le compte auxiliaire de l'organisme, ce qui permet le lettrage manuel).
+## Compléments livrés (P2 terminé)
+- P2.1 Compte rendu remis seulement après règlement de la part patient (option) : appliqué au portail patient et à l'impression.
+- P2.2 Blocs de numéros réservés par poste pour le mode secours papier, ressaisie avec le même numéro (aucun trou).
+- P2.4 Comptes divisionnaires par catégorie (consultations, actes, analyses, médicaments, autres) ; analyse du CA par catégorie, section labo, praticien, site.
+- P2.5 TVA : régime par acte/analyse (taxable/exonéré/à valider), TVA collectée séparée (structure assujettie) ; régime de la structure (exonéré / assujetti / mixte + prorata) appliqué aux achats du module Fournisseurs (TVA non récupérable incorporée au coût). **À valider avec le fiscaliste.**
+- P2.6 Unicité inter-modules : une facture Honoraires peut référencer un acte/analyse et la même contrainte d'unicité s'applique ; bandeau dans Honoraires pour les entreprises de santé.
+- P2.7 Conventions (taux par catégorie, plafond, franchise, période), exclusions, tarifs conventionnés, bons de prise en charge (plafond, consommation, accord préalable obligatoire pour les actes désignés), créances âgées par organisme, relances numérotées imprimables, provision des créances douteuses (écriture + module Provisions), lettrage automatique du compte organisme.
+
+Tests base : **42/42 verts**. Tests unitaires : 135/135.
+
+## Limites
+- Ayants droit : champ existant sur la prise en charge, pas de règles spécifiques.
+- La facturation Honoraires n'a pas encore de sélecteur d'acte santé à l'écran (la règle est en base).
