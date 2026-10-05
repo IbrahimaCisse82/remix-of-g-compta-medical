@@ -61,14 +61,14 @@ Deno.serve(async (req) => {
     const s: any = p?.structure;
     if (!p || p.statut === 'fusionne' || e164(p.telephone) !== tel) return json(generique);
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'), TWILIO_API_KEY = Deno.env.get('TWILIO_API_KEY');
-    if (!LOVABLE_API_KEY || !TWILIO_API_KEY || !s?.sms_expediteur) return json({ error: 'Envoi de SMS indisponible pour cette structure. Demandez un lien à l’accueil.' }, 503);
+    if (!LOVABLE_API_KEY || !TWILIO_API_KEY ) return json({ error: 'Envoi de SMS indisponible pour cette structure. Demandez un lien à l’accueil.' }, 503);
     const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, '0');
     await admin.from('sante_portail_patient').update({ utilise: true }).eq('patient_id', p.id).eq('type', 'otp').eq('utilise', false);
     await admin.from('sante_portail_patient').insert({ structure_id: p.structure_id, patient_id: p.id, type: 'otp', secret_hash: await sha(`${p.id}:${code}`), expire_le: new Date(Date.now() + 10 * 60_000).toISOString() });
     const res = await fetch(`${GATEWAY_URL}/Messages.json`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'X-Connection-Api-Key': TWILIO_API_KEY, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ To: tel, From: s.sms_expediteur, Body: `${s.nom} : votre code d'accès est ${code}. Valable 10 minutes. Ne le communiquez à personne.` }),
+      body: new URLSearchParams({ To: tel, From: s?.sms_expediteur || 'G-SANTE', Body: `${s.nom} : votre code d'accès est ${code}. Valable 10 minutes. Ne le communiquez à personne.` }),
     });
     if (!res.ok) { console.error(`OTP SMS échec [${res.status}]`); await res.text(); return json({ error: 'Envoi du SMS impossible. Réessayez plus tard.' }, 502); }
     await res.text();
