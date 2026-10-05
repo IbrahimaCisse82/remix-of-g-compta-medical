@@ -5886,6 +5886,10 @@ export type Database = {
         Args: { _acte_code: string; _auto: boolean; _structure_id: string }
         Returns: undefined
       }
+      sante_config_labo_moment: {
+        Args: { _moment: string; _structure_id: string }
+        Returns: undefined
+      }
       sante_config_rappels: {
         Args: { _actifs: boolean; _expediteur: string; _structure_id: string }
         Returns: undefined

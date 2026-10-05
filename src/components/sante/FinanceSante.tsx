@@ -173,7 +173,7 @@ export function ParametresFinanceCard({ structureId }: { structureId: string }) 
     if (error) toast.error(error.message); else { setNouvel(''); void load(); }
   };
   const changerMoment = async (v: string) => {
-    const { error } = await db.from('structures').update({ facturation_labo_moment: v }).eq('id', structureId);
+    const { error } = await db.rpc('sante_config_labo_moment', { _structure_id: structureId, _moment: v });
     if (error) toast.error(error.message); else { setMoment(v); toast.success('Réglage enregistré'); }
   };
 
