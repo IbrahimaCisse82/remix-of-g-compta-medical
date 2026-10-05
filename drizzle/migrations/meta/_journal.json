@@ -148,6 +148,13 @@
       "when": 1791208314459,
       "tag": "0020_bris_glace_facturation_auto",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791210277657,
+      "tag": "0021_portail_patient_cron_pilotage",
+      "breakpoints": true
     }
   ]
 }
