@@ -41,6 +41,12 @@ export default function BordereauCompta({ structureId }: { structureId: string }
 
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
+      {cats.length > 0 && (
+        <div className="border border-border rounded-md p-3 text-sm">
+          <div className="font-semibold mb-1">Ventes du mois par catégorie (sans données patients)</div>
+          {cats.map(c => <div key={c.categorie} className="flex justify-between"><span>{c.categorie} · {c.nb_lignes} ligne(s)</span><span>{fcfa(Number(c.montant))}</span></div>)}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold">Bordereaux mensuels par organisme</h3>
         <Input type="month" value={mois} onChange={e => setMois(e.target.value)} className="w-44" aria-label="Mois" />
