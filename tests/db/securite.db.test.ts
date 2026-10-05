@@ -150,7 +150,7 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     }
     writeFileSync('tests/db/matrice-constatee.json', JSON.stringify(constatee, null, 2));
     const ecarts: string[] = [];
-    const att = attendue as Record<string, Record<string, boolean>>;
+    const att = attendue as unknown as Record<string, Record<string, boolean>>;
     for (const role of ROLES) for (const t of Object.keys(constatee[role])) {
       if (att[role]?.[t] === undefined) continue;
       if (att[role][t] !== constatee[role][t]) ecarts.push(`${role} × ${t} : attendu ${att[role][t] ? 'lecture' : 'refus'}, constaté ${constatee[role][t] ? 'lecture' : 'refus'}`);
