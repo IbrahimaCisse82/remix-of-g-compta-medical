@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import SecteurActiviteCard from '@/components/SecteurActiviteCard';
+import MfaCard from '@/components/MfaCard';
 
 export default function ParametresPage() {
   const { entreprise, updateEntreprise, demo } = useApp();
@@ -83,6 +84,7 @@ export default function ParametresPage() {
         </div>
 
         {user && !demo && <SecteurActiviteCard entrepriseId={entreprise.id} />}
+        {user && !demo && <MfaCard />}
 
         {user && (
           <div className="bg-bg2 border border-border rounded-lg p-4 mb-4">

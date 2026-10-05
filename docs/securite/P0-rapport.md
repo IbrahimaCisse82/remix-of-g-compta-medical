@@ -33,3 +33,11 @@ Un seul serveur sert l'aperçu et le site publié. Une préproduction séparée 
 ## Décisions à confirmer
 - Matrice cible (admin de structure sans accès clinique hors bris de glace ; médecin et biologiste et journal d'accès).
 - Création d'un environnement de préproduction distinct.
+
+## Finalisation P0 (5 octobre 2026, soir)
+- **Tests base : 20/20 verts.** Ajoutés : saut d'étape labo refusé ; double validation (saisisseur ≠ validateur technique ≠ validateur biologique) ; facture émise ni modifiable ni supprimable ; écriture validée immuable (test prêt, ignoré faute d'écriture validée en base).
+- **Faille corrigée** : un même biologiste pouvait faire la validation technique puis biologique. La validation biologique exige désormais l'étape technique faite par une autre personne.
+- **Journal d'accès médical** : lecture réservée aux administrateurs de structure (médecins et biologistes n'y ont plus accès). Matrice : aucun écart.
+- **MFA TOTP** : activation dans Paramètres (QR code), code demandé à la connexion. En base : dès qu'un compte a un facteur vérifié, toute session sans code (aal1) est refusée sur 16 tables sensibles (politiques restrictives `mfa_conforme()`). Limite : l'obligation d'enrôlement pour les rôles sensibles est affichée, pas encore imposée.
+- **CI** : `.github/workflows/securite.yml` (tests unitaires + tests base), à activer en connectant GitHub et en renseignant 3 secrets du dépôt.
+- **Restent hors de portée de l'agent** : préproduction (2e environnement), jeton de tâche planifiée dans le coffre, CORS de la passerelle d'hébergement.

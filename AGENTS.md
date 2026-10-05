@@ -4,3 +4,4 @@
 - G-Santé structures may be linked to a G-Compta entreprise; health modules are gated server-side by entreprise sector + entreprise_modules, so non-health entreprises see no change.
 - Single shell: health pages render inside AppShell via 'sante_*' page ids (HealthShell embeddedView); why: one ERP environment for health structures.
 - Database security is proven by tests/db (real API, dedicated p0-*@gsante.test accounts, one token per role; run 'bun run test:db'); why: the agent role cannot assume 'authenticated', so pgTAP cannot exercise RLS here.
+- MFA is enforced in the database via RESTRICTIVE RLS policies calling mfa_conforme() (aal2 required once a verified factor exists); why: UI-only MFA can be bypassed with a direct API token.
