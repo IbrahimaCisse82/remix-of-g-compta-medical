@@ -169,6 +169,13 @@
       "when": 1791210666208,
       "tag": "0023_date_envoi_tiers",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791219346827,
+      "tag": "0024_sante_praticiens_email",
+      "breakpoints": true
     }
   ]
 }

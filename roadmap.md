@@ -9,11 +9,11 @@
   - [x] Créer le parcours de création de structure
   - [ ] Tester le parcours et l’isolation avec plusieurs comptes — bloqué jusqu’à la création du premier compte utilisateur
   - [ ] Valider les critères de sortie de la phase 0 — attend le test multi-comptes
-- [ ] Phase 1 — Dossier patient commun
-- [ ] Phase 2 — Cabinet médical
-- [ ] Phase 3 — Laboratoire
-- [ ] Phase 4 — Facturation, tiers-payant, caisse et export comptable
-- [ ] Phase 5 — Portails, notifications et tableaux de bord
+- [x] Phase 1 — Dossier patient commun
+- [x] Phase 2 — Cabinet médical
+- [x] Phase 3 — Laboratoire
+- [x] Phase 4 — Facturation, tiers-payant, caisse et export comptable
+- [x] Phase 5 — Portails, notifications et tableaux de bord
 - [ ] Phase 6 — Conformité, durcissement et qualité
 
 ## Options Santé (document « G-Compta options Clinique »)
@@ -45,6 +45,7 @@
 ## Portail patient, automatisations, pilotage (5 oct.)
 - [x] Portail patient : lien 48 h/24 h depuis la fiche, ou n° dossier + code SMS (session 24 h), téléchargement A4
 - [x] Rappels SMS automatiques chaque soir à 18 h
-- [ ] E-mail au prescripteur/patient à la validation d'un compte rendu — attend un domaine d'envoi d'e-mails
+- [ ] E-mail au prescripteur/patient à la validation d'un compte rendu — attend un domaine d'envoi d'e-mails (le champ e-mail du praticien est en place dans Catalogue)
 - [x] Tableaux de bord direction, laboratoire (délais), tiers-payant
 - [ ] EN PAUSE (décision utilisateur) : paramétrage SMS Twilio — passage compte payant, enregistrement Sender ID G-SANTE (défaut dans le code), Geo permissions Sénégal
+- [ ] ÉCARTÉ (décision utilisateur 05/10) : module Hospitalisation & lits — ne pas développer sans demande explicite
