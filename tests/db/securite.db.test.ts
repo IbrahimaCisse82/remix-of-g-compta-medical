@@ -127,7 +127,9 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
       const cl = await m.rpc('sante_cloturer_consultation', { _consultation_id: S.A.consultation });
       expect(cl.error).toBeNull();
       const apres = await m.from('sante_consultations').update({ diagnostic: 'modifié' }).eq('id', S.A.consultation).select('id');
-      expect(apres.error).toBeTruthy();
+      expect(apres.error || (apres.data ?? []).length === 0, 'modification après clôture acceptée').toBeTruthy();
+      const { data: relu } = await m.from('sante_consultations').select('diagnostic, statut').eq('id', S.A.consultation).single();
+      expect(relu).toMatchObject({ diagnostic: 'test', statut: 'cloturee' });
       const del = await m.from('sante_consultations').delete().eq('id', S.A.consultation).select('id');
       expect(del.error || (del.data ?? []).length === 0).toBeTruthy();
     });
