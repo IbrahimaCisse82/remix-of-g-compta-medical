@@ -12,6 +12,7 @@ import ProtectionDonneesPage from "./pages/ProtectionDonneesPage";
 import PortailPublicPage from "./pages/PortailPublicPage";
 import TarifsPage from "./pages/TarifsPage";
 import NotFound from "./pages/NotFound";
+import PortailPatientPage from "./pages/PortailPatientPage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/confidentialite" element={<ConfidentialitePage />} />
             <Route path="/protection-donnees" element={<ProtectionDonneesPage />} />
             <Route path="/portail" element={<PortailPublicPage />} />
+            <Route path="/resultats" element={<PortailPatientPage />} />
             <Route path="/tarifs" element={<TarifsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

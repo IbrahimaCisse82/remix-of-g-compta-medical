@@ -3373,6 +3373,21 @@ export type Database = {
           },
         ]
       }
+      sante_cron_config: {
+        Row: {
+          id: number
+          jeton: string
+        }
+        Insert: {
+          id?: number
+          jeton?: string
+        }
+        Update: {
+          id?: number
+          jeton?: string
+        }
+        Relationships: []
+      }
       sante_demande_analyses: {
         Row: {
           analyse_id: string
@@ -4124,6 +4139,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sante_portail_patient: {
+        Row: {
+          created_at: string
+          cree_par: string | null
+          expire_le: string
+          id: string
+          patient_id: string
+          secret_hash: string
+          structure_id: string
+          tentatives: number
+          type: string
+          utilise: boolean
+        }
+        Insert: {
+          created_at?: string
+          cree_par?: string | null
+          expire_le: string
+          id?: string
+          patient_id: string
+          secret_hash: string
+          structure_id: string
+          tentatives?: number
+          type: string
+          utilise?: boolean
+        }
+        Update: {
+          created_at?: string
+          cree_par?: string | null
+          expire_le?: string
+          id?: string
+          patient_id?: string
+          secret_hash?: string
+          structure_id?: string
+          tentatives?: number
+          type?: string
+          utilise?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_portail_patient_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_portail_patient_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_portail_patient_essais: {
+        Row: {
+          cle: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          cle: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          cle?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
       }
       sante_praticiens: {
         Row: {
@@ -5383,6 +5470,10 @@ export type Database = {
         Returns: undefined
       }
       sante_storage_patient: { Args: { _name: string }; Returns: string }
+      sante_tableau_bord: {
+        Args: { _debut: string; _fin: string; _structure_id: string }
+        Returns: Json
+      }
       sante_valider_demande: {
         Args: { _demande_id: string; _niveau: string }
         Returns: undefined

@@ -20,7 +20,13 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   let structureFiltre: string | null = null;
 
-  const isCron = authenticateCronRequest(req.clone()) === null;
+  let isCron = false;
+  const tache = req.headers.get('x-tache-planifiee') ?? '';
+  if (/^[0-9a-f]{64}$/.test(tache)) {
+    const { data: cfg } = await admin.from('sante_cron_config').select('jeton').eq('id', 1).maybeSingle();
+    isCron = Boolean(cfg?.jeton) && cfg!.jeton === tache;
+  }
+  if (!isCron && Deno.env.get('LOVABLE_CRON_SECRET')) isCron = authenticateCronRequest(req.clone()) === null;
   if (!isCron) {
     const auth = req.headers.get('Authorization') ?? '';
     if (!auth.startsWith('Bearer ')) return json({ error: 'Non autorisé' }, 401);
