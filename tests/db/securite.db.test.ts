@@ -483,6 +483,66 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     }, 60_000);
   });
 
+  describe('P3 — laboratoire : pré-analytique, microbiologie, validation figée', () => {
+    let bio2: SupabaseClient;
+    const st = () => S.A.structure;
+    const nouvelle = async () => {
+      const { data: an } = await admin.from('sante_analyses').select('id').eq('structure_id', st()).eq('code', 'P0GLY').single();
+      const r = await S.A.users.secretaire.rpc('sante_creer_demande_labo', { _patient_id: S.A.patient, _analyses: [an!.id], _prescripteur: 'Dr TEST', _urgence: false, _renseignements: null, _consultation_id: null });
+      if (r.error) throw r.error; return r.data as string;
+    };
+    beforeAll(async () => {
+      bio2 = await compte('p0-biologiste2-a@gsante.test');
+      const user_id = await uid(bio2);
+      const m = await admin.from('structure_memberships').upsert({ structure_id: st(), user_id, statut: 'actif' }, { onConflict: 'structure_id,user_id' }).select('id').single();
+      await admin.from('medical_user_roles').upsert({ membership_id: m.data!.id, role: 'biologiste' }, { onConflict: 'membership_id,role' });
+      const { data: pr } = await admin.from('sante_praticiens').select('id').eq('structure_id', st()).eq('user_id', user_id).maybeSingle();
+      if (!pr) await admin.from('sante_praticiens').insert({ structure_id: st(), nom: 'Dr BIO TEST', user_id, numero_ordre: 'ONMS-TEST-1' });
+    }, 60_000);
+
+    it('prélèvement : identification positive (2 identifiants) obligatoire', async () => {
+      const d = await nouvelle();
+      expect((await S.A.users.technicien.rpc('sante_prelever', { _demande_id: d, _identifiants: ['nom'], _site: 'pli du coude', _conditions: null })).error).toBeTruthy();
+      expect((await S.A.users.secretaire.rpc('sante_prelever', { _demande_id: d, _identifiants: ['nom', 'ddn'], _site: null, _conditions: null })).error).toBeTruthy();
+      expect((await S.A.users.technicien.rpc('sante_prelever', { _demande_id: d, _identifiants: ['nom', 'ddn'], _site: 'pli du coude', _conditions: { a_jeun: true } })).error).toBeNull();
+    }, 60_000);
+
+    it('rejet codifié avec nouveau prélèvement lié à la demande d’origine', async () => {
+      const d = await nouvelle();
+      await S.A.users.technicien.rpc('sante_prelever', { _demande_id: d, _identifiants: ['nom', 'ddn'], _site: null, _conditions: null });
+      expect((await S.A.users.technicien.rpc('sante_rejeter_echantillon', { _demande_id: d, _code: 'nimporte', _commentaire: null, _nouveau_prelevement: false })).error).toBeTruthy();
+      const r = await S.A.users.technicien.rpc('sante_rejeter_echantillon', { _demande_id: d, _code: 'hemolyse', _commentaire: 'tube rose', _nouveau_prelevement: true });
+      expect(r.error).toBeNull();
+      const { data: n } = await admin.from('sante_demandes_labo').select('demande_origine_id, statut').eq('id', r.data as string).single();
+      expect(n!.demande_origine_id).toBe(d);
+      expect(n!.statut).toBe('enregistree');
+    }, 60_000);
+
+    it('microbiologie : germe préliminaire bloque la validation ; validation biologique → libellés figés + jeton vérifiable', async () => {
+      const d = await nouvelle(); const t = S.A.users.technicien;
+      await t.rpc('sante_prelever', { _demande_id: d, _identifiants: ['nom', 'ddn'], _site: null, _conditions: null });
+      for (const s of ['recue', 'en_analyse']) expect((await t.rpc('sante_avancer_demande', { _demande_id: d, _statut: s, _motif: null })).error).toBeNull();
+      const { data: pa } = await admin.from('sante_analyse_parametres').select('id').eq('structure_id', st()).eq('code', 'GLY').limit(1).single();
+      expect((await t.rpc('sante_saisir_resultat', { _demande_id: d, _parametre_id: pa!.id, _valeur_num: 1, _valeur_texte: null })).error).toBeNull();
+      const g = await t.rpc('sante_saisir_germe', { _demande_id: d, _type: 'ecbu', _germe: 'E. coli', _quantification: '10^5', _commentaire: null, _definitif: false, _antibiogramme: [{ antibiotique: 'Amoxicilline', interpretation: 'r' }] });
+      expect(g.error).toBeNull();
+      expect((await S.A.users.biologiste.rpc('sante_valider_demande', { _demande_id: d, _niveau: 'technique' })).error).toBeTruthy();
+      expect((await t.rpc('sante_germe_definitif', { _germe_id: g.data })).error).toBeNull();
+      expect((await S.A.users.biologiste.rpc('sante_valider_demande', { _demande_id: d, _niveau: 'technique' })).error).toBeNull();
+      expect((await bio2.rpc('sante_valider_demande', { _demande_id: d, _niveau: 'biologique' })).error).toBeNull();
+      const { data: dl } = await admin.from('sante_demandes_labo').select('cr_token, cr_hash, statut').eq('id', d).single();
+      expect(dl!.statut).toBe('validee');
+      const { data: r } = await admin.from('sante_resultats').select('libelle_fige').eq('demande_id', d).single();
+      expect(r!.libelle_fige).toBe('Glycémie');
+      const anon = createClient(URL, ANON, { auth: { persistSession: false } });
+      const v = await anon.rpc('sante_verifier_cr', { _token: dl!.cr_token });
+      expect((v.data as { authentique: boolean; empreinte: string }).authentique).toBe(true);
+      expect((v.data as { empreinte: string }).empreinte).toBe(dl!.cr_hash);
+      expect(((await anon.rpc('sante_verifier_cr', { _token: '0'.repeat(32) })).data as { authentique: boolean }).authentique).toBe(false);
+    }, 90_000);
+  });
+
+
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
     for (const role of ROLES) {
