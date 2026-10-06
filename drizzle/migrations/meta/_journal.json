@@ -260,6 +260,13 @@
       "when": 1791230081068,
       "tag": "0036_p3_lis_preanalytique_validation_figee",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791255584194,
+      "tag": "0037_p3_validation_biologique_atomique",
+      "breakpoints": true
     }
   ]
 }
