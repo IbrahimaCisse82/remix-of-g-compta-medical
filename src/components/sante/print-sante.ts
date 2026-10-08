@@ -49,7 +49,10 @@ export async function imprimerCompteRendu(demandeId: string) {
   ]);
   const byParam = new Map((res ?? []).map(r => [r.parametre_id, r]));
   const s: any = d.structure, p: any = d.patient;
-  const verif = `${window.location.origin}/?verif=${encodeURIComponent(d.numero)}`;
+  const dd: any = d;
+  const definitif = d.statut === 'validee';
+  // Le QR renvoie vers la page publique de vérification (jeton aléatoire posé à la validation biologique)
+  const verif = dd.cr_token ? `${window.location.origin}/verifier/${dd.cr_token}` : `${window.location.origin}/`;
   const qr = await QRCode.toDataURL(verif, { width: 140, margin: 0 });
   const blocs = (das ?? []).map((x: any) => {
     const a = x.analyse;
@@ -58,16 +61,26 @@ export async function imprimerCompteRendu(demandeId: string) {
       const f = (r?.drapeau ?? 'N') as Drapeau;
       const val = r?.valeur_num != null ? Number(r.valeur_num).toFixed(pa.decimales) : esc(r?.valeur_texte ?? '—');
       const ref = r?.ref_bas != null || r?.ref_haut != null ? `${r.ref_bas ?? ''} – ${r.ref_haut ?? ''}` : '';
-      return `<tr><td>${esc(pa.libelle)}</td><td class="${f === 'N' ? '' : f.length === 2 ? 'crit' : 'anormal'}">${val}</td><td>${esc(pa.unite)}</td><td>${esc(ref)}</td><td>${LIBELLE_DRAPEAU[f]}</td></tr>`;
+      // Après validation, on imprime les libellés/unités figés : un changement de catalogue ne modifie pas un compte rendu émis
+      const lib = definitif && r?.libelle_fige ? r.libelle_fige : pa.libelle;
+      const unite = definitif && r?.libelle_fige ? r.unite_fige : pa.unite;
+      return `<tr><td>${esc(lib)}${r?.methode_fige ? `<br><small>${esc(r.methode_fige)}</small>` : ''}</td><td class="${f === 'N' ? '' : f.length === 2 ? 'crit' : 'anormal'}">${val}</td><td>${esc(unite)}</td><td>${esc(ref)}</td><td>${LIBELLE_DRAPEAU[f]}</td></tr>`;
     }).join('');
     return `<h3 style="margin-top:18px;font-size:11pt;text-transform:uppercase;color:#0e7490">${esc(a.libelle)} <small>(${esc(a.section)})</small></h3><table><thead><tr><th>Paramètre</th><th>Résultat</th><th>Unité</th><th>Valeurs de référence</th><th></th></tr></thead><tbody>${lignes}</tbody></table>`;
   }).join('');
-  const definitif = d.statut === 'validee';
-  ouvrir(`Compte rendu ${d.numero}`, `${entete(s, `<strong>COMPTE RENDU ${definitif ? (d.version > 1 ? `RECTIFICATIF (version ${d.version})` : 'DÉFINITIF') : 'PARTIEL'}</strong><br><small>Demande ${esc(d.numero)}</small><br><img src="${qr}" alt="QR" width="70" height="70">`)}
+  const { data: germes } = await supabase.from('sante_micro_germes' as never).select('id, type_examen, germe, quantification, commentaire, statut, ab:sante_antibiogrammes(antibiotique, cmi, interpretation)').eq('demande_id', demandeId);
+  const micro = ((germes ?? []) as any[]).map(g => `<h3 style="margin-top:18px;font-size:11pt;text-transform:uppercase;color:#0e7490">Microbiologie — ${esc(g.type_examen)}</h3>
+<p><strong>${esc(g.germe)}</strong>${g.quantification ? ' · ' + esc(g.quantification) : ''}${g.statut === 'preliminaire' ? ' <em>(résultat préliminaire)</em>' : ''}${g.commentaire ? `<br><small>${esc(g.commentaire)}</small>` : ''}</p>
+${g.ab?.length ? `<table><thead><tr><th>Antibiotique</th><th>CMI</th><th>Interprétation</th></tr></thead><tbody>${g.ab.map((x: any) => `<tr><td>${esc(x.antibiotique)}</td><td>${esc(x.cmi ?? '')}</td><td class="${x.interpretation === 'R' ? 'anormal' : ''}">${x.interpretation === 'S' ? 'Sensible' : x.interpretation === 'I' ? 'Intermédiaire' : 'Résistant'}</td></tr>`).join('')}</tbody></table>` : ''}`).join('');
+  const mentions = [
+    definitif && d.version > 1 ? `<p style="border:1px solid #b91c1c;padding:6px;color:#b91c1c"><strong>COMPTE RENDU RECTIFICATIF — version ${d.version}.</strong> Il annule et remplace la version précédente, conservée au laboratoire.</p>` : '',
+    dd.derogation ? `<p style="border:1px solid #92400e;padding:6px"><strong>Validation par dérogation :</strong> validation technique et biologique effectuées par la même personne, autorisée par la structure et tracée.</p>` : '',
+  ].join('');
+  ouvrir(`Compte rendu ${d.numero}`, `${entete(s, `<strong>COMPTE RENDU ${definitif ? (d.version > 1 ? `RECTIFICATIF (version ${d.version})` : 'DÉFINITIF') : 'PARTIEL'}</strong><br><small>Demande ${esc(d.numero)}</small><br>${definitif && dd.cr_token ? `<img src="${qr}" alt="QR de vérification" width="70" height="70">` : ''}`)}
 <div style="display:flex;justify-content:space-between;margin:14px 0"><div><strong>${esc(p.nom)} ${esc(p.prenoms)}</strong><br><small>Dossier ${esc(p.numero_dossier)} · ${p.sexe === 'F' ? 'Féminin' : 'Masculin'}${p.date_naissance ? ' · né(e) le ' + new Date(p.date_naissance).toLocaleDateString('fr-FR') : ''}</small></div>
-<div style="text-align:right"><small>Prescripteur : ${esc(d.prescripteur ?? '—')}<br>Prélevé le : ${d.preleve_le ? new Date(d.preleve_le).toLocaleString('fr-FR') : '—'}<br>Rendu le : ${d.validee_le ? new Date(d.validee_le).toLocaleString('fr-FR') : '—'}</small></div></div>
-${blocs}
-<div class="sig">${definitif ? `Validé biologiquement le ${new Date(d.validee_le).toLocaleString('fr-FR')}<br>Signature électronique du biologiste` : '<em>Compte rendu non encore validé biologiquement</em>'}</div>${pied(s)}`);
+<div style="text-align:right"><small>Prescripteur : ${esc(d.prescripteur ?? '—')}<br>Prélevé le : ${d.preleve_le ? new Date(d.preleve_le).toLocaleString('fr-FR') : '—'}${dd.prelev_site ? ' (' + esc(dd.prelev_site) + ')' : ''}<br>Rendu le : ${d.validee_le ? new Date(d.validee_le).toLocaleString('fr-FR') : '—'}</small></div></div>
+${mentions}${blocs}${micro}
+<div class="sig">${definitif ? `Validé biologiquement le ${new Date(d.validee_le).toLocaleString('fr-FR')}<br>Signature électronique du biologiste${dd.cr_hash ? `<br><small style="font-family:monospace">Empreinte ${esc(String(dd.cr_hash).slice(0, 16))}… · vérifiable par le QR code</small>` : ''}` : '<em>Compte rendu non encore validé biologiquement</em>'}</div>${pied(s)}`);
 }
 
 /** Étiquettes code-barres (Code 128) : une par tube/contenant distinct de la demande. */
