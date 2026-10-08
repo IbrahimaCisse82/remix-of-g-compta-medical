@@ -13,6 +13,7 @@ import PortailPublicPage from "./pages/PortailPublicPage";
 import TarifsPage from "./pages/TarifsPage";
 import NotFound from "./pages/NotFound";
 import PortailPatientPage from "./pages/PortailPatientPage";
+import VerifierCrPage from "./pages/VerifierCrPage";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/protection-donnees" element={<ProtectionDonneesPage />} />
             <Route path="/portail" element={<PortailPublicPage />} />
             <Route path="/resultats" element={<PortailPatientPage />} />
+            <Route path="/verifier/:token" element={<VerifierCrPage />} />
             <Route path="/tarifs" element={<TarifsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
