@@ -193,13 +193,15 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
-        {st === 'enregistree' && <Button size="sm" onClick={() => avancer('prelevee')}>Prélèvement effectué</Button>}
         {st === 'prelevee' && <Button size="sm" onClick={() => avancer('recue')}>Échantillon reçu conforme</Button>}
         {st === 'recue' && <Button size="sm" onClick={() => avancer('en_analyse')}>Mettre en analyse</Button>}
         {st === 'en_analyse' && <Button size="sm" onClick={() => valider('technique')}><CheckCircle2 />Validation technique</Button>}
         {st === 'validee_technique' && <><Button size="sm" onClick={() => valider('biologique')}><CheckCircle2 />Validation biologique</Button></>}
-        {['enregistree', 'prelevee', 'recue'].includes(st) && <><Input className="max-w-xs h-9" placeholder="Motif de rejet" value={motif} onChange={e => setMotif(e.target.value)} /><Button size="sm" variant="destructive" disabled={!motif.trim()} onClick={() => avancer('rejetee')}>Rejeter</Button></>}
+        {d.demande_origine_id && <span className="text-xs text-fg3">Nouveau prélèvement suite à un rejet</span>}
       </div>
+      {st === 'enregistree' && <Prelevement id={id} onDone={load} />}
+      {['prelevee', 'recue'].includes(st) && <RejetEchantillon id={id} onDone={load} />}
+      {['en_analyse', 'validee_technique', 'validee'].includes(st) && <Microbiologie id={id} editable={st === 'en_analyse'} />}
 
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
         <table className="w-full text-sm">
