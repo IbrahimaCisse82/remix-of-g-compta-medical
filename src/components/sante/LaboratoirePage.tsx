@@ -230,3 +230,91 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
     </div>
   );
 }
+
+const MOTIFS_REJET: Record<string, string> = { hemolyse: 'Hémolyse', volume_insuffisant: 'Volume insuffisant', tube_errone: 'Tube erroné', etiquette_illisible: 'Étiquette illisible', delai_depasse: 'Délai d’acheminement dépassé', coagule: 'Échantillon coagulé', autre: 'Autre' };
+
+/** Prélèvement : identification positive du patient (au moins 2 identifiants vérifiés, imposé par la base). */
+function Prelevement({ id, onDone }: { id: string; onDone: () => void }) {
+  const [ids, setIds] = useState<string[]>([]);
+  const [site, setSite] = useState('');
+  const [ajeun, setAjeun] = useState(false);
+  const IDS: [string, string][] = [['nom', 'Nom et prénoms'], ['date_naissance', 'Date de naissance'], ['numero_dossier', 'N° de dossier'], ['piece_identite', 'Pièce d’identité']];
+  const go = async () => {
+    const { error } = await supabase.rpc('sante_prelever' as never, { _demande_id: id, _identifiants: ids, _site: site, _conditions: { a_jeun: ajeun } } as never);
+    if (error) return toast.error(error.message);
+    toast.success('Prélèvement enregistré'); onDone();
+  };
+  return <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
+    <h2 className="font-semibold text-sm">Prélèvement — identification du patient</h2>
+    <p className="text-xs text-fg3">Demandez au patient de décliner son identité et cochez au moins deux éléments vérifiés.</p>
+    <div className="flex flex-wrap gap-3">{IDS.map(([k, l]) => <label key={k} className="flex items-center gap-1 text-sm"><input type="checkbox" checked={ids.includes(k)} onChange={e => setIds(x => e.target.checked ? [...x, k] : x.filter(y => y !== k))} />{l}</label>)}</div>
+    <div className="flex flex-wrap gap-2 items-center"><Input className="max-w-xs h-9" placeholder="Site de prélèvement (ex. pli du coude)" value={site} onChange={e => setSite(e.target.value)} /><label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={ajeun} onChange={e => setAjeun(e.target.checked)} />À jeun</label>
+      <Button size="sm" disabled={ids.length < 2} onClick={go}>Prélèvement effectué</Button></div>
+  </section>;
+}
+
+/** Rejet pré-analytique avec motif codifié ; option de créer automatiquement une nouvelle demande liée. */
+function RejetEchantillon({ id, onDone }: { id: string; onDone: () => void }) {
+  const [code, setCode] = useState('');
+  const [com, setCom] = useState('');
+  const [nouveau, setNouveau] = useState(true);
+  const go = async () => {
+    const { data, error } = await supabase.rpc('sante_rejeter_echantillon' as never, { _demande_id: id, _code: code, _commentaire: com, _nouveau_prelevement: nouveau } as never);
+    if (error) return toast.error(error.message);
+    toast.success(data ? 'Échantillon rejeté — nouvelle demande de prélèvement créée' : 'Échantillon rejeté'); onDone();
+  };
+  return <section className="border border-border bg-bg2 rounded-md p-3 flex flex-wrap gap-2 items-center">
+    <span className="text-sm font-semibold">Non-conformité :</span>
+    <select aria-label="Motif de rejet" className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={code} onChange={e => setCode(e.target.value)}>
+      <option value="">Motif de rejet…</option>{Object.entries(MOTIFS_REJET).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+    </select>
+    <Input className="max-w-xs h-9" placeholder="Commentaire" value={com} onChange={e => setCom(e.target.value)} />
+    <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={nouveau} onChange={e => setNouveau(e.target.checked)} />Nouveau prélèvement</label>
+    <Button size="sm" variant="destructive" disabled={!code} onClick={go}>Rejeter</Button>
+  </section>;
+}
+
+type Germe = { id: string; type_examen: string; germe: string; quantification: string | null; statut: string; ab: { antibiotique: string; cmi: string | null; interpretation: string }[] };
+
+/** Microbiologie : germes identifiés et antibiogramme (S/I/R). Un germe préliminaire bloque la validation. */
+function Microbiologie({ id, editable }: { id: string; editable: boolean }) {
+  const [germes, setGermes] = useState<Germe[]>([]);
+  const [f, setF] = useState({ type: 'culture', germe: '', quant: '', ab: '' });
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('sante_micro_germes' as never).select('id, type_examen, germe, quantification, statut, ab:sante_antibiogrammes(antibiotique, cmi, interpretation)').eq('demande_id', id).order('saisi_le');
+    setGermes((data ?? []) as unknown as Germe[]);
+  }, [id]);
+  useEffect(() => { void load(); }, [load]);
+  if (!editable && germes.length === 0) return null;
+  // Format antibiogramme : une ligne par antibiotique « Amoxicilline S » ou « Ciprofloxacine R 0,5 »
+  const parseAb = () => f.ab.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const m = l.match(/^(.+?)\s+([SIRsir])(?:\s+(.+))?$/); return m ? { antibiotique: m[1], interpretation: m[2].toUpperCase(), cmi: m[3] ?? null } : null; });
+  const ajouter = async () => {
+    const ab = parseAb();
+    if (ab.some(x => !x)) return toast.error('Antibiogramme : une ligne par antibiotique, suivie de S, I ou R');
+    const { error } = await supabase.rpc('sante_saisir_germe' as never, { _demande_id: id, _type: f.type, _germe: f.germe, _quantification: f.quant, _commentaire: null, _definitif: false, _antibiogramme: ab } as never);
+    if (error) return toast.error(error.message);
+    setF({ type: f.type, germe: '', quant: '', ab: '' }); void load();
+  };
+  const definitif = async (gid: string) => {
+    const { error } = await supabase.rpc('sante_germe_definitif' as never, { _germe_id: gid } as never);
+    if (error) return toast.error(error.message);
+    void load();
+  };
+  return <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
+    <h2 className="font-semibold text-sm">Microbiologie</h2>
+    {germes.map(g => <div key={g.id} className="border border-border rounded p-2 text-sm">
+      <div className="flex justify-between gap-2"><span><span className="text-xs text-fg3 uppercase">{g.type_examen}</span> · <strong>{g.germe}</strong>{g.quantification && ` · ${g.quantification}`}</span>
+        {g.statut === 'preliminaire' ? (editable ? <Button size="sm" variant="outline" className="h-7" onClick={() => definitif(g.id)}>Rendre définitif</Button> : <span className="text-xs">préliminaire</span>) : <span className="text-xs text-primary">définitif</span>}</div>
+      {g.ab.length > 0 && <p className="text-xs mt-1">{g.ab.map(a => <span key={a.antibiotique} className={`mr-3 ${a.interpretation === 'R' ? 'text-destructive font-semibold' : ''}`}>{a.antibiotique} {a.interpretation}{a.cmi ? ` (${a.cmi})` : ''}</span>)}</p>}
+    </div>)}
+    {editable && <div className="grid sm:grid-cols-[auto_1fr_1fr] gap-2">
+      <select aria-label="Type d’examen" className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={f.type} onChange={e => setF({ ...f, type: e.target.value })}>
+        {[['culture', 'Culture'], ['ecbu', 'ECBU'], ['hemoculture', 'Hémoculture'], ['coproculture', 'Coproculture'], ['autre', 'Autre']].map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+      </select>
+      <Input aria-label="Germe" placeholder="Germe identifié (ex. E. coli)" value={f.germe} onChange={e => setF({ ...f, germe: e.target.value })} />
+      <Input aria-label="Quantification" placeholder="Quantification (ex. 10^5 UFC/mL)" value={f.quant} onChange={e => setF({ ...f, quant: e.target.value })} />
+      <Textarea aria-label="Antibiogramme" className="sm:col-span-3" placeholder={'Antibiogramme, une ligne par antibiotique :\nAmoxicilline R\nCiprofloxacine S 0,25'} value={f.ab} onChange={e => setF({ ...f, ab: e.target.value })} />
+      <div className="sm:col-span-3"><Button size="sm" disabled={!f.germe.trim()} onClick={ajouter}><Plus />Ajouter (préliminaire)</Button></div>
+    </div>}
+  </section>;
+}
