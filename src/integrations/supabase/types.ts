@@ -4004,6 +4004,69 @@ export type Database = {
           },
         ]
       }
+      sante_eeq: {
+        Row: {
+          analyse_libelle: string
+          campagne: string
+          date_campagne: string
+          ecart_type: number
+          id: string
+          non_conformite_id: string | null
+          organisme: string
+          saisi_le: string
+          saisi_par: string | null
+          structure_id: string
+          valeur_cible: number
+          valeur_obtenue: number
+          zscore: number | null
+        }
+        Insert: {
+          analyse_libelle: string
+          campagne: string
+          date_campagne?: string
+          ecart_type: number
+          id?: string
+          non_conformite_id?: string | null
+          organisme: string
+          saisi_le?: string
+          saisi_par?: string | null
+          structure_id: string
+          valeur_cible: number
+          valeur_obtenue: number
+          zscore?: number | null
+        }
+        Update: {
+          analyse_libelle?: string
+          campagne?: string
+          date_campagne?: string
+          ecart_type?: number
+          id?: string
+          non_conformite_id?: string | null
+          organisme?: string
+          saisi_le?: string
+          saisi_par?: string | null
+          structure_id?: string
+          valeur_cible?: number
+          valeur_obtenue?: number
+          zscore?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_eeq_non_conformite_id_fkey"
+            columns: ["non_conformite_id"]
+            isOneToOne: false
+            referencedRelation: "sante_non_conformites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_eeq_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_encaissements: {
         Row: {
           created_at: string
@@ -4474,6 +4537,66 @@ export type Database = {
             columns: ["demande_id"]
             isOneToOne: false
             referencedRelation: "sante_demandes_labo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_non_conformites: {
+        Row: {
+          action_corrective: string | null
+          cloture_le: string | null
+          cloture_par: string | null
+          cree_le: string
+          cree_par: string | null
+          demande_id: string | null
+          description: string
+          gravite: string
+          id: string
+          statut: string
+          structure_id: string
+          type: string
+        }
+        Insert: {
+          action_corrective?: string | null
+          cloture_le?: string | null
+          cloture_par?: string | null
+          cree_le?: string
+          cree_par?: string | null
+          demande_id?: string | null
+          description: string
+          gravite?: string
+          id?: string
+          statut?: string
+          structure_id: string
+          type: string
+        }
+        Update: {
+          action_corrective?: string | null
+          cloture_le?: string | null
+          cloture_par?: string | null
+          cree_le?: string
+          cree_par?: string | null
+          demande_id?: string | null
+          description?: string
+          gravite?: string
+          id?: string
+          statut?: string
+          structure_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_non_conformites_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "sante_demandes_labo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_non_conformites_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
             referencedColumns: ["id"]
           },
         ]
@@ -5654,6 +5777,70 @@ export type Database = {
           },
         ]
       }
+      sante_sous_traitance: {
+        Row: {
+          analyse_id: string
+          demande_id: string
+          envoye_le: string
+          envoye_par: string | null
+          id: string
+          laboratoire: string
+          recu_le: string | null
+          recu_par: string | null
+          reference_externe: string | null
+          statut: string
+          structure_id: string
+        }
+        Insert: {
+          analyse_id: string
+          demande_id: string
+          envoye_le?: string
+          envoye_par?: string | null
+          id?: string
+          laboratoire: string
+          recu_le?: string | null
+          recu_par?: string | null
+          reference_externe?: string | null
+          statut?: string
+          structure_id: string
+        }
+        Update: {
+          analyse_id?: string
+          demande_id?: string
+          envoye_le?: string
+          envoye_par?: string | null
+          id?: string
+          laboratoire?: string
+          recu_le?: string | null
+          recu_par?: string | null
+          reference_externe?: string | null
+          statut?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_sous_traitance_analyse_id_fkey"
+            columns: ["analyse_id"]
+            isOneToOne: false
+            referencedRelation: "sante_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_sous_traitance_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "sante_demandes_labo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_sous_traitance_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_tarifs_convention: {
         Row: {
           code: string
@@ -6603,6 +6790,16 @@ export type Database = {
         Args: { _approuver: boolean; _id: string; _motif: string }
         Returns: undefined
       }
+      sante_declarer_non_conformite: {
+        Args: {
+          _demande_id: string
+          _description: string
+          _gravite: string
+          _structure_id: string
+          _type: string
+        }
+        Returns: string
+      }
       sante_definir_compte: {
         Args: { _cle: string; _compte: string; _structure_id: string }
         Returns: undefined
@@ -6637,6 +6834,10 @@ export type Database = {
         Args: { _structure_id: string; _type: string }
         Returns: number
       }
+      sante_eliminer_echantillons: {
+        Args: { _structure_id: string }
+        Returns: number
+      }
       sante_emettre_certificat: {
         Args: {
           _consultation_id: string
@@ -6660,6 +6861,15 @@ export type Database = {
           _mode: string
           _montant: number
           _reference?: string
+        }
+        Returns: string
+      }
+      sante_envoyer_sous_traitance: {
+        Args: {
+          _analyse_id: string
+          _demande_id: string
+          _laboratoire: string
+          _reference: string
         }
         Returns: string
       }
@@ -6741,6 +6951,10 @@ export type Database = {
         Returns: number
       }
       sante_rapport_caisse: { Args: { _session_id: string }; Returns: Json }
+      sante_recevoir_sous_traitance: {
+        Args: { _id: string; _reference: string }
+        Returns: undefined
+      }
       sante_rechercher_patients: {
         Args: {
           _limit?: number
@@ -6825,6 +7039,19 @@ export type Database = {
         Args: { _controle_id: string; _valeur: number }
         Returns: string
       }
+      sante_saisir_eeq: {
+        Args: {
+          _analyse: string
+          _campagne: string
+          _cible: number
+          _date: string
+          _ecart: number
+          _obtenue: number
+          _organisme: string
+          _structure_id: string
+        }
+        Returns: string
+      }
       sante_saisir_facture_secours: {
         Args: {
           _assurance_id: string
@@ -6876,6 +7103,10 @@ export type Database = {
         Returns: Json
       }
       sante_traiter_evenement: { Args: { _id: string }; Returns: string }
+      sante_traiter_non_conformite: {
+        Args: { _action: string; _cloturer: boolean; _id: string }
+        Returns: undefined
+      }
       sante_valider_demande: {
         Args: { _demande_id: string; _niveau: string }
         Returns: undefined
