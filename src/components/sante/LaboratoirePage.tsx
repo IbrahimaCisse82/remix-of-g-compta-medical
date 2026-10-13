@@ -120,15 +120,18 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [motif, setMotif] = useState('');
   const [anterieurs, setAnterieurs] = useState<Map<string, number>>(new Map());
   const [rectifs, setRectifs] = useState<any[]>([]);
+  const [lesAnalyses, setLesAnalyses] = useState<{ id: string; libelle: string }[]>([]);
   const [rect, setRect] = useState<{ parametre: string; valeur: string; motif: string } | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('sante_demandes_labo').select('*, patient:sante_patients(nom, prenoms, sexe, date_naissance, numero_dossier)').eq('id', id).maybeSingle();
     setD(data);
     const [{ data: das }, { data: r }] = await Promise.all([
-      supabase.from('sante_demande_analyses').select('analyse:sante_analyses(libelle, parametres:sante_analyse_parametres(id, libelle, unite, type, decimales, ordre))').eq('demande_id', id),
+      supabase.from('sante_demande_analyses').select('analyse:sante_analyses(id, libelle, parametres:sante_analyse_parametres(id, libelle, unite, type, decimales, ordre))').eq('demande_id', id),
       supabase.from('sante_resultats').select('*').eq('demande_id', id),
     ]);
+    setLesAnalyses((das ?? []).map((x: any) => ({ id: x.analyse.id, libelle: x.analyse.libelle })));
+    setLesAnalyses((das ?? []).map((x: any) => ({ id: x.analyse.id, libelle: x.analyse.libelle })));
     setParams((das ?? []).flatMap((x: any) => [...x.analyse.parametres].sort((a: any, b: any) => a.ordre - b.ordre).map((p: any) => ({ ...p, analyse: x.analyse.libelle }))));
     setRes(new Map((r ?? []).map(x => [x.parametre_id, x])));
     const { data: rc } = await supabase.from('sante_rectificatifs').select('*').eq('demande_id', id).order('le');
@@ -201,6 +204,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
       {st === 'enregistree' && <Prelevement id={id} onDone={load} />}
       {['prelevee', 'recue'].includes(st) && <RejetEchantillon id={id} onDone={load} />}
+      {['prelevee', 'recue', 'en_analyse'].includes(st) && <SousTraitance id={id} analyses={lesAnalyses} />}
       {['en_analyse', 'validee_technique', 'validee'].includes(st) && <Microbiologie id={id} editable={st === 'en_analyse'} />}
 
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
@@ -316,5 +320,33 @@ function Microbiologie({ id, editable }: { id: string; editable: boolean }) {
       <Textarea aria-label="Antibiogramme" className="sm:col-span-3" placeholder={'Antibiogramme, une ligne par antibiotique :\nAmoxicilline R\nCiprofloxacine S 0,25'} value={f.ab} onChange={e => setF({ ...f, ab: e.target.value })} />
       <div className="sm:col-span-3"><Button size="sm" disabled={!f.germe.trim()} onClick={ajouter}><Plus />Ajouter (préliminaire)</Button></div>
     </div>}
+  </section>;
+}
+
+/** Envoi d'une analyse de la demande à un laboratoire sous-traitant. */
+export function SousTraitance({ id, analyses }: { id: string; analyses: { id: string; libelle: string }[] }) {
+  const [envois, setEnvois] = useState<{ id: string; analyse_id: string; laboratoire: string; statut: string }[]>([]);
+  const [f, setF] = useState({ analyse: '', labo: '', ref: '' });
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('sante_sous_traitance').select('id, analyse_id, laboratoire, statut').eq('demande_id', id);
+    setEnvois(data ?? []);
+  }, [id]);
+  useEffect(() => { void load(); }, [load]);
+  const envoyer = async () => {
+    const { error } = await supabase.rpc('sante_envoyer_sous_traitance', { _demande_id: id, _analyse_id: f.analyse, _laboratoire: f.labo, _reference: f.ref });
+    if (error) return toast.error(error.message);
+    setF({ analyse: '', labo: '', ref: '' }); toast.success('Envoi en sous-traitance enregistré'); void load();
+  };
+  return <section className="border border-border bg-bg2 rounded-md p-3 space-y-2 text-sm">
+    <h2 className="font-semibold text-sm">Sous-traitance</h2>
+    {envois.map(e => <p key={e.id} className="text-xs">{analyses.find(a => a.id === e.analyse_id)?.libelle} → {e.laboratoire} · {e.statut === 'recu' ? 'reçu' : 'envoyé'}</p>)}
+    <div className="flex flex-wrap gap-2">
+      <select aria-label="Analyse à envoyer" className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={f.analyse} onChange={e => setF({ ...f, analyse: e.target.value })}>
+        <option value="">Analyse…</option>{analyses.filter(a => !envois.some(e => e.analyse_id === a.id)).map(a => <option key={a.id} value={a.id}>{a.libelle}</option>)}
+      </select>
+      <Input className="h-9 max-w-xs" placeholder="Laboratoire destinataire" value={f.labo} onChange={e => setF({ ...f, labo: e.target.value })} />
+      <Input className="h-9 max-w-[10rem]" placeholder="Référence" value={f.ref} onChange={e => setF({ ...f, ref: e.target.value })} />
+      <Button size="sm" variant="outline" disabled={!f.analyse || !f.labo.trim()} onClick={envoyer}>Envoyer</Button>
+    </div>
   </section>;
 }

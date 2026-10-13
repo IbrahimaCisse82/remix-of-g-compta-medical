@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { NonConformites, Eeq, Echantillons } from './QualiteLabo';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -23,12 +24,13 @@ function LeveyJennings({ points }: { points: { z: number; statut: string }[] }) 
 }
 
 export default function QualitePage({ structureId }: { structureId: string }) {
-  const [onglet, setOnglet] = useState<'cq' | 'reactifs'>('cq');
+  const [onglet, setOnglet] = useState<'cq' | 'reactifs' | 'nc' | 'eeq' | 'ech'>('cq');
+  const tabs: [typeof onglet, string][] = [['cq', 'Contrôle qualité'], ['reactifs', 'Réactifs'], ['nc', 'Non-conformités'], ['eeq', 'Évaluations externes'], ['ech', 'Échantillons']];
   return (
     <div className="max-w-6xl space-y-6">
       <div><p className="text-xs font-mono uppercase text-primary mb-1">Laboratoire</p><h1 className="font-serif text-3xl">Qualité et réactifs</h1></div>
-      <div className="flex gap-1"><Button size="sm" variant={onglet === 'cq' ? 'secondary' : 'ghost'} onClick={() => setOnglet('cq')}>Contrôle qualité</Button><Button size="sm" variant={onglet === 'reactifs' ? 'secondary' : 'ghost'} onClick={() => setOnglet('reactifs')}>Réactifs</Button></div>
-      {onglet === 'cq' ? <ControleQualite structureId={structureId} /> : <Reactifs structureId={structureId} />}
+      <div className="flex flex-wrap gap-1">{tabs.map(([k, l]) => <Button key={k} size="sm" variant={onglet === k ? 'secondary' : 'ghost'} onClick={() => setOnglet(k)}>{l}</Button>)}</div>
+      {onglet === 'cq' ? <ControleQualite structureId={structureId} /> : onglet === 'reactifs' ? <Reactifs structureId={structureId} /> : onglet === 'nc' ? <NonConformites structureId={structureId} /> : onglet === 'eeq' ? <Eeq structureId={structureId} /> : <Echantillons structureId={structureId} />}
     </div>
   );
 }
