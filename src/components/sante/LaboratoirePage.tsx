@@ -131,6 +131,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       supabase.from('sante_resultats').select('*').eq('demande_id', id),
     ]);
     setLesAnalyses((das ?? []).map((x: any) => ({ id: x.analyse.id, libelle: x.analyse.libelle })));
+    setLesAnalyses((das ?? []).map((x: any) => ({ id: x.analyse.id, libelle: x.analyse.libelle })));
     setParams((das ?? []).flatMap((x: any) => [...x.analyse.parametres].sort((a: any, b: any) => a.ordre - b.ordre).map((p: any) => ({ ...p, analyse: x.analyse.libelle }))));
     setRes(new Map((r ?? []).map(x => [x.parametre_id, x])));
     const { data: rc } = await supabase.from('sante_rectificatifs').select('*').eq('demande_id', id).order('le');

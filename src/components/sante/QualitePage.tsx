@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { NonConformites, Eeq, Echantillons } from './QualiteLabo';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
