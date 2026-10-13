@@ -120,15 +120,17 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [motif, setMotif] = useState('');
   const [anterieurs, setAnterieurs] = useState<Map<string, number>>(new Map());
   const [rectifs, setRectifs] = useState<any[]>([]);
+  const [lesAnalyses, setLesAnalyses] = useState<{ id: string; libelle: string }[]>([]);
   const [rect, setRect] = useState<{ parametre: string; valeur: string; motif: string } | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('sante_demandes_labo').select('*, patient:sante_patients(nom, prenoms, sexe, date_naissance, numero_dossier)').eq('id', id).maybeSingle();
     setD(data);
     const [{ data: das }, { data: r }] = await Promise.all([
-      supabase.from('sante_demande_analyses').select('analyse:sante_analyses(libelle, parametres:sante_analyse_parametres(id, libelle, unite, type, decimales, ordre))').eq('demande_id', id),
+      supabase.from('sante_demande_analyses').select('analyse:sante_analyses(id, libelle, parametres:sante_analyse_parametres(id, libelle, unite, type, decimales, ordre))').eq('demande_id', id),
       supabase.from('sante_resultats').select('*').eq('demande_id', id),
     ]);
+    setLesAnalyses((das ?? []).map((x: any) => ({ id: x.analyse.id, libelle: x.analyse.libelle })));
     setParams((das ?? []).flatMap((x: any) => [...x.analyse.parametres].sort((a: any, b: any) => a.ordre - b.ordre).map((p: any) => ({ ...p, analyse: x.analyse.libelle }))));
     setRes(new Map((r ?? []).map(x => [x.parametre_id, x])));
     const { data: rc } = await supabase.from('sante_rectificatifs').select('*').eq('demande_id', id).order('le');
@@ -201,6 +203,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
       {st === 'enregistree' && <Prelevement id={id} onDone={load} />}
       {['prelevee', 'recue'].includes(st) && <RejetEchantillon id={id} onDone={load} />}
+      {['prelevee', 'recue', 'en_analyse'].includes(st) && <SousTraitance id={id} analyses={lesAnalyses} />}
       {['en_analyse', 'validee_technique', 'validee'].includes(st) && <Microbiologie id={id} editable={st === 'en_analyse'} />}
 
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
