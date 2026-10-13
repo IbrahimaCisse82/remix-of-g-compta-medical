@@ -318,3 +318,31 @@ function Microbiologie({ id, editable }: { id: string; editable: boolean }) {
     </div>}
   </section>;
 }
+
+/** Envoi d'une analyse de la demande à un laboratoire sous-traitant. */
+export function SousTraitance({ id, analyses }: { id: string; analyses: { id: string; libelle: string }[] }) {
+  const [envois, setEnvois] = useState<{ id: string; analyse_id: string; laboratoire: string; statut: string }[]>([]);
+  const [f, setF] = useState({ analyse: '', labo: '', ref: '' });
+  const load = useCallback(async () => {
+    const { data } = await supabase.from('sante_sous_traitance').select('id, analyse_id, laboratoire, statut').eq('demande_id', id);
+    setEnvois(data ?? []);
+  }, [id]);
+  useEffect(() => { void load(); }, [load]);
+  const envoyer = async () => {
+    const { error } = await supabase.rpc('sante_envoyer_sous_traitance', { _demande_id: id, _analyse_id: f.analyse, _laboratoire: f.labo, _reference: f.ref });
+    if (error) return toast.error(error.message);
+    setF({ analyse: '', labo: '', ref: '' }); toast.success('Envoi en sous-traitance enregistré'); void load();
+  };
+  return <section className="border border-border bg-bg2 rounded-md p-3 space-y-2 text-sm">
+    <h2 className="font-semibold text-sm">Sous-traitance</h2>
+    {envois.map(e => <p key={e.id} className="text-xs">{analyses.find(a => a.id === e.analyse_id)?.libelle} → {e.laboratoire} · {e.statut === 'recu' ? 'reçu' : 'envoyé'}</p>)}
+    <div className="flex flex-wrap gap-2">
+      <select aria-label="Analyse à envoyer" className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={f.analyse} onChange={e => setF({ ...f, analyse: e.target.value })}>
+        <option value="">Analyse…</option>{analyses.filter(a => !envois.some(e => e.analyse_id === a.id)).map(a => <option key={a.id} value={a.id}>{a.libelle}</option>)}
+      </select>
+      <Input className="h-9 max-w-xs" placeholder="Laboratoire destinataire" value={f.labo} onChange={e => setF({ ...f, labo: e.target.value })} />
+      <Input className="h-9 max-w-[10rem]" placeholder="Référence" value={f.ref} onChange={e => setF({ ...f, ref: e.target.value })} />
+      <Button size="sm" variant="outline" disabled={!f.analyse || !f.labo.trim()} onClick={envoyer}>Envoyer</Button>
+    </div>
+  </section>;
+}
