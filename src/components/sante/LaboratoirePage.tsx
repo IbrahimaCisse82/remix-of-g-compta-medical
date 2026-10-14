@@ -114,7 +114,7 @@ export function NouvelleDemande({ structureId, patientId, consultationId, prescr
 
 function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [d, setD] = useState<Record<string, any> | null>(null);
-  const [params, setParams] = useState<{ id: string; libelle: string; unite: string | null; type: string; decimales: number; analyse: string }[]>([]);
+  const [params, setParams] = useState<{ id: string; code: string; libelle: string; unite: string | null; type: string; decimales: number; analyse: string }[]>([]);
   const [res, setRes] = useState<Map<string, Record<string, any>>>(new Map());
   const [saisie, setSaisie] = useState<Record<string, string>>({});
   const [motif, setMotif] = useState('');
@@ -127,7 +127,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
     const { data } = await supabase.from('sante_demandes_labo').select('*, patient:sante_patients(nom, prenoms, sexe, date_naissance, numero_dossier)').eq('id', id).maybeSingle();
     setD(data);
     const [{ data: das }, { data: r }] = await Promise.all([
-      supabase.from('sante_demande_analyses').select('analyse:sante_analyses(id, libelle, parametres:sante_analyse_parametres(id, libelle, unite, type, decimales, ordre))').eq('demande_id', id),
+      supabase.from('sante_demande_analyses').select('analyse:sante_analyses(id, libelle, parametres:sante_analyse_parametres(id, code, libelle, unite, type, decimales, ordre))').eq('demande_id', id),
       supabase.from('sante_resultats').select('*').eq('demande_id', id),
     ]);
     setLesAnalyses((das ?? []).map((x: any) => ({ id: x.analyse.id, libelle: x.analyse.libelle })));
@@ -203,6 +203,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
       {st === 'enregistree' && <Prelevement id={id} onDone={load} />}
       {['prelevee', 'recue'].includes(st) && <RejetEchantillon id={id} onDone={load} />}
+      {st === 'en_analyse' && <ImportAutomate id={id} params={params} onDone={load} />}
       {['prelevee', 'recue', 'en_analyse'].includes(st) && <SousTraitance id={id} analyses={lesAnalyses} />}
       {['en_analyse', 'validee_technique', 'validee'].includes(st) && <Microbiologie id={id} editable={st === 'en_analyse'} />}
 
@@ -347,5 +348,39 @@ export function SousTraitance({ id, analyses }: { id: string; analyses: { id: st
       <Input className="h-9 max-w-[10rem]" placeholder="Référence" value={f.ref} onChange={e => setF({ ...f, ref: e.target.value })} />
       <Button size="sm" variant="outline" disabled={!f.analyse || !f.labo.trim()} onClick={envoyer}>Envoyer</Button>
     </div>
+  </section>;
+}
+
+/** Import des résultats d'un automate : fichier ou copier-coller CSV « code;valeur » (séparateur ; , ou tabulation).
+ *  Chaque valeur passe par la même saisie contrôlée que la saisie manuelle (bornes, drapeaux, CQ). */
+export function parseAutomate(texte: string): { code: string; valeur: string }[] {
+  return texte.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'))
+    .map(l => l.split(/[;\t,]/).map(x => x.trim())).filter(c => c.length >= 2 && c[0] && c[1])
+    .map(c => ({ code: c[0].toUpperCase(), valeur: c[1] }));
+}
+
+function ImportAutomate({ id, params, onDone }: { id: string; params: { id: string; code: string; type: string; libelle: string }[]; onDone: () => void }) {
+  const [texte, setTexte] = useState('');
+  const importer = async () => {
+    const lignes = parseAutomate(texte);
+    let ok = 0; const erreurs: string[] = [];
+    for (const l of lignes) {
+      const p = params.find(x => (x.code ?? '').toUpperCase() === l.code);
+      if (!p) { erreurs.push(`${l.code} : paramètre absent de la demande`); continue; }
+      const num = p.type === 'numerique' ? Number(l.valeur.replace(',', '.')) : null;
+      if (p.type === 'numerique' && Number.isNaN(num)) { erreurs.push(`${l.code} : valeur non numérique`); continue; }
+      const { error } = await supabase.rpc('sante_saisir_resultat', { _demande_id: id, _parametre_id: p.id, _valeur_num: num as number, _valeur_texte: p.type === 'numerique' ? undefined : l.valeur });
+      if (error) erreurs.push(`${l.code} : ${error.message}`); else ok++;
+    }
+    toast[erreurs.length ? 'warning' : 'success'](`${ok} résultat(s) importé(s)${erreurs.length ? ` · ${erreurs.length} refusé(s) : ${erreurs.join(' ; ')}` : ''}`);
+    if (ok) setTexte('');
+    onDone();
+  };
+  return <section className="border border-border bg-bg2 rounded-md p-3 space-y-2">
+    <h2 className="font-semibold text-sm">Import automate</h2>
+    <p className="text-xs text-fg3">Fichier exporté par l’automate ou copier-coller : une ligne par paramètre « CODE;valeur ». Les valeurs critiques restent à acquitter.</p>
+    <input type="file" accept=".csv,.txt" aria-label="Fichier automate" className="text-xs" onChange={async e => { const fi = e.target.files?.[0]; if (fi) setTexte(await fi.text()); }} />
+    <Textarea aria-label="Résultats automate" placeholder={'GLY;1,05\nUREE;0,32'} value={texte} onChange={e => setTexte(e.target.value)} />
+    <Button size="sm" variant="outline" disabled={!texte.trim()} onClick={importer}>Importer</Button>
   </section>;
 }
