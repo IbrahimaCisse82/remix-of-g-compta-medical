@@ -540,6 +540,47 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
       expect((v.data as { empreinte: string }).empreinte).toBe(dl!.cr_hash);
       expect(((await anon.rpc('sante_verifier_cr', { _token: '0'.repeat(32) })).data as { authentique: boolean }).authentique).toBe(false);
     }, 90_000);
+
+    it('sous-traitance : envoi réservé au labo, analyse de la demande, puis réception unique', async () => {
+      const d = await nouvelle();
+      const { data: an } = await admin.from('sante_analyses').select('id').eq('structure_id', st()).eq('code', 'P0GLY').single();
+      await S.A.users.technicien.rpc('sante_prelever', { _demande_id: d, _identifiants: ['nom', 'ddn'], _site: null, _conditions: null });
+      expect((await S.A.users.secretaire.rpc('sante_envoyer_sous_traitance', { _demande_id: d, _analyse_id: an!.id, _laboratoire: 'Labo X', _reference: null })).error).toBeTruthy();
+      const e = await S.A.users.technicien.rpc('sante_envoyer_sous_traitance', { _demande_id: d, _analyse_id: an!.id, _laboratoire: 'Labo X', _reference: 'R1' });
+      expect(e.error).toBeNull();
+      expect((await S.A.users.technicien.rpc('sante_recevoir_sous_traitance', { _id: e.data, _reference: null })).error).toBeNull();
+      expect((await S.A.users.technicien.rpc('sante_recevoir_sous_traitance', { _id: e.data, _reference: null })).error).toBeTruthy();
+      expect((await S.B.users.technicien.from('sante_sous_traitance').select('id').eq('id', e.data as string)).data ?? []).toHaveLength(0);
+    }, 60_000);
+
+    it('non-conformité : clôture réservée au biologiste/admin avec action corrective', async () => {
+      const nc = await S.A.users.technicien.rpc('sante_declarer_non_conformite', { _structure_id: st(), _demande_id: null, _type: 'analytique', _gravite: 'mineure', _description: 'Automate en panne ce matin' });
+      expect(nc.error).toBeNull();
+      expect((await S.A.users.technicien.rpc('sante_traiter_non_conformite', { _id: nc.data, _action: 'Maintenance faite', _cloturer: true })).error).toBeTruthy();
+      expect((await S.A.users.biologiste.rpc('sante_traiter_non_conformite', { _id: nc.data, _action: '', _cloturer: true })).error).toBeTruthy();
+      expect((await S.A.users.biologiste.rpc('sante_traiter_non_conformite', { _id: nc.data, _action: 'Maintenance préventive réalisée', _cloturer: true })).error).toBeNull();
+      expect((await S.A.users.comptable.from('sante_non_conformites').select('id').eq('id', nc.data as string)).data ?? []).toHaveLength(0);
+    }, 60_000);
+
+    it('EEQ : |z| > 2 ouvre automatiquement une non-conformité, |z| ≤ 2 non', async () => {
+      const bon = await S.A.users.technicien.rpc('sante_saisir_eeq', { _structure_id: st(), _organisme: 'OMS', _campagne: 'C1', _analyse: 'Glycémie', _date: null, _obtenue: 1.05, _cible: 1, _ecart: 0.1 });
+      const mauvais = await S.A.users.technicien.rpc('sante_saisir_eeq', { _structure_id: st(), _organisme: 'OMS', _campagne: 'C1', _analyse: 'Urée', _date: null, _obtenue: 1.4, _cible: 1, _ecart: 0.1 });
+      const { data } = await admin.from('sante_eeq').select('id, zscore, non_conformite_id').in('id', [bon.data as string, mauvais.data as string]);
+      const b = data!.find(x => x.id === bon.data)!, m = data!.find(x => x.id === mauvais.data)!;
+      expect(Number(b.zscore)).toBe(0.5); expect(b.non_conformite_id).toBeNull();
+      expect(Number(m.zscore)).toBe(4); expect(m.non_conformite_id).not.toBeNull();
+    }, 60_000);
+
+    it('élimination des échantillons : seulement après la durée de conservation, interdite au caissier', async () => {
+      expect((await S.A.users.caissier.rpc('sante_eliminer_echantillons', { _structure_id: st() })).error).toBeTruthy();
+      await admin.from('structures').update({ conservation_echantillons_jours: 0 }).eq('id', st());
+      const r = await S.A.users.biologiste.rpc('sante_eliminer_echantillons', { _structure_id: st() });
+      await admin.from('structures').update({ conservation_echantillons_jours: 7 }).eq('id', st());
+      expect(r.error).toBeNull();
+      expect(Number(r.data)).toBeGreaterThan(0);
+      const { count } = await admin.from('sante_demandes_labo').select('id', { count: 'exact', head: true }).eq('structure_id', st()).eq('statut', 'validee').is('echantillon_elimine_le', null);
+      expect(count).toBe(0);
+    }, 60_000);
   });
 
 
