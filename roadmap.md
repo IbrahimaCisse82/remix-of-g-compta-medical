@@ -55,6 +55,6 @@
 - [x] P1 Cloisonnement, besoin d'en connaître, bris de glace, conformité technique (docs/securite/P1-rapport.md). Contenus juridiques à compléter par le porteur
 - [x] P2 critères de sortie atteints (docs/securite/P2-rapport.md)
 - [x] P2 suite livrée (TVA à valider par le fiscaliste, comptes à valider par l'expert-comptable)
-- [ ] P3 Laboratoire (pré-analytique, microbiologie, sous-traitance, dérogation)
+- [x] P3 Laboratoire — 49/49 tests base (docs/securite/P3-rapport.md). Reste hors v1 : connexion directe ASTM/HL7
 - [ ] P4 Patient/clinique/portail
 - [ ] P5 Stocks, personnel, rétrocessions, exploitation

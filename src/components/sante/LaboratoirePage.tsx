@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { LIBELLE_DRAPEAU, STATUTS_DEMANDE, estCritique, type Drapeau, type StatutDemande } from '@/domain/sante/reference';
 import { imprimerCompteRendu, imprimerEtiquettes } from './print-sante';
 import { deltaCheck } from '@/domain/sante/reference';
+import { parseAutomate } from '@/domain/sante/automate';
 
 const PAGE = 25;
 type Demande = { id: string; numero: string; statut: StatutDemande; urgence: boolean; created_at: string; patient: { nom: string; prenoms: string; numero_dossier: string } | null };
@@ -353,11 +354,6 @@ export function SousTraitance({ id, analyses }: { id: string; analyses: { id: st
 
 /** Import des résultats d'un automate : fichier ou copier-coller CSV « code;valeur » (séparateur ; , ou tabulation).
  *  Chaque valeur passe par la même saisie contrôlée que la saisie manuelle (bornes, drapeaux, CQ). */
-export function parseAutomate(texte: string): { code: string; valeur: string }[] {
-  return texte.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'))
-    .map(l => l.split(/[;\t,]/).map(x => x.trim())).filter(c => c.length >= 2 && c[0] && c[1])
-    .map(c => ({ code: c[0].toUpperCase(), valeur: c[1] }));
-}
 
 function ImportAutomate({ id, params, onDone }: { id: string; params: { id: string; code: string; type: string; libelle: string }[]; onDone: () => void }) {
   const [texte, setTexte] = useState('');
