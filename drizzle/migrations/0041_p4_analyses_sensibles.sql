@@ -1,0 +1,3 @@
+ALTER TABLE public.sante_analyses ADD COLUMN IF NOT EXISTS sensible boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.sante_analyses.sensible IS 'Résultat jamais affiché sur le portail patient (VIH, grossesse, IST...) : remise en main propre uniquement';
+UPDATE public.sante_analyses SET sensible = true WHERE code ~* '(VIH|HIV|HCG|BHCG|SYPH|TPHA|VDRL|HBS|HCV|CHLAM|GONO)' OR libelle ~* '(VIH|HIV|grossesse|HCG|syphilis|TPHA|VDRL|hépatite|chlamydia|gonocoque)';
