@@ -2784,6 +2784,7 @@ export type Database = {
           libelle: string
           regime_tva: string
           section: string
+          sensible: boolean
           sous_traitee: boolean
           structure_id: string
           tarif: number
@@ -2802,6 +2803,7 @@ export type Database = {
           libelle: string
           regime_tva?: string
           section: string
+          sensible?: boolean
           sous_traitee?: boolean
           structure_id: string
           tarif?: number
@@ -2820,6 +2822,7 @@ export type Database = {
           libelle?: string
           regime_tva?: string
           section?: string
+          sensible?: boolean
           sous_traitee?: boolean
           structure_id?: string
           tarif?: number
