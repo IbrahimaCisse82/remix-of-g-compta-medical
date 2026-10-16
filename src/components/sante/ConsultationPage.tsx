@@ -76,7 +76,14 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   const emettre = async () => {
     const errs = validerOrdonnance(lignes);
     if (errs.length) return toast.error(errs[0]);
-    const { data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: lignes.filter(l => l.medicament.trim()) as any, _recommandations: reco });
+    let envoi: any[] = lignes.filter(l => l.medicament.trim());
+    let { data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco });
+    if (error?.message?.startsWith('ALLERGIE')) {
+      const just = window.prompt(`${error.message.replace('ALLERGIE: ', '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`);
+      if (!just || just.trim().length < 15) return toast.error('Prescription annulée : justification de 15 caractères minimum requise');
+      envoi = envoi.map(l => ({ ...l, justification_allergie: just.trim() }));
+      ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));
+    }
     if (error) return toast.error(error.message);
     toast.success('Ordonnance émise');
     setLignes([{ medicament: '', posologie: '', duree: '', quantite: '' }]); setReco('');
