@@ -281,6 +281,13 @@
       "when": 1791765239695,
       "tag": "0039_p3_sous_traitance_qualite_conservation",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792109227956,
+      "tag": "0040_p4_allergie_ordonnance",
+      "breakpoints": true
     }
   ]
 }

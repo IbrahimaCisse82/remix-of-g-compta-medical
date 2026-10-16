@@ -4605,6 +4605,7 @@ export type Database = {
         Row: {
           duree: string | null
           id: string
+          justification_allergie: string | null
           medicament: string
           ordonnance_id: string
           ordre: number
@@ -4614,6 +4615,7 @@ export type Database = {
         Insert: {
           duree?: string | null
           id?: string
+          justification_allergie?: string | null
           medicament: string
           ordonnance_id: string
           ordre: number
@@ -4623,6 +4625,7 @@ export type Database = {
         Update: {
           duree?: string | null
           id?: string
+          justification_allergie?: string | null
           medicament?: string
           ordonnance_id?: string
           ordre?: number
