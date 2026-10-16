@@ -95,24 +95,46 @@ Deno.serve(async (req) => {
     return json({ token: t });
   }
 
-  // 4) Données (lien ou session)
+  // 3 bis) Lien à usage unique : date de naissance exigée, puis échange contre une session 24 h
+  if (action === 'ouvrir_lien') {
+    const t = String(body.token ?? ''); const dn = String(body.date_naissance ?? '').slice(0, 10);
+    const generique = { error: 'Lien expiré, déjà utilisé ou informations incorrectes.' };
+    if (!/^[0-9a-f]{64}$/.test(t) || !/^\d{4}-\d{2}-\d{2}$/.test(dn)) return json(generique, 401);
+    if (await limite(`lien:${ip}`, 10)) return json({ error: 'Trop de tentatives. Réessayez dans une heure.' }, 429);
+    const { data: l } = await admin.from('sante_portail_patient').select('id, patient_id, structure_id, tentatives').eq('secret_hash', await sha(t)).eq('type', 'lien').eq('utilise', false).gt('expire_le', new Date().toISOString()).maybeSingle();
+    if (!l || l.tentatives >= 3) return json(generique, 401);
+    const { data: p } = await admin.from('sante_patients').select('date_naissance').eq('id', l.patient_id).single();
+    if (!p?.date_naissance || String(p.date_naissance).slice(0, 10) !== dn) {
+      await admin.from('sante_portail_patient').update({ tentatives: l.tentatives + 1 }).eq('id', l.id);
+      return json(generique, 401);
+    }
+    const { data: pris } = await admin.from('sante_portail_patient').update({ utilise: true }).eq('id', l.id).eq('utilise', false).select('id');
+    if (!pris?.length) return json(generique, 401);
+    const s = rand(32);
+    await admin.from('sante_portail_patient').insert({ structure_id: l.structure_id, patient_id: l.patient_id, type: 'session', secret_hash: await sha(s), expire_le: new Date(Date.now() + 24 * 3600_000).toISOString() });
+    return json({ token: s });
+  }
+
+  // 4) Données (session uniquement)
   if (action === 'donnees') {
     const t = String(body.token ?? '');
     if (!/^[0-9a-f]{64}$/.test(t)) return json({ error: 'Lien invalide' }, 400);
     if (await limite(`data:${ip}`, 60)) return json({ error: 'Trop de requêtes' }, 429);
-    const { data: acc } = await admin.from('sante_portail_patient').select('patient_id, structure_id, expire_le').eq('secret_hash', await sha(t)).in('type', ['lien', 'session']).gt('expire_le', new Date().toISOString()).maybeSingle();
-    if (!acc) return json({ error: 'Lien expiré ou invalide. Demandez un nouvel accès.' }, 401);
+    const { data: acc } = await admin.from('sante_portail_patient').select('patient_id, structure_id, expire_le').eq('secret_hash', await sha(t)).eq('type', 'session').gt('expire_le', new Date().toISOString()).maybeSingle();
+    if (!acc) return json({ error: 'Session expirée. Demandez un nouvel accès.' }, 401);
     const [{ data: patient }, { data: structure }, { data: ords }, { data: dems }] = await Promise.all([
       admin.from('sante_patients').select('numero_dossier, nom, prenoms, sexe, date_naissance').eq('id', acc.patient_id).single(),
       admin.from('structures').select('nom, adresse, telephone, ninea, rccm').eq('id', acc.structure_id).single(),
       admin.from('sante_ordonnances').select('id, numero, emise_le, recommandations, praticien:sante_praticiens(nom, specialite), lignes:sante_ordonnance_lignes(ordre, medicament, posologie, duree, quantite)').eq('patient_id', acc.patient_id).order('emise_le', { ascending: false }).limit(50),
-      admin.from('sante_demandes_labo').select('id, numero, created_at, validee_le, prescripteur, resultats:sante_resultats(valeur_num, valeur_texte, drapeau, ref_bas, ref_haut, parametre:sante_analyse_parametres(libelle, unite, ordre))').eq('patient_id', acc.patient_id).eq('statut', 'validee').order('validee_le', { ascending: false }).limit(50),
+      admin.from('sante_demandes_labo').select('id, numero, created_at, validee_le, prescripteur, resultats:sante_resultats(valeur_num, valeur_texte, drapeau, ref_bas, ref_haut, parametre:sante_analyse_parametres(libelle, unite, ordre, analyse:sante_analyses(sensible)))').eq('patient_id', acc.patient_id).eq('statut', 'validee').order('validee_le', { ascending: false }).limit(50),
     ]);
-    // Compte rendu remis seulement si la part patient est réglée (option de la structure)
+    // Résultats sensibles jamais en ligne : la demande entière est retenue pour remise en main propre
+    const sensibles = (dems ?? []).filter((d: any) => (d.resultats ?? []).some((r: any) => r.parametre?.analyse?.sensible));
+    const publiables = (dems ?? []).filter((d: any) => !sensibles.includes(d));
     const remettables = [];
-    for (const d of dems ?? []) { const { data: ok } = await admin.rpc('sante_cr_remettable', { _demande_id: d.id }); if (ok !== false) remettables.push(d); }
+    for (const d of publiables) { const { data: ok } = await admin.rpc('sante_cr_remettable', { _demande_id: d.id }); if (ok !== false) remettables.push(d); }
     await admin.from('medical_access_log').insert({ structure_id: acc.structure_id, patient_id: acc.patient_id, user_id: null, ecran: 'portail', motif: 'Consultation par le patient' }).then(() => {}, () => {});
-    return json({ patient, structure, ordonnances: ords ?? [], comptes_rendus: remettables, en_attente_reglement: (dems ?? []).length - remettables.length, expire_le: acc.expire_le });
+    return json({ patient, structure, ordonnances: ords ?? [], comptes_rendus: remettables, en_attente_reglement: publiables.length - remettables.length, a_retirer_sur_place: sensibles.length, expire_le: acc.expire_le });
   }
 
   return json({ error: 'Action inconnue' }, 400);
