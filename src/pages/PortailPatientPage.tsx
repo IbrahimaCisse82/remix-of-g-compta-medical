@@ -32,10 +32,11 @@ export default function PortailPatientPage() {
   const [dossier, setDossier] = useState(''); const [tel, setTel] = useState(''); const [code, setCode] = useState('');
   const [etape, setEtape] = useState<'id' | 'code'>('id'); const [busy, setBusy] = useState(false);
 
+  const [lien, setLien] = useState<string | null>(null); const [dn, setDn] = useState('');
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('t');
-    if (t) { sessionStorage.setItem(KEY, t); window.history.replaceState({}, '', '/resultats'); }
-    setToken(t ?? sessionStorage.getItem(KEY));
+    if (t) { setLien(t); window.history.replaceState({}, '', '/resultats'); return; }
+    setToken(sessionStorage.getItem(KEY));
   }, []);
 
   const charger = useCallback(async (t: string) => {
@@ -50,7 +51,13 @@ export default function PortailPatientPage() {
     <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-sm border border-border bg-bg2 rounded-lg p-6 space-y-4">
         <div className="flex items-center gap-2"><ShieldCheck className="text-primary" /><h1 className="font-serif text-xl">Mes résultats</h1></div>
-        {token && !data && !err ? <p className="text-sm text-fg2">Chargement…</p> : etape === 'id' ? (
+        {token && !data && !err ? <p className="text-sm text-fg2">Chargement…</p> : lien ? (
+          <>
+            <p className="text-sm text-fg2">Pour votre sécurité, confirmez votre date de naissance. Ce lien ne peut être utilisé qu’une seule fois.</p>
+            <Input aria-label="Date de naissance" type="date" value={dn} onChange={e => setDn(e.target.value)} />
+            <Button className="w-full" disabled={busy || !dn} onClick={() => go(async () => { const r = await appel({ action: 'ouvrir_lien', token: lien, date_naissance: dn }); sessionStorage.setItem(KEY, r.token); setLien(null); setToken(r.token); })}>Accéder</Button>
+          </>
+        ) : etape === 'id' ? (
           <>
             <p className="text-sm text-fg2">Entrez votre numéro de dossier et le téléphone donné à l’accueil. Vous recevrez un code par SMS.</p>
             <Input aria-label="Numéro de dossier" placeholder="P2026-000001" value={dossier} onChange={e => setDossier(e.target.value)} />
