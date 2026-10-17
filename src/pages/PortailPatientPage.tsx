@@ -87,6 +87,7 @@ export default function PortailPatientPage() {
       <section className="space-y-2">
         <h2 className="font-semibold flex items-center gap-2"><FileText className="text-primary" />Comptes rendus d’analyses</h2>
         {comptes_rendus.length === 0 && <p className="text-sm text-fg2">Aucun compte rendu validé.</p>}
+        {data.a_retirer_sur_place > 0 && <p className="text-sm text-fg2 border border-border rounded p-3">Un ou plusieurs résultats sont à retirer en personne auprès de {structure?.nom ?? 'votre structure'}, muni d’une pièce d’identité.</p>}
         {comptes_rendus.map((d: any) => (
           <div key={d.id} className="border border-border bg-bg2 rounded-md p-3 flex justify-between items-center gap-2">
             <div><p className="font-medium text-sm">{d.numero}</p><p className="text-xs text-fg2">Validé le {dt(d.validee_le)}{d.prescripteur ? ` · ${d.prescripteur}` : ''}</p></div>
