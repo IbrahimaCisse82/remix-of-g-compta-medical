@@ -207,6 +207,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       {st === 'en_analyse' && <ImportAutomate id={id} params={params} onDone={load} />}
       {['prelevee', 'recue', 'en_analyse'].includes(st) && <SousTraitance id={id} analyses={lesAnalyses} />}
       {['en_analyse', 'validee_technique', 'validee'].includes(st) && <Microbiologie id={id} editable={st === 'en_analyse'} />}
+      {st === 'validee' && <RemiseMainPropre demande={d} />}
 
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
         <table className="w-full text-sm">
@@ -325,6 +326,35 @@ function Microbiologie({ id, editable }: { id: string; editable: boolean }) {
 }
 
 /** Envoi d'une analyse de la demande à un laboratoire sous-traitant. */
+export function RemiseMainPropre({ demande }: { demande: any }) {
+  const [liste, setListe] = useState<any[]>([]);
+  const [benef, setBenef] = useState<'patient' | 'mandataire'>('patient');
+  const [nom, setNom] = useState(''); const [pt, setPt] = useState('CNI'); const [pn, setPn] = useState(''); const [proc, setProc] = useState(false);
+  const load = useCallback(async () => { const { data } = await supabase.from('sante_remises_resultats').select('*').eq('demande_id', demande.id).order('created_at', { ascending: false }); setListe(data ?? []); }, [demande.id]);
+  useEffect(() => { void load(); }, [load]);
+  const enregistrer = async () => {
+    if (pn.trim().length < 4) return toast.error('Numéro de pièce d’identité requis');
+    if (benef === 'mandataire' && (!proc || nom.trim().length < 3)) return toast.error('Mandataire : nom et procuration obligatoires');
+    const { error } = await supabase.from('sante_remises_resultats').insert({ structure_id: demande.structure_id, demande_id: demande.id, patient_id: demande.patient_id, beneficiaire: benef, nom_mandataire: benef === 'mandataire' ? nom.trim() : null, piece_type: pt, piece_numero: pn.trim(), procuration: benef === 'mandataire' && proc });
+    if (error) return toast.error('Remise refusée : ' + error.message);
+    toast.success('Remise enregistrée'); setPn(''); setNom(''); setProc(false); load();
+  };
+  return (
+    <section className="border border-border bg-bg2 rounded-md p-3 space-y-2">
+      <h3 className="text-sm font-medium">Remise en main propre</h3>
+      <div className="flex flex-wrap gap-2 items-end">
+        <select aria-label="Bénéficiaire" className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={benef} onChange={e => setBenef(e.target.value as any)}><option value="patient">Patient</option><option value="mandataire">Mandataire</option></select>
+        {benef === 'mandataire' && <Input aria-label="Nom du mandataire" className="w-48" placeholder="Nom du mandataire" value={nom} onChange={e => setNom(e.target.value)} />}
+        <select aria-label="Pièce" className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={pt} onChange={e => setPt(e.target.value)}>{['CNI', 'Passeport', 'Permis', 'Carte consulaire'].map(x => <option key={x}>{x}</option>)}</select>
+        <Input aria-label="Numéro de pièce" className="w-40" placeholder="N° de pièce" value={pn} onChange={e => setPn(e.target.value)} />
+        {benef === 'mandataire' && <label className="text-sm flex items-center gap-1"><input type="checkbox" checked={proc} onChange={e => setProc(e.target.checked)} />Procuration vérifiée</label>}
+        <Button size="sm" onClick={enregistrer}>Enregistrer la remise</Button>
+      </div>
+      {liste.map(r => <p key={r.id} className="text-xs text-fg2">{new Date(r.created_at).toLocaleString('fr-FR')} — {r.beneficiaire === 'patient' ? 'Patient' : `Mandataire ${r.nom_mandataire}`} · {r.piece_type} {r.piece_numero}</p>)}
+    </section>
+  );
+}
+
 export function SousTraitance({ id, analyses }: { id: string; analyses: { id: string; libelle: string }[] }) {
   const [envois, setEnvois] = useState<{ id: string; analyse_id: string; laboratoire: string; statut: string }[]>([]);
   const [f, setF] = useState({ analyse: '', labo: '', ref: '' });

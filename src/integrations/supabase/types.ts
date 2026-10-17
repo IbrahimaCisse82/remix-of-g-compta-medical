@@ -5493,6 +5493,63 @@ export type Database = {
           },
         ]
       }
+      sante_remises_resultats: {
+        Row: {
+          beneficiaire: string
+          created_at: string
+          demande_id: string
+          id: string
+          nom_mandataire: string | null
+          patient_id: string
+          piece_numero: string
+          piece_type: string
+          procuration: boolean
+          remis_par: string
+          structure_id: string
+        }
+        Insert: {
+          beneficiaire: string
+          created_at?: string
+          demande_id: string
+          id?: string
+          nom_mandataire?: string | null
+          patient_id: string
+          piece_numero: string
+          piece_type: string
+          procuration?: boolean
+          remis_par?: string
+          structure_id: string
+        }
+        Update: {
+          beneficiaire?: string
+          created_at?: string
+          demande_id?: string
+          id?: string
+          nom_mandataire?: string | null
+          patient_id?: string
+          piece_numero?: string
+          piece_type?: string
+          procuration?: boolean
+          remis_par?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_remises_resultats_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "sante_demandes_labo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_remises_resultats_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_rendez_vous: {
         Row: {
           arrive_le: string | null
