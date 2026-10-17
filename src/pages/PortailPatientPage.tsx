@@ -32,10 +32,11 @@ export default function PortailPatientPage() {
   const [dossier, setDossier] = useState(''); const [tel, setTel] = useState(''); const [code, setCode] = useState('');
   const [etape, setEtape] = useState<'id' | 'code'>('id'); const [busy, setBusy] = useState(false);
 
+  const [lien, setLien] = useState<string | null>(null); const [dn, setDn] = useState('');
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('t');
-    if (t) { sessionStorage.setItem(KEY, t); window.history.replaceState({}, '', '/resultats'); }
-    setToken(t ?? sessionStorage.getItem(KEY));
+    if (t) { setLien(t); window.history.replaceState({}, '', '/resultats'); return; }
+    setToken(sessionStorage.getItem(KEY));
   }, []);
 
   const charger = useCallback(async (t: string) => {
@@ -50,7 +51,13 @@ export default function PortailPatientPage() {
     <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-sm border border-border bg-bg2 rounded-lg p-6 space-y-4">
         <div className="flex items-center gap-2"><ShieldCheck className="text-primary" /><h1 className="font-serif text-xl">Mes résultats</h1></div>
-        {token && !data && !err ? <p className="text-sm text-fg2">Chargement…</p> : etape === 'id' ? (
+        {token && !data && !err ? <p className="text-sm text-fg2">Chargement…</p> : lien ? (
+          <>
+            <p className="text-sm text-fg2">Pour votre sécurité, confirmez votre date de naissance. Ce lien ne peut être utilisé qu’une seule fois.</p>
+            <Input aria-label="Date de naissance" type="date" value={dn} onChange={e => setDn(e.target.value)} />
+            <Button className="w-full" disabled={busy || !dn} onClick={() => go(async () => { const r = await appel({ action: 'ouvrir_lien', token: lien, date_naissance: dn }); sessionStorage.setItem(KEY, r.token); setLien(null); setToken(r.token); })}>Accéder</Button>
+          </>
+        ) : etape === 'id' ? (
           <>
             <p className="text-sm text-fg2">Entrez votre numéro de dossier et le téléphone donné à l’accueil. Vous recevrez un code par SMS.</p>
             <Input aria-label="Numéro de dossier" placeholder="P2026-000001" value={dossier} onChange={e => setDossier(e.target.value)} />
@@ -80,6 +87,7 @@ export default function PortailPatientPage() {
       <section className="space-y-2">
         <h2 className="font-semibold flex items-center gap-2"><FileText className="text-primary" />Comptes rendus d’analyses</h2>
         {comptes_rendus.length === 0 && <p className="text-sm text-fg2">Aucun compte rendu validé.</p>}
+        {data.a_retirer_sur_place > 0 && <p className="text-sm text-fg2 border border-border rounded p-3">Un ou plusieurs résultats sont à retirer en personne auprès de {structure?.nom ?? 'votre structure'}, muni d’une pièce d’identité.</p>}
         {comptes_rendus.map((d: any) => (
           <div key={d.id} className="border border-border bg-bg2 rounded-md p-3 flex justify-between items-center gap-2">
             <div><p className="font-medium text-sm">{d.numero}</p><p className="text-xs text-fg2">Validé le {dt(d.validee_le)}{d.prescripteur ? ` · ${d.prescripteur}` : ''}</p></div>
