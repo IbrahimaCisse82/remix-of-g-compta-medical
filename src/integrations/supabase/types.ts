@@ -7090,6 +7090,14 @@ export type Database = {
         Args: { _structure_id: string }
         Returns: string
       }
+      sante_remise_possible: {
+        Args: {
+          _demande_id: string
+          _patient_id: string
+          _structure_id: string
+        }
+        Returns: boolean
+      }
       sante_reserver_bloc: {
         Args: { _poste: string; _structure_id: string; _taille: number }
         Returns: string
