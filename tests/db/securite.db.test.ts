@@ -583,6 +583,49 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     }, 60_000);
   });
 
+  describe('P4 — sécurité des soins : allergies et remise en main propre', () => {
+    const st = () => S.A.structure;
+
+    it('ordonnance bloquée si le médicament correspond à une allergie du patient, sauf justification écrite', async () => {
+      const { data: ant } = await admin.from('sante_antecedents').insert({ patient_id: S.A.patient, type: 'allergie', libelle: 'Pénicilline' }).select('id').single();
+      expect(ant).toBeTruthy();
+      const lignes = (just?: string) => [{ medicament: 'Pénicilline G 1M UI', posologie: '1 injection/jour', justification_allergie: just }];
+      const sans = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: S.A.consultation, _lignes: lignes(), _recommandations: null });
+      expect(sans.error).toBeTruthy(); expect(String(sans.error!.message)).toMatch(/ALLERGIE/);
+      const courte = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: S.A.consultation, _lignes: lignes('nécessaire'), _recommandations: null });
+      expect(courte.error).toBeTruthy();
+      const justifiee = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: S.A.consultation, _lignes: lignes('Indication vitale, surveillance rapprochée'), _recommandations: null });
+      expect(justifiee.error).toBeNull();
+      const { data: l } = await admin.from('sante_ordonnance_lignes').select('justification_allergie').eq('ordonnance_id', justifiee.data as string).single();
+      expect(l!.justification_allergie).toMatch(/Indication vitale/);
+      const autres = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: S.A.consultation, _lignes: [{ medicament: 'Paracétamol 500mg', posologie: '1 cp x 3/j' }], _recommandations: null });
+      expect(autres.error).toBeNull();
+      await admin.from('sante_antecedents').delete().eq('id', ant!.id);
+    }, 60_000);
+
+    it('remise en main propre : pièce d’identité et procuration obligatoires, demande validée exigée, rôles limités', async () => {
+      const { data: dv } = await admin.from('sante_demandes_labo').select('id').eq('structure_id', st()).eq('statut', 'validee').limit(1).single();
+      expect(dv).toBeTruthy();
+      const base = { structure_id: st(), demande_id: dv!.id, patient_id: S.A.patient, piece_type: 'CNI', piece_numero: '123456789' };
+      const uidSec = await uid(S.A.users.secretaire);
+      // Mandataire sans procuration : refusé par la contrainte
+      expect((await admin.from('sante_remises_resultats').insert({ ...base, beneficiaire: 'mandataire', nom_mandataire: 'Frère TEST', procuration: false, remis_par: uidSec })).error).toBeTruthy();
+      // Pièce trop courte : refusée
+      expect((await admin.from('sante_remises_resultats').insert({ ...base, beneficiaire: 'patient', piece_numero: '12', procuration: false, remis_par: uidSec })).error).toBeTruthy();
+      // Technicien : ne peut pas enregistrer de remise
+      expect((await S.A.users.technicien.from('sante_remises_resultats').insert({ ...base, beneficiaire: 'patient', procuration: false })).error).toBeTruthy();
+      // Demande non validée : refusée
+      const { data: an } = await admin.from('sante_analyses').select('id').eq('structure_id', st()).eq('code', 'P0GLY').single();
+      const { data: de } = await S.A.users.secretaire.rpc('sante_creer_demande_labo', { _patient_id: S.A.patient, _analyses: [an!.id], _prescripteur: 'Dr TEST', _urgence: false, _renseignements: null, _consultation_id: null });
+      expect((await S.A.users.secretaire.from('sante_remises_resultats').insert({ ...base, demande_id: de as string, beneficiaire: 'patient', procuration: false })).error).toBeTruthy();
+      // Cas valide par la secrétaire
+      const ok = await S.A.users.secretaire.from('sante_remises_resultats').insert({ ...base, beneficiaire: 'mandataire', nom_mandataire: 'Frère TEST', procuration: true }).select('id').single();
+      expect(ok.error).toBeNull();
+      // Le comptable ne voit pas la remise
+      expect((await S.A.users.comptable.from('sante_remises_resultats').select('id').eq('id', ok.data!.id)).data ?? []).toHaveLength(0);
+    }, 60_000);
+  });
+
 
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
