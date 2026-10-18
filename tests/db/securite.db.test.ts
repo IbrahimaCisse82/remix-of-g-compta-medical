@@ -604,7 +604,7 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     }, 60_000);
 
     it('remise en main propre : pièce d’identité et procuration obligatoires, demande validée exigée, rôles limités', async () => {
-      const { data: dv } = await admin.from('sante_demandes_labo').select('id').eq('structure_id', st()).eq('statut', 'validee').limit(1).single();
+      const { data: dv } = await admin.from('sante_demandes_labo').select('id').eq('structure_id', st()).eq('patient_id', S.A.patient).eq('statut', 'validee').order('created_at', { ascending: false }).limit(1).single();
       expect(dv).toBeTruthy();
       const base = { structure_id: st(), demande_id: dv!.id, patient_id: S.A.patient, piece_type: 'CNI', piece_numero: '123456789' };
       const uidSec = await uid(S.A.users.secretaire);
