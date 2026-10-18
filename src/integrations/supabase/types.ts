@@ -4351,30 +4351,51 @@ export type Database = {
       }
       sante_fusions: {
         Row: {
+          annule_le: string | null
+          annule_par: string | null
+          confirme_le: string | null
+          confirme_par: string | null
           created_at: string
           fusionne_par: string
           id: string
           motif: string
+          motif_annulation: string | null
           patient_conserve: string
           patient_fusionne: string
+          snapshot: Json | null
+          statut: string
           structure_id: string
         }
         Insert: {
+          annule_le?: string | null
+          annule_par?: string | null
+          confirme_le?: string | null
+          confirme_par?: string | null
           created_at?: string
           fusionne_par: string
           id?: string
           motif: string
+          motif_annulation?: string | null
           patient_conserve: string
           patient_fusionne: string
+          snapshot?: Json | null
+          statut?: string
           structure_id: string
         }
         Update: {
+          annule_le?: string | null
+          annule_par?: string | null
+          confirme_le?: string | null
+          confirme_par?: string | null
           created_at?: string
           fusionne_par?: string
           id?: string
           motif?: string
+          motif_annulation?: string | null
           patient_conserve?: string
           patient_fusionne?: string
+          snapshot?: Json | null
+          statut?: string
           structure_id?: string
         }
         Relationships: [
@@ -6682,6 +6703,10 @@ export type Database = {
         Args: { _facture_id: string; _motif: string }
         Returns: string
       }
+      sante_annuler_fusion: {
+        Args: { _fusion_id: string; _motif: string }
+        Returns: undefined
+      }
       sante_assurance_active: { Args: { _patient_id: string }; Returns: string }
       sante_aux_organisme: {
         Args: { _nom: string; _structure_id: string }
@@ -6780,6 +6805,10 @@ export type Database = {
       }
       sante_config_rappels: {
         Args: { _actifs: boolean; _expediteur: string; _structure_id: string }
+        Returns: undefined
+      }
+      sante_confirmer_fusion: {
+        Args: { _fusion_id: string }
         Returns: undefined
       }
       sante_cq_bloquant: { Args: { _demande_id: string }; Returns: boolean }
@@ -7000,6 +7029,10 @@ export type Database = {
         Args: { _prefixe: string; _structure_id: string; _type: string }
         Returns: string
       }
+      sante_proposer_fusion: {
+        Args: { _conserve: string; _fusionne: string; _motif: string }
+        Returns: string
+      }
       sante_provisionner_creance: {
         Args: {
           _montant: number
@@ -7089,6 +7122,14 @@ export type Database = {
       sante_remettre_cheques: {
         Args: { _structure_id: string }
         Returns: string
+      }
+      sante_remise_possible: {
+        Args: {
+          _demande_id: string
+          _patient_id: string
+          _structure_id: string
+        }
+        Returns: boolean
       }
       sante_reserver_bloc: {
         Args: { _poste: string; _structure_id: string; _taille: number }

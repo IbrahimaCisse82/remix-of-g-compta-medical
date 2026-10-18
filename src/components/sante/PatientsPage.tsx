@@ -217,22 +217,60 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
   const [open, setOpen] = useState(false);
   const [numero, setNumero] = useState('');
   const [motif, setMotif] = useState('');
-  const fusionner = async () => {
+  const [enAttente, setEnAttente] = useState<any[]>([]);
+  const [confirmees, setConfirmees] = useState<any[]>([]);
+  const charger = useCallback(async () => {
+    const [{ data: p }, { data: c }] = await Promise.all([
+      supabase.from('sante_fusions').select('id, patient_conserve, patient_fusionne, motif, created_at').eq('structure_id', structureId).eq('statut', 'proposee').or(`patient_conserve.eq.${patientId},patient_fusionne.eq.${patientId}`),
+      supabase.from('sante_fusions').select('id, patient_conserve, patient_fusionne, motif, confirme_le').eq('structure_id', structureId).eq('statut', 'confirmee').or(`patient_conserve.eq.${patientId},patient_fusionne.eq.${patientId}`),
+    ]);
+    setEnAttente(p ?? []); setConfirmees(c ?? []);
+  }, [patientId, structureId]);
+  useEffect(() => { if (open) void charger(); }, [open, charger]);
+  const proposer = async () => {
     const { data } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: numero.trim(), _limit: 2 });
     const cible = (data ?? []).find(d => d.numero_dossier === numero.trim().toUpperCase());
     if (!cible || cible.id === patientId) return toast.error('Dossier en double introuvable');
-    if (!confirm(`Fusionner ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ? Action tracée et définitive.`)) return;
-    const { error } = await supabase.rpc('sante_fusionner_patients', { _conserve: patientId, _fusionne: cible.id, _motif: motif });
+    if (!confirm(`Proposer la fusion de ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ?\nLa fusion ne sera appliquée qu'après confirmation par un autre médecin ou secrétaire.`)) return;
+    const { error } = await supabase.rpc('sante_proposer_fusion', { _conserve: patientId, _fusionne: cible.id, _motif: motif });
+    if (error) return toast.error(error.message);
+    toast.success('Fusion proposée — confirmation par une autre personne requise'); setNumero(''); setMotif(''); void charger();
+  };
+  const confirmer = async (id: string) => {
+    if (!confirm('Confirmer la fusion ? Les antécédents, assurances et consentements du dossier en double seront transférés.')) return;
+    const { error } = await supabase.rpc('sante_confirmer_fusion', { _fusion_id: id });
     if (error) return toast.error(error.message);
     toast.success('Dossiers fusionnés'); onDone();
   };
+  const annuler = async (id: string) => {
+    const m = prompt('Motif d’annulation (10 caractères minimum) — réservé à l’administrateur :');
+    if (!m) return;
+    const { error } = await supabase.rpc('sante_annuler_fusion', { _fusion_id: id, _motif: m });
+    if (error) return toast.error(error.message);
+    toast.success('Fusion annulée, dossiers restaurés'); void charger(); onDone();
+  };
   if (!open) return <button className="float-right text-xs underline text-fg3" onClick={() => setOpen(true)}>Fusionner un doublon</button>;
   return (
-    <div className="flex flex-wrap gap-2 my-2">
-      <Input className="w-40" placeholder="N° dossier en double" value={numero} onChange={e => setNumero(e.target.value)} />
-      <Input className="flex-1 min-w-40" placeholder="Motif (obligatoire)" value={motif} onChange={e => setMotif(e.target.value)} />
-      <Button size="sm" onClick={fusionner}>Fusionner</Button>
-      <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+    <div className="space-y-2 my-2">
+      <div className="flex flex-wrap gap-2">
+        <Input className="w-40" placeholder="N° dossier en double" value={numero} onChange={e => setNumero(e.target.value)} />
+        <Input className="flex-1 min-w-40" placeholder="Motif (obligatoire)" value={motif} onChange={e => setMotif(e.target.value)} />
+        <Button size="sm" onClick={proposer}>Proposer la fusion</Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Fermer</Button>
+      </div>
+      <p className="text-xs text-fg3">La fusion s’applique en deux temps : proposition, puis confirmation par une personne différente. L’administrateur peut ensuite l’annuler avec restauration des données.</p>
+      {enAttente.map(f => (
+        <div key={f.id} className="border border-border rounded-md p-2 text-sm flex justify-between items-center gap-2">
+          <span>Fusion proposée le {new Date(f.created_at).toLocaleDateString('fr-FR')} — {f.motif}</span>
+          <Button size="sm" onClick={() => confirmer(f.id)}>Confirmer (autre personne)</Button>
+        </div>
+      ))}
+      {confirmees.map(f => (
+        <div key={f.id} className="border border-border rounded-md p-2 text-sm flex justify-between items-center gap-2">
+          <span className="text-fg3">Fusion effectuée le {f.confirme_le ? new Date(f.confirme_le).toLocaleDateString('fr-FR') : '—'}</span>
+          <Button size="sm" variant="outline" onClick={() => annuler(f.id)}>Annuler la fusion (admin)</Button>
+        </div>
+      ))}
     </div>
   );
 }
