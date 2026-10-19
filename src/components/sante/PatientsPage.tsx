@@ -69,7 +69,7 @@ export default function PatientsPage({ structureId }: { structureId: string }) {
 
 function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDone: (id?: string) => void }) {
   const [f, setF] = useState<NouveauPatient & { adresse: string; urgence_nom: string; urgence_tel: string; consentement: boolean }>({
-    nom: '', prenoms: '', sexe: '', date_naissance: '', telephone: '', adresse: '', urgence_nom: '', urgence_tel: '', consentement: false,
+    nom: '', prenoms: '', sexe: '', date_naissance: '', date_naissance_estimee: false, telephone: '', adresse: '', urgence_nom: '', urgence_tel: '', consentement: false,
   });
   const [doublons, setDoublons] = useState<{ id: string; numero_dossier: string; nom: string; prenoms: string; date_naissance: string | null }[]>([]);
   const [busy, setBusy] = useState(false);
@@ -81,7 +81,7 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
     setBusy(true);
     const { data, error } = await supabase.rpc('sante_creer_patient', {
       _structure_id: structureId, _nom: f.nom, _prenoms: f.prenoms, _sexe: f.sexe,
-      _date_naissance: f.date_naissance || undefined, _telephone: f.telephone ? normaliserTelephone(f.telephone) : undefined,
+      _date_naissance: f.date_naissance || undefined, _date_naissance_estimee: f.date_naissance_estimee, _telephone: f.telephone ? normaliserTelephone(f.telephone) : undefined,
       _adresse: f.adresse, _contact_urgence_nom: f.urgence_nom, _contact_urgence_tel: f.urgence_tel,
       _consentement: f.consentement, _ignorer_doublons: ignorer,
     });
@@ -108,7 +108,10 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
         <div className="grid sm:grid-cols-2 gap-4">{champ('nom', 'Nom *')}{champ('prenoms', 'Prénoms *')}</div>
         <div className="grid sm:grid-cols-3 gap-4">
           <div><Label>Sexe *</Label><div className="flex gap-2 mt-1">{(['F', 'M'] as const).map(s => <Button key={s} type="button" variant={f.sexe === s ? 'default' : 'outline'} onClick={() => set('sexe', s)}>{s === 'F' ? 'Féminin' : 'Masculin'}</Button>)}</div></div>
-          {champ('date_naissance', 'Date de naissance', 'date')}
+          <div>
+            {champ('date_naissance', 'Date de naissance', 'date')}
+            <label className="flex items-center gap-2 text-xs text-fg3 mt-1"><input type="checkbox" checked={f.date_naissance_estimee} onChange={e => set('date_naissance_estimee', e.target.checked)} />Date estimée (âge déclaratif)</label>
+          </div>
           {champ('telephone', 'Téléphone', 'tel')}
         </div>
         {champ('adresse', 'Adresse')}
@@ -175,7 +178,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         <BrisGlaceButton patientId={id} onOpened={loadItems} />
         <LienPortailButton patientId={id} />
         <ExportDossierButton patientId={id} numero={p.numero_dossier} />
-        <p className="text-sm text-fg2">{p.sexe === 'F' ? 'Féminin' : 'Masculin'}{p.date_naissance ? ` · ${libelleAge(p.date_naissance)} (${new Date(p.date_naissance).toLocaleDateString('fr-FR')})` : ''}</p>
+        <p className="text-sm text-fg2">{p.sexe === 'F' ? 'Féminin' : 'Masculin'}{p.date_naissance ? ` · ${p.date_naissance_estimee ? '≈ ' : ''}${libelleAge(p.date_naissance)} (${new Date(p.date_naissance).toLocaleDateString('fr-FR')}${p.date_naissance_estimee ? ', estimée' : ''})` : ''}</p>
       </div>
       <div className="flex gap-1 border-b border-border mb-4 overflow-x-auto" role="tablist">
         {ONGLETS.map(o => <Button key={o} role="tab" aria-selected={onglet === o} variant={onglet === o ? 'secondary' : 'ghost'} size="sm" onClick={() => setOnglet(o)}>{o}</Button>)}
