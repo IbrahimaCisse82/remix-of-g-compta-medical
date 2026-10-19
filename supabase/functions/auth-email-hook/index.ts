@@ -15,7 +15,7 @@ const corsHeaders = {
 }
 
 // Configuration
-const SITE_NAME = "G-Compta Medical"
+const SITE_NAME = "G-Santé"
 const SENDER_DOMAIN = "notify.g-sante.app"
 const ROOT_DOMAIN = "g-sante.app"
 const FROM_DOMAIN = "g-sante.app"
