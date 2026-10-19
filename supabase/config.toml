@@ -1,10 +1,11 @@
 project_id = "otyqiiumbdgaxvkcqpht"
 
-[functions.demo-sante]
-verify_jwt = false
-
-[functions.sante-rappels]
-verify_jwt = false
-
-[functions.portail-patient]
-verify_jwt = false
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.demo-sante]
+    verify_jwt = false
+  [functions.portail-patient]
+    verify_jwt = false
+  [functions.sante-rappels]
+    verify_jwt = false
