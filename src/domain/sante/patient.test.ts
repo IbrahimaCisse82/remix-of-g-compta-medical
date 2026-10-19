@@ -14,13 +14,15 @@ describe('dossier patient', () => {
     expect(libelleAge('2000-01-01', REF)).toBe('26 ans');
   });
   it('normalise le téléphone', () => {
-    expect(normaliserTelephone('+221 77 123 45 67')).toBe('771234567');
-    expect(normaliserTelephone('77-123-45-67')).toBe('771234567');
+    expect(normaliserTelephone('+221 77 123 45 67')).toBe('+221771234567');
+    expect(normaliserTelephone('77-123-45-67')).toBe('+221771234567');
+    expect(normaliserTelephone('+33 6 12 34 56 78')).toBe('+33612345678');
   });
   it('valide les champs obligatoires', () => {
     expect(validerPatient({ nom: 'D', prenoms: '', sexe: '' }, REF)).toHaveLength(3);
     expect(validerPatient({ nom: 'Diop', prenoms: 'Awa', sexe: 'F', date_naissance: '2030-01-01' }, REF)).toContain('Date de naissance invalide.');
-    expect(validerPatient({ nom: 'Diop', prenoms: 'Awa', sexe: 'F', telephone: '12' }, REF)).toContain('Téléphone : 9 chiffres attendus.');
+    expect(validerPatient({ nom: 'Diop', prenoms: 'Awa', sexe: 'F', telephone: '12' }, REF)).toContain('Téléphone : format international attendu (8 à 15 chiffres, ex. +221 77 000 00 00).');
+    expect(validerPatient({ nom: 'Diop', prenoms: 'Awa', sexe: 'F', telephone: '+33612345678' }, REF)).toEqual([]);
     expect(validerPatient({ nom: 'Diop', prenoms: 'Awa', sexe: 'F', date_naissance: '1990-05-05', telephone: '771234567' }, REF)).toEqual([]);
   });
 });
