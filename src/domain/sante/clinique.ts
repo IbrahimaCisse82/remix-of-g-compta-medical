@@ -46,7 +46,7 @@ export function alertesConstantes(c: Constantes): string[] {
   return a;
 }
 
-export interface LigneOrdonnance { medicament: string; posologie: string; duree?: string; quantite?: string }
+export interface LigneOrdonnance { medicament: string; posologie: string; duree?: string; quantite?: string; dose_mg_jour?: string }
 
 export function validerOrdonnance(lignes: LigneOrdonnance[]): string[] {
   const e: string[] = [];
