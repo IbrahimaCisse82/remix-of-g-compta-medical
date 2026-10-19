@@ -7,6 +7,7 @@ export interface NouveauPatient {
   prenoms: string;
   sexe: Sexe | '';
   date_naissance?: string;
+  date_naissance_estimee?: boolean;
   telephone?: string;
 }
 
