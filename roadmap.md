@@ -56,5 +56,5 @@
 - [x] P2 critères de sortie atteints (docs/securite/P2-rapport.md)
 - [x] P2 suite livrée (TVA à valider par le fiscaliste, comptes à valider par l'expert-comptable)
 - [x] P3 Laboratoire — 49/49 tests base (docs/securite/P3-rapport.md). Reste hors v1 : connexion directe ASTM/HL7
-- [ ] P4 Patient/clinique/portail
+- [ ] P4 Patient/clinique/portail — livrés : blocage allergie aux ordonnances, portail lien unique + résultats sensibles masqués, remise en main propre (51/51 tests DB), fusion en deux temps (migration 0044, écran Patients). Reste : tests + essai écran de la fusion, date de naissance « estimée », téléphones au format international, alerte doses enfant selon le poids, vérifier la liste des analyses sensibles, signature du consentement complet à l'écran
 - [ ] P5 Stocks, personnel, rétrocessions, exploitation
