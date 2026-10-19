@@ -7,6 +7,7 @@ export interface NouveauPatient {
   prenoms: string;
   sexe: Sexe | '';
   date_naissance?: string;
+  date_naissance_estimee?: boolean;
   telephone?: string;
 }
 
@@ -32,10 +33,18 @@ export function libelleAge(dateNaissance: string, ref: Date = new Date()): strin
   return `${ans} ans`;
 }
 
-/** Téléphone sénégalais normalisé (9 chiffres, préfixe +221 retiré). */
+/** Téléphone normalisé au format international (+indicatif…). Un numéro sénégalais local (9 chiffres) reçoit le préfixe +221. */
 export function normaliserTelephone(tel: string): string {
   const chiffres = tel.replace(/\D/g, '');
-  return chiffres.startsWith('221') && chiffres.length === 12 ? chiffres.slice(3) : chiffres;
+  if (chiffres.startsWith('221') && chiffres.length === 12) return '+221' + chiffres.slice(3);
+  if (chiffres.length === 9) return '+221' + chiffres;
+  return chiffres ? '+' + chiffres : '';
+}
+
+/** Vrai si le numéro est un format international plausible (8 à 15 chiffres, indicatif optionnel). */
+export function telephoneValide(tel: string): boolean {
+  const chiffres = tel.replace(/\D/g, '');
+  return chiffres.length >= 8 && chiffres.length <= 15;
 }
 
 export function validerPatient(p: NouveauPatient, aujourdHui: Date = new Date()): string[] {
@@ -49,8 +58,7 @@ export function validerPatient(p: NouveauPatient, aujourdHui: Date = new Date())
     else if (ageEnAnnees(p.date_naissance, aujourdHui) > 130) erreurs.push('Date de naissance improbable.');
   }
   if (p.telephone && p.telephone.trim()) {
-    const t = normaliserTelephone(p.telephone);
-    if (t.length !== 9) erreurs.push('Téléphone : 9 chiffres attendus.');
+    if (!telephoneValide(p.telephone)) erreurs.push('Téléphone : format international attendu (8 à 15 chiffres, ex. +221 77 000 00 00).');
   }
   return erreurs;
 }
