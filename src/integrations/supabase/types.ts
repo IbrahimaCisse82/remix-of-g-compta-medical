@@ -4853,6 +4853,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           date_naissance: string | null
+          date_naissance_estimee: boolean
           email: string | null
           fusionne_dans: string | null
           id: string
@@ -4874,6 +4875,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_naissance?: string | null
+          date_naissance_estimee?: boolean
           email?: string | null
           fusionne_dans?: string | null
           id?: string
@@ -4895,6 +4897,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_naissance?: string | null
+          date_naissance_estimee?: boolean
           email?: string | null
           fusionne_dans?: string | null
           id?: string
@@ -6869,6 +6872,7 @@ export type Database = {
           _contact_urgence_nom?: string
           _contact_urgence_tel?: string
           _date_naissance?: string
+          _date_naissance_estimee?: boolean
           _ignorer_doublons?: boolean
           _nom: string
           _prenoms: string
