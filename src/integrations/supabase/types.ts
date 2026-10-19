@@ -3079,6 +3079,7 @@ export type Database = {
           created_at: string
           dci: string
           dosage: string | null
+          dose_max_pediatrique_mg_kg: number | null
           forme: string | null
           id: string
           nom_commercial: string | null
@@ -3089,6 +3090,7 @@ export type Database = {
           created_at?: string
           dci: string
           dosage?: string | null
+          dose_max_pediatrique_mg_kg?: number | null
           forme?: string | null
           id?: string
           nom_commercial?: string | null
@@ -3099,6 +3101,7 @@ export type Database = {
           created_at?: string
           dci?: string
           dosage?: string | null
+          dose_max_pediatrique_mg_kg?: number | null
           forme?: string | null
           id?: string
           nom_commercial?: string | null
@@ -4627,9 +4630,11 @@ export type Database = {
       }
       sante_ordonnance_lignes: {
         Row: {
+          dose_mg_jour: number | null
           duree: string | null
           id: string
           justification_allergie: string | null
+          justification_pediatrie: string | null
           medicament: string
           ordonnance_id: string
           ordre: number
@@ -4637,9 +4642,11 @@ export type Database = {
           quantite: string | null
         }
         Insert: {
+          dose_mg_jour?: number | null
           duree?: string | null
           id?: string
           justification_allergie?: string | null
+          justification_pediatrie?: string | null
           medicament: string
           ordonnance_id: string
           ordre: number
@@ -4647,9 +4654,11 @@ export type Database = {
           quantite?: string | null
         }
         Update: {
+          dose_mg_jour?: number | null
           duree?: string | null
           id?: string
           justification_allergie?: string | null
+          justification_pediatrie?: string | null
           medicament?: string
           ordonnance_id?: string
           ordre?: number
