@@ -624,6 +624,33 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
       // Le comptable ne voit pas la remise
       expect((await S.A.users.comptable.from('sante_remises_resultats').select('id').eq('id', ok.data!.id)).data ?? []).toHaveLength(0);
     }, 60_000);
+
+    it('date de naissance estimée : enregistrée, et impossible sans date', async () => {
+      const ok = await S.A.users.secretaire.rpc('sante_creer_patient', { _structure_id: st(), _nom: 'TESTESTIMEE', _prenoms: 'Age', _sexe: 'M', _date_naissance: '1991-01-01', _date_naissance_estimee: true, _consentement: true, _ignorer_doublons: true });
+      expect(ok.error).toBeNull();
+      const { data: p } = await admin.from('sante_patients').select('date_naissance_estimee').eq('id', ok.data as string).single();
+      expect(p!.date_naissance_estimee).toBe(true);
+      const ko = await S.A.users.secretaire.rpc('sante_creer_patient', { _structure_id: st(), _nom: 'TESTESTIMEE2', _prenoms: 'Age', _sexe: 'M', _date_naissance: null, _date_naissance_estimee: true, _consentement: true, _ignorer_doublons: true });
+      expect(ko.error).toBeTruthy();
+    }, 60_000);
+
+    it('dose pédiatrique : enfant sans poids bloqué, dépassement mg/kg/j bloqué, justification acceptée', async () => {
+      const pat = await S.A.users.secretaire.rpc('sante_creer_patient', { _structure_id: st(), _nom: 'TESTENFANT', _prenoms: 'Pedi', _sexe: 'F', _date_naissance: new Date(Date.now() - 5 * 365.25 * 86400_000).toISOString().slice(0, 10), _consentement: true, _ignorer_doublons: true });
+      expect(pat.error).toBeNull();
+      await admin.from('sante_catalogue_medicaments').insert({ structure_id: st(), dci: 'Amoxicilline', nom_commercial: 'Clamoxyl', dose_max_pediatrique_mg_kg: 50 });
+      const cons = await S.A.users.medecin.rpc('sante_demarrer_consultation', { _patient_id: pat.data, _praticien_id: S.A.praticien, _rdv_id: null, _motif: 'test pédiatrie' });
+      expect(cons.error).toBeNull();
+      const lignes = (dose: number, just?: string) => [{ medicament: 'Amoxicilline 500mg', posologie: '1 cp x 3/j', dose_mg_jour: dose, justification_pediatrie: just }];
+      const sansPoids = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: cons.data, _lignes: lignes(300), _recommandations: null });
+      expect(String(sansPoids.error!.message)).toMatch(/PEDIATRIE_POIDS/);
+      await admin.from('sante_constantes').insert({ consultation_id: cons.data, patient_id: pat.data, poids: 20 });
+      const trop = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: cons.data, _lignes: lignes(1500), _recommandations: null });
+      expect(String(trop.error!.message)).toMatch(/PEDIATRIE_DOSE/);
+      const justifiee = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: cons.data, _lignes: lignes(1500, 'Infection sévère, avis infectiologique'), _recommandations: null });
+      expect(justifiee.error).toBeNull();
+      const conforme = await S.A.users.medecin.rpc('sante_emettre_ordonnance', { _consultation_id: cons.data, _lignes: lignes(900), _recommandations: null });
+      expect(conforme.error).toBeNull();
+    }, 60_000);
   });
 
 

@@ -84,6 +84,12 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
       envoi = envoi.map(l => ({ ...l, justification_allergie: just.trim() }));
       ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));
     }
+    if (error?.message?.startsWith('PEDIATRIE')) {
+      const just = window.prompt(`${error.message.replace(/^PEDIATRIE_\w+: /, '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`);
+      if (!just || just.trim().length < 15) return toast.error('Prescription annulée : justification de 15 caractères minimum requise');
+      envoi = envoi.map(l => ({ ...l, justification_pediatrie: just.trim() }));
+      ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));
+    }
     if (error) return toast.error(error.message);
     toast.success('Ordonnance émise');
     setLignes([{ medicament: '', posologie: '', duree: '', quantite: '' }]); setReco('');
@@ -146,11 +152,12 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
             <h2 className="font-semibold mb-3">Ordonnance</h2>
             <datalist id="medocs">{medocs.map(m => <option key={m} value={m} />)}</datalist>
             {lignes.map((l, i) => (
-              <div key={i} className="grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-2 mb-2">
+              <div key={i} className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_auto] gap-2 mb-2">
                 <Input list="medocs" aria-label="Médicament" placeholder="Médicament" value={l.medicament} onChange={e => setLignes(ls => ls.map((x, j) => j === i ? { ...x, medicament: e.target.value } : x))} />
                 <Input aria-label="Posologie" placeholder="Posologie" value={l.posologie} onChange={e => setLignes(ls => ls.map((x, j) => j === i ? { ...x, posologie: e.target.value } : x))} />
                 <Input aria-label="Durée" placeholder="Durée" value={l.duree} onChange={e => setLignes(ls => ls.map((x, j) => j === i ? { ...x, duree: e.target.value } : x))} />
                 <Input aria-label="Quantité" placeholder="Qté" value={l.quantite} onChange={e => setLignes(ls => ls.map((x, j) => j === i ? { ...x, quantite: e.target.value } : x))} />
+                <Input aria-label="Dose en mg par jour" placeholder="mg/j" title="Dose totale en mg par jour (contrôle pédiatrique)" value={l.dose_mg_jour ?? ''} onChange={e => setLignes(ls => ls.map((x, j) => j === i ? { ...x, dose_mg_jour: e.target.value } : x))} />
                 <Button size="icon" variant="ghost" aria-label="Retirer" onClick={() => setLignes(ls => ls.length > 1 ? ls.filter((_, j) => j !== i) : ls)}><Trash2 /></Button>
               </div>
             ))}
