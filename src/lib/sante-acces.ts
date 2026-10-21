@@ -35,6 +35,8 @@ export function classerRefus(error: ErreurLike): CauseRefus | null {
   if (msg.startsWith('authentification requise') || code === 'PGRST301' || msg.includes('jwt expired')) return 'auth';
   if (msg.startsWith('mfa requise') || msg.includes('aal2')) return 'mfa';
   if (/^module .* inactif/.test(msg) || msg.includes('module inactif')) return 'module';
+  // « Accès refusé » nu (sans explication) : aussi ambigu qu'un refus RLS, on le complète.
+  if (/^acc[eè]s refus[eé]\s*\.?$/.test(msg.trim())) return 'rls';
   if (msg.startsWith('accès refusé') || msg.startsWith('acces refuse')) return 'role';
   if (code === '42501' || msg.includes('row-level security') || msg.includes('permission denied')) return 'rls';
   return null;
@@ -48,6 +50,12 @@ export function estMessageExplicite(cause: CauseRefus | null): boolean {
 export const MESSAGE_MFA =
   'MFA requise : validez la vérification en deux étapes (Paramètres › Sécurité) puis réessayez.';
 export const MESSAGE_SESSION = 'Session expirée : reconnectez-vous puis réessayez.';
+
+/** Ajoute la marche à suivre quand le serveur signale un module inactif sans la donner. */
+export function completerMessageModule(message: string): string {
+  if (/contactez|administrat/i.test(message)) return message;
+  return `${message.replace(/\s*\.?\s*$/, '')} : demandez à l’administrateur de la structure de l’activer (Structure & paramètres).`;
+}
 
 export function messageRefusGenerique(roles: string[] | null): string {
   const base = 'Accès refusé : cette action n’est pas autorisée';
@@ -92,6 +100,7 @@ export async function messageErreurSante(error: ErreurLike, structureId?: string
   const cause = classerRefus(error);
   if (cause === null || estMessageExplicite(cause)) {
     if (cause === 'auth' && !(error?.message ?? '').toLowerCase().startsWith('authentification')) return MESSAGE_SESSION;
+    if (cause === 'module' && error?.message) return completerMessageModule(error.message);
     return error?.message || 'Opération impossible.';
   }
   if (await mfaManquante()) return MESSAGE_MFA;
