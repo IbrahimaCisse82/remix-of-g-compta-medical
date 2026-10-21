@@ -6891,6 +6891,19 @@ export type Database = {
         }
         Returns: string
       }
+      sante_creer_structure: {
+        Args: {
+          _adresse?: string
+          _autorisation_exercice?: string
+          _ninea?: string
+          _nom: string
+          _role_metier?: Database["public"]["Enums"]["medical_role"]
+          _telephone?: string
+          _theme?: Database["public"]["Enums"]["medical_theme"]
+          _type: Database["public"]["Enums"]["structure_type"]
+        }
+        Returns: string
+      }
       sante_decider_remboursement: {
         Args: { _approuver: boolean; _id: string; _motif: string }
         Returns: undefined
