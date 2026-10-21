@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,7 +57,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
 
   const run = async (fn: string, args: object, ok: string) => {
     const { error } = await db.rpc(fn, args);
-    if (error) { toast.error(error.message); return false; }
+    if (error) { void toastErreurSante(error, structureId); return false; }
     toast.success(ok); await load(); return true;
   };
 
@@ -73,7 +74,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
 
   const imprimerRapport = async (id: string) => {
     const { data, error } = await db.rpc('sante_rapport_caisse', { _session_id: id });
-    if (error) { toast.error(error.message); return; }
+    if (error) { void toastErreurSante(error, structureId); return; }
     const s = data.session; const modes = Object.entries(data.par_mode as Record<string, number>).map(([m, v]) => `<tr><td>${m}</td><td style="text-align:right">${fcfa(Number(v))}</td></tr>`).join('');
     const w = window.open('', '_blank'); if (!w) return;
     w.document.write(`<html><head><title>Rapport de caisse</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%;margin:10px 0}</style></head><body><h2>Rapport de fin de journée — caisse</h2><p>Ouverte le ${new Date(s.ouverte_le).toLocaleString('fr-FR')} · clôturée le ${new Date(s.fermee_le).toLocaleString('fr-FR')}</p><table><tr><th>Mode</th><th>Encaissé</th></tr>${modes}</table><table><tr><td>Fond initial</td><td style="text-align:right">${fcfa(Number(s.fond_initial))}</td></tr><tr><td>Remboursements espèces</td><td style="text-align:right">${fcfa(Number(data.remboursements_especes))}</td></tr><tr><td>Espèces attendues</td><td style="text-align:right">${fcfa(Number(s.montant_attendu))}</td></tr><tr><td>Espèces comptées</td><td style="text-align:right">${fcfa(Number(s.montant_compte))}</td></tr><tr><td><b>Écart</b></td><td style="text-align:right"><b>${fcfa(Number(s.ecart))}</b></td></tr></table><p>${data.nb_encaissements} encaissement(s). Session verrouillée.</p><p style="margin-top:40px">Signature caissier : ____________ &nbsp; Visa responsable : ____________</p><script>print()</script></body></html>`);
@@ -92,7 +93,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
         {session ? (<>
           <p className="text-sm flex-1">Caisse ouverte depuis {new Date(session.ouverte_le).toLocaleTimeString('fr-FR')} · fond {fcfa(Number(session.fond_initial))}</p>
           <div><Label>Espèces comptées</Label><Input type="number" value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
-          <Button variant="outline" onClick={async () => { const { data, error } = await db.rpc('sante_fermer_caisse', { _session_id: session.id, _compte: Number(fond) }); if (error) toast.error(error.message); else { toast.success(`Caisse fermée. Écart : ${fcfa(Number(data))}`); await imprimerRapport(session.id); await load(); } }}>Clôturer et imprimer le rapport</Button>
+          <Button variant="outline" onClick={async () => { const { data, error } = await db.rpc('sante_fermer_caisse', { _session_id: session.id, _compte: Number(fond) }); if (error) void toastErreurSante(error, structureId); else { toast.success(`Caisse fermée. Écart : ${fcfa(Number(data))}`); await imprimerRapport(session.id); await load(); } }}>Clôturer et imprimer le rapport</Button>
           <Button variant="ghost" onClick={() => run('sante_remettre_cheques', { _structure_id: structureId }, 'Remise de chèques enregistrée.')}>Remise de chèques en banque</Button>
         </>) : (<>
           <p className="text-sm flex-1">Votre caisse est fermée.</p>

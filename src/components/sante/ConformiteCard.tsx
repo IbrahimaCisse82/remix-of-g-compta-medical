@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,12 +28,12 @@ export default function ConformiteCard({ structureId }: { structureId: string })
 
   const enregistrer = async (type: string, annees: number) => {
     const { error } = await supabase.rpc('sante_config_conservation', { _structure_id: structureId, _type: type, _annees: annees });
-    if (error) toast.error(error.message); else { toast.success('Durée enregistrée'); load(); }
+    if (error) void toastErreurSante(error, structureId); else { toast.success('Durée enregistrée'); load(); }
   };
   const purger = async () => {
     if (!confirm('Supprimer définitivement les documents dont la durée de conservation est échue ? Cette action est tracée.')) return;
     const { data, error } = await supabase.rpc('sante_purger_documents_echus', { _structure_id: structureId });
-    if (error) toast.error(error.message); else toast.success(`${data ?? 0} document(s) purgé(s)`);
+    if (error) void toastErreurSante(error, structureId); else toast.success(`${data ?? 0} document(s) purgé(s)`);
   };
   const exporterRegistre = () => telecharger('registre-des-traitements.csv',
     REGISTRE.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(';')).join('\n'));

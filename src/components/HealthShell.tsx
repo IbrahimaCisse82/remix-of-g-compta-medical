@@ -2,6 +2,7 @@ import PilotagePage from './sante/PilotagePage';
 import { useEffect, useState } from 'react';
 import { Building2, ClipboardList, FlaskConical, LayoutDashboard, LogOut, MapPin, Plus, Send, Settings, Stethoscope, SunMoon, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { useApp } from '@/stores/app-store';
 import { useMedicalPalette, useTheme, type MedicalPalette } from '@/hooks/use-theme';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,7 +64,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
     event.preventDefault();
     if (!medicalStructure) return;
     const { error } = await supabase.rpc('create_medical_site', { _structure_id: medicalStructure.id, _nom: siteName, _principal: sites.length === 0 });
-    if (error) toast.error(error.message);
+    if (error) void toastErreurSante(error, medicalStructure?.id);
     else { setSiteName(''); toast.success('Site ajouté.'); await refreshSettings(); }
   };
 
@@ -71,7 +72,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
     event.preventDefault();
     if (!medicalStructure) return;
     const { error } = await supabase.rpc('create_medical_invitation', { _structure_id: medicalStructure.id, _email: inviteEmail, _role: inviteRole });
-    if (error) toast.error(error.message);
+    if (error) void toastErreurSante(error, medicalStructure?.id);
     else { setInviteEmail(''); toast.success('Invitation enregistrée.'); await refreshSettings(); }
   };
 

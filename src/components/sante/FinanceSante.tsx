@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ export function OutboxCard({ structureId }: { structureId: string }) {
   if (!r) return null;
   const rejouer = async () => {
     const { data, error } = await db.rpc('sante_rejouer_outbox', { _structure_id: structureId });
-    if (error) toast.error(error.message); else { toast.success(`${data} écriture(s) comptabilisée(s)`); void load(); }
+    if (error) void toastErreurSante(error, structureId); else { toast.success(`${data} écriture(s) comptabilisée(s)`); void load(); }
   };
   const attente = r.en_attente + r.en_erreur;
   return (
@@ -49,12 +50,12 @@ export function RemboursementsCard({ structureId }: { structureId: string }) {
   const decider = async (id: string, ok: boolean) => {
     const m = prompt(ok ? 'Motif de l’approbation :' : 'Motif du refus :'); if (!m) return;
     const { error } = await db.rpc('sante_decider_remboursement', { _id: id, _approuver: ok, _motif: m });
-    if (error) toast.error(error.message); else load();
+    if (error) void toastErreurSante(error, structureId); else load();
   };
   const payer = async (id: string) => {
     const mode = prompt('Mode (especes, wave, orange_money, cheque, virement) :', 'especes'); if (!mode) return;
     const { error } = await db.rpc('sante_payer_remboursement', { _id: id, _mode: mode.trim() });
-    if (error) toast.error(error.message); else { toast.success('Remboursement payé'); load(); }
+    if (error) void toastErreurSante(error, structureId); else { toast.success('Remboursement payé'); load(); }
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
@@ -96,14 +97,14 @@ export function ReglementOrganismeCard({ structureId }: { structureId: string })
   const valider = async () => {
     const lignes = Object.entries(imput).filter(([, v]) => Number(v) > 0).map(([facture_id, v]) => ({ facture_id, montant: Number(v) }));
     const { error } = await db.rpc('sante_imputer_reglement', { _structure_id: structureId, _organisme: org, _montant: total, _mode: mode, _reference: ref || null, _imputations: lignes });
-    if (error) toast.error(error.message); else { toast.success('Règlement imputé et comptabilisé'); setRef(''); void charger(org); }
+    if (error) void toastErreurSante(error, structureId); else { toast.success('Règlement imputé et comptabilisé'); setRef(''); void charger(org); }
   };
   const rejeter = async (f: FactOrg) => {
     const type = prompt('Type de rejet : administratif (à corriger et renvoyer), non_prise_en_charge (bascule au patient si la convention l’autorise), perte (passée en charge)', 'administratif'); if (!type) return;
     const motif = prompt('Motif (obligatoire) :'); if (!motif) return;
     const montant = type.trim() === 'administratif' ? null : Number(prompt('Montant concerné :', String(f.reste)));
     const { error } = await db.rpc('sante_rejet_tiers', { _facture_id: f.id, _type: type.trim(), _motif: motif, _montant: montant });
-    if (error) toast.error(error.message); else { toast.success('Rejet enregistré'); void charger(org); }
+    if (error) void toastErreurSante(error, structureId); else { toast.success('Rejet enregistré'); void charger(org); }
   };
 
   return (
@@ -163,20 +164,20 @@ export function ParametresFinanceCard({ structureId }: { structureId: string }) 
   const definir = async (cle: string, compte: string) => {
     if (!compte.trim() || compte === defauts[cle]) return;
     const { error } = await db.rpc('sante_definir_compte', { _structure_id: structureId, _cle: cle, _compte: compte.trim() });
-    if (error) toast.error(error.message); else { toast.success('Compte enregistré'); void load(); }
+    if (error) void toastErreurSante(error, structureId); else { toast.success('Compte enregistré'); void load(); }
   };
   const majOrg = async (id: string, patch: Record<string, unknown>) => {
     const { error } = await db.from('sante_organismes').update(patch).eq('id', id);
-    if (error) toast.error(error.message); else void load();
+    if (error) void toastErreurSante(error, structureId); else void load();
   };
   const ajouter = async () => {
     if (!nouvel.trim()) return;
     const { error } = await db.from('sante_organismes').insert({ structure_id: structureId, nom: nouvel.trim() });
-    if (error) toast.error(error.message); else { setNouvel(''); void load(); }
+    if (error) void toastErreurSante(error, structureId); else { setNouvel(''); void load(); }
   };
   const changerMoment = async (v: string) => {
     const { error } = await db.rpc('sante_config_labo_moment', { _structure_id: structureId, _moment: v });
-    if (error) toast.error(error.message); else { setMoment(v); toast.success('Réglage enregistré'); }
+    if (error) void toastErreurSante(error, structureId); else { setMoment(v); toast.success('Réglage enregistré'); }
   };
 
   return (
@@ -278,7 +279,7 @@ export function BonsPecCard({ structureId, patientId, organismes }: { structureI
   useEffect(() => { load(); }, [patientId]);
   const ajouter = async () => {
     const { error } = await db.from('sante_bons_pec').insert({ structure_id: structureId, patient_id: patientId, organisme: f.organisme, numero: f.numero.trim(), date_fin: f.date_fin, plafond: f.plafond ? Number(f.plafond) : null, accord_prealable: f.accord });
-    if (error) toast.error(error.message); else { setF({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false }); load(); }
+    if (error) void toastErreurSante(error, structureId); else { setF({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false }); load(); }
   };
   return (
     <div className="space-y-2 text-sm">
@@ -304,7 +305,7 @@ export function CreancesOrganismesCard({ structureId }: { structureId: string })
   if (!rows.length) return null;
   const relancer = async (o: string) => {
     const { data, error } = await db.rpc('sante_relancer', { _structure_id: structureId, _organisme: o });
-    if (error) { toast.error(error.message); return; }
+    if (error) { void toastErreurSante(error, structureId); return; }
     const { data: r } = await db.from('sante_relances').select('niveau, montant, factures').eq('id', data).single();
     const { data: fs } = await db.from('sante_factures').select('numero, created_at, part_organisme').in('id', r.factures);
     const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${o}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${o}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map((f: any) => `<tr><td>${f.numero}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
@@ -314,7 +315,7 @@ export function CreancesOrganismesCard({ structureId }: { structureId: string })
     const m = Number(prompt('Montant à provisionner :', String(total))); if (!m) return;
     const motif = prompt('Motif (créance douteuse) :'); if (!motif) return;
     const { error } = await db.rpc('sante_provisionner_creance', { _structure_id: structureId, _organisme: o, _montant: m, _motif: motif });
-    if (error) toast.error(error.message); else toast.success('Provision enregistrée (module Provisions + écriture)');
+    if (error) void toastErreurSante(error, structureId); else toast.success('Provision enregistrée (module Provisions + écriture)');
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 overflow-x-auto">
@@ -368,13 +369,13 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
   useEffect(() => { void load(); }, [structureId]);
   const enregistrer = async () => {
     const { error } = await db.rpc('sante_config_fiscal', { _structure_id: structureId, _regime: regime, _prorata: Number(prorata) || 0, _cr_conditionne: cr });
-    if (error) toast.error(error.message); else toast.success('Réglages enregistrés');
+    if (error) void toastErreurSante(error, structureId); else toast.success('Réglages enregistrés');
   };
   const reserver = async () => {
     const poste = prompt('Nom du poste (ex. Accueil) :'); if (!poste) return;
     const taille = Number(prompt('Nombre de numéros à réserver (10 à 500) :', '50'));
     const { error } = await db.rpc('sante_reserver_bloc', { _structure_id: structureId, _poste: poste, _taille: taille });
-    if (error) toast.error(error.message); else void load();
+    if (error) void toastErreurSante(error, structureId); else void load();
   };
   return (
     <section className="mt-8 border border-border bg-bg2 rounded-md p-4 space-y-3">
@@ -408,7 +409,7 @@ export function SaisieSecoursCard({ structureId }: { structureId: string }) {
     const { data: p } = await db.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: f.dossier, _limit: 1, _offset: 0 });
     if (!p?.[0]) { toast.error('Patient introuvable'); return; }
     const { error } = await db.rpc('sante_saisir_facture_secours', { _bloc_id: f.bloc, _rang: Number(f.rang), _patient_id: p[0].id, _lignes: [{ libelle: f.libelle, prix_unitaire: Number(f.montant) }], _assurance_id: null });
-    if (error) toast.error(error.message); else { toast.success('Facture secours saisie'); setF({ ...f, rang: '', libelle: '', montant: '' }); }
+    if (error) void toastErreurSante(error, structureId); else { toast.success('Facture secours saisie'); setF({ ...f, rang: '', libelle: '', montant: '' }); }
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">

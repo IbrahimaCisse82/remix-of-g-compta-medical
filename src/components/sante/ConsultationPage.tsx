@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Lock, Plus, Printer, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,14 +50,14 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
 
   const enregistrer = async () => {
     const { error } = await supabase.from('sante_consultations').update({ motif: c.motif, anamnese: c.anamnese, examen: c.examen, diagnostic: c.diagnostic, conduite: c.conduite }).eq('id', id);
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     toast.success('Consultation enregistrée');
   };
   const cloturer = async () => {
     await enregistrer();
     if (!confirm('Clôturer la consultation ? Elle ne pourra plus être modifiée (addendum uniquement).')) return;
     const { error } = await supabase.rpc('sante_cloturer_consultation', { _consultation_id: id });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     toast.success('Consultation clôturée'); load();
   };
   const ajouterConstantes = async () => {
@@ -90,7 +91,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
       envoi = envoi.map(l => ({ ...l, justification_pediatrie: just.trim() }));
       ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));
     }
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     toast.success('Ordonnance émise');
     setLignes([{ medicament: '', posologie: '', duree: '', quantite: '' }]); setReco('');
     await load();

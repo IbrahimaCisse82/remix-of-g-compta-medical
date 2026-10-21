@@ -7,6 +7,7 @@ import { useMedicalPalette, useTheme } from '@/hooks/use-theme';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toastErreurSante } from '@/lib/sante-acces';
 
 type StructureType = MedicalStructure['type'];
 
@@ -15,6 +16,34 @@ const PALETTES: { id: MedicalPalette; label: string; description: string; colors
   { id: 'laboratoire', label: 'Laboratoire', description: 'Émeraude et cyan technique', colors: ['bg-primary', 'bg-accent'] },
   { id: 'urgences', label: 'Urgences', description: 'Bleu médical et corail d’alerte', colors: ['bg-primary', 'bg-accent'] },
 ];
+
+type RoleMetier = 'admin_structure' | 'medecin' | 'biologiste' | 'secretaire';
+
+// Doit rester aligné sur sante_creer_structure (migration 0048).
+const ROLES_PAR_TYPE: Record<StructureType, { id: RoleMetier; label: string }[]> = {
+  cabinet: [
+    { id: 'medecin', label: 'Médecin' },
+    { id: 'secretaire', label: 'Secrétaire' },
+    { id: 'admin_structure', label: 'Administration seule' },
+  ],
+  laboratoire: [
+    { id: 'biologiste', label: 'Biologiste' },
+    { id: 'secretaire', label: 'Secrétaire' },
+    { id: 'admin_structure', label: 'Administration seule' },
+  ],
+  mixte: [
+    { id: 'medecin', label: 'Médecin' },
+    { id: 'biologiste', label: 'Biologiste' },
+    { id: 'secretaire', label: 'Secrétaire' },
+    { id: 'admin_structure', label: 'Administration seule' },
+  ],
+};
+const ROLE_DEFAUT: Record<StructureType, RoleMetier> = { cabinet: 'medecin', laboratoire: 'biologiste', mixte: 'medecin' };
+const MODULES_PAR_TYPE: Record<StructureType, string[]> = {
+  cabinet: ['Dossier patient', 'Clinique', 'Tiers-payant'],
+  laboratoire: ['Dossier patient', 'Laboratoire', 'Tiers-payant', 'Portail résultats'],
+  mixte: ['Dossier patient', 'Clinique', 'Laboratoire', 'Tiers-payant', 'Portail résultats'],
+};
 
 export default function HealthOnboarding() {
   const { completeHealthOnboarding, logout } = useApp();
@@ -26,14 +55,24 @@ export default function HealthOnboarding() {
   const [autorisation, setAutorisation] = useState('');
   const [adresse, setAdresse] = useState('');
   const [telephone, setTelephone] = useState('');
+  const [roleMetier, setRoleMetier] = useState<RoleMetier>(ROLE_DEFAUT.cabinet);
   const [saving, setSaving] = useState(false);
+
+  const rolesDisponibles = ROLES_PAR_TYPE[type];
+  const choisirType = (next: StructureType) => {
+    setType(next);
+    if (!ROLES_PAR_TYPE[next].some(r => r.id === roleMetier)) setRoleMetier(ROLE_DEFAUT[next]);
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
-    const { data, error } = await supabase.rpc('create_medical_structure', {
+    // Création atomique côté serveur : structure + administrateur + rôle métier
+    // + dossier comptable SYSCOHADA dédié + modules Santé selon le type.
+    const { data, error } = await supabase.rpc('sante_creer_structure', {
       _type: type,
       _nom: nom,
+      _role_metier: roleMetier,
       _ninea: ninea || undefined,
       _autorisation_exercice: autorisation || undefined,
       _adresse: adresse || undefined,
@@ -41,26 +80,12 @@ export default function HealthOnboarding() {
       _theme: palette,
     });
     if (error || !data) {
-      toast.error(error?.message || 'Création impossible.');
+      if (error) await toastErreurSante(error); else toast.error('Création impossible.');
       setSaving(false);
       return;
     }
-    // Dossier comptable SYSCOHADA créé et relié automatiquement (best effort, non bloquant).
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      if (auth.user) {
-        const { data: ent } = await supabase.from('entreprises')
-          .insert({ nom, user_id: auth.user.id, monnaie: 'FCFA', ninea: ninea || null, adresse: adresse || null })
-          .select('id').single();
-        if (ent) {
-          const secteur = type === 'laboratoire' ? 'sante_laboratoire' : type === 'cabinet' ? 'sante_clinique' : 'sante_mixte';
-          await supabase.rpc('set_secteur_activite', { _entreprise_id: ent.id, _secteur: secteur });
-          await supabase.rpc('lier_structure_entreprise', { _structure_id: data, _entreprise_id: ent.id });
-        }
-      }
-    } catch { /* la liaison reste possible depuis Structure & équipe */ }
     completeHealthOnboarding({ id: data, nom, type, theme_medical: palette });
-    toast.success('Votre structure Santé est prête.');
+    toast.success(`Votre structure Santé est prête : ${MODULES_PAR_TYPE[type].join(', ')} activés.`);
   };
 
   return (
@@ -84,8 +109,21 @@ export default function HealthOnboarding() {
                 ['laboratoire', 'Laboratoire', FlaskConical],
                 ['mixte', 'Structure mixte', Hospital],
               ] as const).map(([id, label, Icon]) => (
-                <Button key={id} type="button" variant={type === id ? 'default' : 'outline'} className="h-20 justify-start" onClick={() => setType(id)}>
+                <Button key={id} type="button" variant={type === id ? 'default' : 'outline'} className="h-20 justify-start" onClick={() => choisirType(id)}>
                   <Icon /><span>{label}</span>{type === id && <Check className="ml-auto" />}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-fg2 mt-3">Modules activés automatiquement : {MODULES_PAR_TYPE[type].join(' · ')}</p>
+          </fieldset>
+
+          <fieldset>
+            <legend className="text-sm font-semibold mb-1">Votre rôle dans la structure</legend>
+            <p className="text-xs text-fg2 mb-3">Vous serez administrateur de la structure. Choisissez aussi votre métier pour accéder aux écrans de soin ou de laboratoire.</p>
+            <div className="grid gap-3 sm:grid-cols-4">
+              {rolesDisponibles.map(r => (
+                <Button key={r.id} type="button" variant={roleMetier === r.id ? 'default' : 'outline'} className="h-12 justify-start" onClick={() => setRoleMetier(r.id)}>
+                  <span>{r.label}</span>{roleMetier === r.id && <Check className="ml-auto" />}
                 </Button>
               ))}
             </div>
