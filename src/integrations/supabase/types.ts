@@ -3337,6 +3337,11 @@ export type Database = {
           texte: string | null
           type: string
           version_texte: string
+          signataire_nom: string | null
+          signataire_qualite: string | null
+          signature_png: string | null
+          signature_sha256: string | null
+          texte_sha256: string | null
         }
         Insert: {
           accorde: boolean
@@ -3348,6 +3353,11 @@ export type Database = {
           texte?: string | null
           type: string
           version_texte: string
+          signataire_nom?: string | null
+          signataire_qualite?: string | null
+          signature_png?: string | null
+          signature_sha256?: string | null
+          texte_sha256?: string | null
         }
         Update: {
           accorde?: boolean
@@ -3359,6 +3369,11 @@ export type Database = {
           texte?: string | null
           type?: string
           version_texte?: string
+          signataire_nom?: string | null
+          signataire_qualite?: string | null
+          signature_png?: string | null
+          signature_sha256?: string | null
+          texte_sha256?: string | null
         }
         Relationships: [
           {
@@ -7220,6 +7235,19 @@ export type Database = {
           _parametre_id: string
           _valeur_num: number
           _valeur_texte: string
+        }
+        Returns: string
+      }
+      sante_signer_consentement: {
+        Args: {
+          _accorde: boolean
+          _patient_id: string
+          _signataire_nom: string
+          _signataire_qualite: string
+          _signature_png: string
+          _texte: string
+          _type: string
+          _version: string
         }
         Returns: string
       }

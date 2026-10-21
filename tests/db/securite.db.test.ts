@@ -653,6 +653,118 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     }, 60_000);
   });
 
+  describe('P4 — fusion en deux temps, consentement signé, lien unique du portail', () => {
+    const st = () => S.A.structure;
+    const nouveauPatient = async (nom: string, sexe: 'M' | 'F', dn: string | null) => {
+      const r = await S.A.users.secretaire.rpc('sante_creer_patient', { _structure_id: st(), _nom: nom, _prenoms: 'Test', _sexe: sexe, _date_naissance: dn, _consentement: true, _ignorer_doublons: true });
+      expect(r.error).toBeNull();
+      return r.data as string;
+    };
+
+    it('fusion : proposition, confirmation par une autre personne, annulation par l’administrateur avec restauration', async () => {
+      const garde = await nouveauPatient('TESTFUSION', 'F', '1985-06-15');
+      const doublon = await nouveauPatient('TESTFUSION', 'F', '1985-06-15');
+      const { data: ant } = await admin.from('sante_antecedents').insert({ patient_id: doublon, type: 'medical', libelle: 'HTA (test fusion)' }).select('id').single();
+
+      // Proposition : motif obligatoire, rôle limité, sexe différent refusé
+      expect((await S.A.users.medecin.rpc('sante_proposer_fusion', { _conserve: garde, _fusionne: doublon, _motif: 'non' })).error).toBeTruthy();
+      expect((await S.A.users.comptable.rpc('sante_proposer_fusion', { _conserve: garde, _fusionne: doublon, _motif: 'Doublon accueil' })).error).toBeTruthy();
+      const autreSexe = await nouveauPatient('TESTFUSION', 'M', '1985-06-15');
+      expect(String((await S.A.users.medecin.rpc('sante_proposer_fusion', { _conserve: garde, _fusionne: autreSexe, _motif: 'Doublon accueil' })).error?.message)).toMatch(/sexe/i);
+
+      const prop = await S.A.users.medecin.rpc('sante_proposer_fusion', { _conserve: garde, _fusionne: doublon, _motif: 'Doublon créé à l’accueil' });
+      expect(prop.error).toBeNull();
+      const fusion = prop.data as string;
+      // Rien n'a bougé à ce stade
+      expect((await admin.from('sante_patients').select('statut').eq('id', doublon).single()).data!.statut).toBe('actif');
+      // Pas de seconde proposition en parallèle
+      expect((await S.A.users.secretaire.rpc('sante_proposer_fusion', { _conserve: garde, _fusionne: doublon, _motif: 'Doublon bis' })).error).toBeTruthy();
+
+      // Confirmation : jamais par le proposant, jamais par un rôle non soignant
+      expect(String((await S.A.users.medecin.rpc('sante_confirmer_fusion', { _fusion_id: fusion })).error?.message)).toMatch(/personne différente/);
+      expect((await S.A.users.comptable.rpc('sante_confirmer_fusion', { _fusion_id: fusion })).error).toBeTruthy();
+      const conf = await S.A.users.secretaire.rpc('sante_confirmer_fusion', { _fusion_id: fusion });
+      expect(conf.error).toBeNull();
+      const apres = (await admin.from('sante_patients').select('statut, fusionne_dans').eq('id', doublon).single()).data!;
+      expect(apres).toEqual({ statut: 'fusionne', fusionne_dans: garde });
+      expect((await admin.from('sante_antecedents').select('patient_id').eq('id', ant!.id).single()).data!.patient_id).toBe(garde);
+      const { data: audit } = await admin.from('medical_audit_log').select('action').eq('record_id', fusion);
+      expect((audit ?? []).map(a => a.action).sort()).toEqual(['fusion_confirmee', 'fusion_proposee']);
+
+      // Annulation : administrateur seul, motif ≥ 10 caractères, restauration exacte
+      expect((await S.A.users.secretaire.rpc('sante_annuler_fusion', { _fusion_id: fusion, _motif: 'Erreur de fusion signalée' })).error).toBeTruthy();
+      expect((await S.A.users.admin_structure.rpc('sante_annuler_fusion', { _fusion_id: fusion, _motif: 'court' })).error).toBeTruthy();
+      const ann = await S.A.users.admin_structure.rpc('sante_annuler_fusion', { _fusion_id: fusion, _motif: 'Deux personnes distinctes (jumelles)' });
+      expect(ann.error).toBeNull();
+      expect((await admin.from('sante_patients').select('statut, fusionne_dans').eq('id', doublon).single()).data).toEqual({ statut: 'actif', fusionne_dans: null });
+      expect((await admin.from('sante_antecedents').select('patient_id').eq('id', ant!.id).single()).data!.patient_id).toBe(doublon);
+      expect((await admin.from('sante_fusions').select('statut').eq('id', fusion).single()).data!.statut).toBe('annulee');
+    }, 90_000);
+
+    it('consentement signé : texte intégral, signataire et signature exigés, empreintes calculées, rôles limités, non modifiable', async () => {
+      const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+      const TEXTE = 'Je soussigné(e) autorise la structure TEST P0 A à traiter les données de santé du patient TESTA pour sa prise en charge.';
+      const base = { _patient_id: S.A.patient, _type: 'traitement_donnees', _version: 'v2-2026', _texte: TEXTE, _accorde: true, _signataire_nom: 'Patient TESTA', _signataire_qualite: 'patient', _signature_png: PNG };
+      expect((await S.A.users.secretaire.rpc('sante_signer_consentement', { ...base, _signature_png: '' })).error).toBeTruthy();
+      expect((await S.A.users.secretaire.rpc('sante_signer_consentement', { ...base, _texte: 'trop court' })).error).toBeTruthy();
+      expect((await S.A.users.secretaire.rpc('sante_signer_consentement', { ...base, _type: 'inconnu' })).error).toBeTruthy();
+      expect((await S.A.users.secretaire.rpc('sante_signer_consentement', { ...base, _signataire_qualite: 'voisin' })).error).toBeTruthy();
+      expect(String((await S.A.users.comptable.rpc('sante_signer_consentement', base)).error?.message)).toMatch(/Accès refusé/);
+      const ok = await S.A.users.secretaire.rpc('sante_signer_consentement', base);
+      expect(ok.error).toBeNull();
+      const { data: c } = await admin.from('sante_consentements').select('texte, signataire_nom, signature_sha256, texte_sha256, recueilli_par, preuve').eq('id', ok.data as string).single();
+      expect(c!.texte).toBe(TEXTE);
+      expect(c!.signature_sha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(c!.texte_sha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(c!.recueilli_par).toBe(await uid(S.A.users.secretaire));
+      expect(c!.preuve).toMatch(/signature manuscrite/);
+      // Append-only : la secrétaire ne peut pas réécrire un consentement signé
+      await S.A.users.secretaire.from('sante_consentements').update({ accorde: false }).eq('id', ok.data as string);
+      expect((await admin.from('sante_consentements').select('accorde').eq('id', ok.data as string).single()).data!.accorde).toBe(true);
+      // Un retrait est un nouvel enregistrement signé
+      const retrait = await S.A.users.secretaire.rpc('sante_signer_consentement', { ...base, _accorde: false });
+      expect(retrait.error).toBeNull();
+    }, 60_000);
+
+    // NB : la fonction limite à 10 ouvertures de lien par heure et par IP ; ce test en fait 7.
+    it('portail : lien à usage unique, date de naissance exigée, verrouillage après 3 erreurs, rôles limités', async () => {
+      const fn = async (body: Record<string, unknown>, c?: SupabaseClient) => {
+        const jeton = c ? (await c.auth.getSession()).data.session?.access_token : undefined;
+        const r = await fetch(`${URL}/functions/v1/portail-patient`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${jeton ?? ANON}` },
+          body: JSON.stringify(body),
+        });
+        return { status: r.status, body: await r.json().catch(() => ({})) as Record<string, unknown> };
+      };
+      const DN = '1979-02-11';
+      const patient = await nouveauPatient('TESTPORTAIL', 'M', DN);
+
+      expect((await fn({ action: 'lien', patient_id: patient })).status).toBe(401);
+      expect((await fn({ action: 'lien', patient_id: patient }, S.A.users.comptable)).status).toBe(403);
+      expect((await fn({ action: 'lien', patient_id: patient }, S.B.users.secretaire)).status).toBe(403);
+
+      const lien = await fn({ action: 'lien', patient_id: patient }, S.A.users.secretaire);
+      expect(lien.status).toBe(200);
+      const token = String(lien.body.token);
+      expect(token).toMatch(/^[0-9a-f]{64}$/);
+      expect((await fn({ action: 'ouvrir_lien', token, date_naissance: '1979-02-12' })).status).toBe(401);
+      const ouvert = await fn({ action: 'ouvrir_lien', token, date_naissance: DN });
+      expect(ouvert.status).toBe(200);
+      // Usage unique
+      expect((await fn({ action: 'ouvrir_lien', token, date_naissance: DN })).status).toBe(401);
+      const donnees = await fn({ action: 'donnees', token: String(ouvert.body.token) });
+      expect(donnees.status).toBe(200);
+      expect((donnees.body.patient as { nom: string }).nom).toBe('TESTPORTAIL');
+
+      // Verrouillage : 3 mauvaises dates puis la bonne → refus
+      const lien2 = await fn({ action: 'lien', patient_id: patient }, S.A.users.secretaire);
+      const t2 = String(lien2.body.token);
+      for (const d of ['1979-01-01', '1979-01-02', '1979-01-03']) expect((await fn({ action: 'ouvrir_lien', token: t2, date_naissance: d })).status).toBe(401);
+      expect((await fn({ action: 'ouvrir_lien', token: t2, date_naissance: DN })).status).toBe(401);
+    }, 90_000);
+  });
+
 
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
