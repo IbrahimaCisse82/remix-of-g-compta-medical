@@ -116,3 +116,11 @@ REVOKE ALL ON FUNCTION public.sante_signer_consentement(uuid,text,text,text,bool
 GRANT EXECUTE ON FUNCTION public.sante_signer_consentement(uuid,text,text,text,boolean,text,text,text) TO authenticated, service_role;
 COMMENT ON FUNCTION public.sante_signer_consentement(uuid,text,text,text,boolean,text,text,text) IS
   'P4 : consentement complet signé à l''écran (texte intégral + empreintes SHA-256 du texte et de la signature). Append-only : un retrait est un nouvel enregistrement accorde=false.';
+
+-- Durcissement (P0) : les fonctions de fusion n'étaient pas révoquées pour anon.
+REVOKE ALL ON FUNCTION public.sante_proposer_fusion(uuid,uuid,text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.sante_confirmer_fusion(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.sante_annuler_fusion(uuid,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.sante_proposer_fusion(uuid,uuid,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sante_confirmer_fusion(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.sante_annuler_fusion(uuid,text) TO authenticated, service_role;
