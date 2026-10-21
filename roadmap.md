@@ -10,10 +10,10 @@ Mise à jour : 21 octobre 2026
 - [x] E-mails d'authentification déployés (notify.g-sante.app)
 
 ## Étape 1 — Corriger les blocages vus en test (priorité)
-- [ ] Activer automatiquement les modules à la création d'une structure (selon son type)
-- [ ] Rôle par défaut du créateur : administrateur + rôle métier choisi à l'onboarding
-- [ ] Messages « Accès refusé » explicites (rôle manquant, module inactif, MFA requise)
-- [ ] Connexion Google : saisir l'identifiant et la clé Google du nouvel espace de travail
+- [x] Activer automatiquement les modules à la création d'une structure (selon son type) — `sante_creer_structure` branchée sur l'onboarding (à valider à l'écran)
+- [x] Rôle par défaut du créateur : administrateur + rôle métier choisi à l'onboarding (à valider à l'écran)
+- [x] Messages « Accès refusé » explicites (rôle manquant, module inactif, MFA requise) — `src/lib/sante-acces.ts`, appliqué aux écrans Santé
+- [ ] Connexion Google : saisir l'identifiant et la clé Google du nouvel espace de travail (action manuelle dans Lovable Cloud › Authentification)
 
 ## Étape 2 — Terminer P4 (patient, clinique, portail)
 - [ ] Tests automatiques de la fusion en deux temps + essai à l'écran

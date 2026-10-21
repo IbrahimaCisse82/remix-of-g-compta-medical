@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Stethoscope } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,12 +39,12 @@ export default function AgendaPage({ structureId, onConsultation }: { structureI
 
   const changer = async (r: Rdv, statut: StatutRdv) => {
     const { error } = await supabase.from('sante_rendez_vous').update({ statut }).eq('id', r.id);
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     load();
   };
   const demarrer = async (r: Rdv) => {
     const { data, error } = await supabase.rpc('sante_demarrer_consultation', { _patient_id: r.patient_id, _praticien_id: r.praticien_id, _rdv_id: r.id });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     onConsultation(data as string);
   };
   const decaler = (n: number) => { const d = new Date(jour + 'T00:00:00'); d.setDate(d.getDate() + n); setJour(iso(d)); };
@@ -124,7 +125,7 @@ function NouveauRdv({ structureId, jour, praticiens, onClose }: { structureId: s
       structure_id: structureId, patient_id: patient.id, praticien_id: praticien,
       debut: new Date(`${jour}T${h}:00`).toISOString(), duree_min: duree, motif: motif || null,
     });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     toast.success('Rendez-vous enregistré');
     onClose();
   };

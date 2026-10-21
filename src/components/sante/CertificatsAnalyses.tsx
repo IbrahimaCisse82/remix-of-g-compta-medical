@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FileText, FlaskConical, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,7 @@ export default function CertificatsAnalyses({ consultation }: { consultation: Re
 
   const emettre = async () => {
     const { data, error } = await supabase.rpc('sante_emettre_certificat', { _consultation_id: consultation.id, _type: type, _contenu: contenu, _jours: jours ? Number(jours) : undefined });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     setContenu(''); setJours(''); await load(); imprimerCertificat(data as string);
   };
 

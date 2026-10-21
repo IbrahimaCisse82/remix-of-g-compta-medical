@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp
 export default function ExportDossierButton({ patientId, numero }: { patientId: string; numero: string }) {
   const exporter = async () => {
     const { data, error } = await supabase.rpc('sante_export_dossier', { _patient_id: patientId });
-    if (error) { toast.error(error.message); return; }
+    if (error) { void toastErreurSante(error); return; }
     const d = data as Record<string, unknown>;
     telecharger(`dossier-${numero}.json`, JSON.stringify(d, null, 2), 'application/json');
     const w = window.open('', '_blank'); if (!w) return;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2, FlaskConical, Plus, Printer, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +27,7 @@ export default function LaboratoirePage({ structureId }: { structureId: string }
       .eq('structure_id', structureId).order('urgence', { ascending: false }).order('created_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
     if (statut === 'actives') q = q.not('statut', 'in', '(validee,rejetee)'); else if (statut !== 'toutes') q = q.eq('statut', statut);
     const { data, error } = await q;
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     setRows((data ?? []) as unknown as Demande[]);
   }, [structureId, page, statut]);
   useEffect(() => { void load(); }, [load]);
@@ -71,14 +72,14 @@ export function NouvelleDemande({ structureId, patientId, consultationId, prescr
   useEffect(() => { void supabase.from('sante_analyses').select('id, code, libelle, section, tarif').eq('structure_id', structureId).eq('actif', true).order('section').then(({ data }) => setAnalyses(data ?? [])); }, [structureId]);
   const chercher = async () => {
     const { data, error } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: q, _limit: 10, _offset: 0 });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     setPatients(data ?? []);
   };
   const total = analyses.filter(a => choix.includes(a.id)).reduce((s, a) => s + Number(a.tarif), 0);
   const creer = async () => {
     if (!patient) return toast.error('Choisissez un patient');
     const { data, error } = await supabase.rpc('sante_creer_demande_labo', { _patient_id: patient, _analyses: choix, _prescripteur: presc, _urgence: urgence, _renseignements: rc, _consultation_id: consultationId });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     toast.success('Demande enregistrée');
     onDone(data as string);
   };
@@ -152,12 +153,12 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
 
   const avancer = async (statut: string) => {
     const { error } = await supabase.rpc('sante_avancer_demande', { _demande_id: id, _statut: statut, _motif: motif });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     setMotif(''); await load();
   };
   const valider = async (niveau: 'technique' | 'biologique') => {
     const { error } = await supabase.rpc('sante_valider_demande', { _demande_id: id, _niveau: niveau });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     toast.success(niveau === 'technique' ? 'Validation technique enregistrée' : 'Résultats validés'); await load();
   };
   const enregistrer = async (p: (typeof params)[number]) => {
@@ -166,20 +167,20 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
     const num = p.type === 'numerique' ? Number(raw.replace(',', '.')) : null;
     if (p.type === 'numerique' && Number.isNaN(num)) return toast.error('Valeur numérique invalide');
     const { data, error } = await supabase.rpc('sante_saisir_resultat', { _demande_id: id, _parametre_id: p.id, _valeur_num: num as number, _valeur_texte: p.type === 'numerique' ? undefined : raw });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     if (estCritique(data as Drapeau)) toast.error(`Valeur critique sur ${p.libelle} : prévenir le prescripteur puis acquitter`);
     setSaisie(s => ({ ...s, [p.id]: '' })); await load();
   };
   const acquitter = async (rid: string) => {
     const { error } = await supabase.rpc('sante_acquitter_critique', { _resultat_id: rid });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     await load();
   };
   const rectifier = async () => {
     if (!rect) return;
     const num = Number(rect.valeur.replace(',', '.'));
     const { data, error } = await supabase.rpc('sante_rectifier_resultat', { _demande_id: id, _parametre_id: rect.parametre, _valeur_num: Number.isNaN(num) ? (null as unknown as number) : num, _valeur_texte: Number.isNaN(num) ? rect.valeur : (null as unknown as string), _motif: rect.motif });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     toast.success(`Compte rendu rectificatif version ${data} — prévenir le prescripteur et le patient`);
     setRect(null); await load();
   };
@@ -247,7 +248,7 @@ function Prelevement({ id, onDone }: { id: string; onDone: () => void }) {
   const IDS: [string, string][] = [['nom', 'Nom et prénoms'], ['date_naissance', 'Date de naissance'], ['numero_dossier', 'N° de dossier'], ['piece_identite', 'Pièce d’identité']];
   const go = async () => {
     const { error } = await supabase.rpc('sante_prelever' as never, { _demande_id: id, _identifiants: ids, _site: site, _conditions: { a_jeun: ajeun } } as never);
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     toast.success('Prélèvement enregistré'); onDone();
   };
   return <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
@@ -266,7 +267,7 @@ function RejetEchantillon({ id, onDone }: { id: string; onDone: () => void }) {
   const [nouveau, setNouveau] = useState(true);
   const go = async () => {
     const { data, error } = await supabase.rpc('sante_rejeter_echantillon' as never, { _demande_id: id, _code: code, _commentaire: com, _nouveau_prelevement: nouveau } as never);
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     toast.success(data ? 'Échantillon rejeté — nouvelle demande de prélèvement créée' : 'Échantillon rejeté'); onDone();
   };
   return <section className="border border-border bg-bg2 rounded-md p-3 flex flex-wrap gap-2 items-center">
@@ -298,12 +299,12 @@ function Microbiologie({ id, editable }: { id: string; editable: boolean }) {
     const ab = parseAb();
     if (ab.some(x => !x)) return toast.error('Antibiogramme : une ligne par antibiotique, suivie de S, I ou R');
     const { error } = await supabase.rpc('sante_saisir_germe' as never, { _demande_id: id, _type: f.type, _germe: f.germe, _quantification: f.quant, _commentaire: null, _definitif: false, _antibiogramme: ab } as never);
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     setF({ type: f.type, germe: '', quant: '', ab: '' }); void load();
   };
   const definitif = async (gid: string) => {
     const { error } = await supabase.rpc('sante_germe_definitif' as never, { _germe_id: gid } as never);
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     void load();
   };
   return <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
@@ -365,7 +366,7 @@ export function SousTraitance({ id, analyses }: { id: string; analyses: { id: st
   useEffect(() => { void load(); }, [load]);
   const envoyer = async () => {
     const { error } = await supabase.rpc('sante_envoyer_sous_traitance', { _demande_id: id, _analyse_id: f.analyse, _laboratoire: f.labo, _reference: f.ref });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error);
     setF({ analyse: '', labo: '', ref: '' }); toast.success('Envoi en sous-traitance enregistré'); void load();
   };
   return <section className="border border-border bg-bg2 rounded-md p-3 space-y-2 text-sm">

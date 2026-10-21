@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ export default function RappelsSmsCard({ structureId }: { structureId: string })
 
   const save = async () => {
     const { error } = await supabase.rpc('sante_config_rappels', { _structure_id: structureId, _actifs: actifs, _expediteur: exp });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     toast.success('Réglages enregistrés');
   };
   const envoyer = async () => {

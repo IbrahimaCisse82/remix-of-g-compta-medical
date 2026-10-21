@@ -4,6 +4,7 @@ import ExportDossierButton from './ExportDossierButton';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +22,7 @@ export default function PatientsPage({ structureId }: { structureId: string }) {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: q, _limit: PAGE, _offset: page * PAGE });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     setRows((data ?? []) as Ligne[]);
   }, [structureId, q, page]);
 
@@ -91,7 +92,7 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
       setDoublons(d ?? []);
       return;
     }
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     toast.success('Patient créé');
     onDone(data as string);
   };
@@ -236,20 +237,20 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
     if (!cible || cible.id === patientId) return toast.error('Dossier en double introuvable');
     if (!confirm(`Proposer la fusion de ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ?\nLa fusion ne sera appliquée qu'après confirmation par un autre médecin ou secrétaire.`)) return;
     const { error } = await supabase.rpc('sante_proposer_fusion', { _conserve: patientId, _fusionne: cible.id, _motif: motif });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     toast.success('Fusion proposée — confirmation par une autre personne requise'); setNumero(''); setMotif(''); void charger();
   };
   const confirmer = async (id: string) => {
     if (!confirm('Confirmer la fusion ? Les antécédents, assurances et consentements du dossier en double seront transférés.')) return;
     const { error } = await supabase.rpc('sante_confirmer_fusion', { _fusion_id: id });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     toast.success('Dossiers fusionnés'); onDone();
   };
   const annuler = async (id: string) => {
     const m = prompt('Motif d’annulation (10 caractères minimum) — réservé à l’administrateur :');
     if (!m) return;
     const { error } = await supabase.rpc('sante_annuler_fusion', { _fusion_id: id, _motif: m });
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     toast.success('Fusion annulée, dossiers restaurés'); void charger(); onDone();
   };
   if (!open) return <button className="float-right text-xs underline text-fg3" onClick={() => setOpen(true)}>Fusionner un doublon</button>;
@@ -288,7 +289,7 @@ function DocumentsPatient({ patientId, structureId, items, onChange }: { patient
     if (up.error) { setBusy(false); return toast.error('Envoi refusé'); }
     const { error } = await supabase.from('sante_documents_patient').insert({ patient_id: patientId, structure_id: structureId, nom: file.name, storage_path: path, mime_type: file.type, taille_octets: file.size });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return void toastErreurSante(error, structureId);
     onChange();
   };
   const ouvrir = async (path: string) => {
