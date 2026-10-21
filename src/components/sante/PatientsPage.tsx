@@ -1,6 +1,7 @@
 import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
+import ConsentementSigne from './ConsentementSigne';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { libelleAge, normaliserTelephone, validerPatient, type NouveauPatient } from '@/domain/sante/patient';
+import { MODELES_CONSENTEMENT, etatConsentements } from '@/domain/sante/consentements';
 
 type Ligne = { id: string; numero_dossier: string; nom: string; prenoms: string; sexe: string; date_naissance: string | null; telephone: string | null; total: number };
 const PAGE = 25;
@@ -138,6 +140,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
   const [onglet, setOnglet] = useState<(typeof ONGLETS)[number]>('Identité');
   const [items, setItems] = useState<Record<string, any>[]>([]);
   const [ajout, setAjout] = useState({ a: '', b: '', c: '' });
+  const [recueil, setRecueil] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -192,6 +195,19 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         </dl>
       ) : (
         <div className="space-y-3">
+          {onglet === 'Consentements' && (recueil ? (
+            <ConsentementSigne patient={{ id, nom: p.nom, prenoms: p.prenoms, date_naissance: p.date_naissance }} onCancel={() => setRecueil(false)} onDone={() => { setRecueil(false); loadItems(); }} />
+          ) : (
+            <div className="border border-border rounded-md p-3 space-y-2">
+              <div className="flex flex-wrap gap-2 text-xs">
+                {MODELES_CONSENTEMENT.map(m => {
+                  const e = etatConsentements(items as { type: string; accorde: boolean; created_at: string }[])[m.type];
+                  return <span key={m.type} className={`rounded-full border px-2 py-1 ${e ? (e.accorde ? 'border-primary text-primary' : 'border-destructive text-destructive') : 'border-border text-fg3'}`}>{m.titre} : {e ? (e.accorde ? 'accordé' : 'refusé') : 'non recueilli'}</span>;
+                })}
+              </div>
+              <Button size="sm" onClick={() => setRecueil(true)}><Plus />Recueillir un consentement signé</Button>
+            </div>
+          ))}
           {onglet !== 'Consentements' && (
             <div className="flex flex-wrap gap-2 border border-border rounded-md p-3">
               <Input className="flex-1 min-w-40" placeholder={onglet === 'Assurances' ? 'Organisme' : 'Libellé'} value={ajout.a} onChange={e => setAjout(s => ({ ...s, a: e.target.value }))} />
@@ -208,7 +224,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
             <div key={it.id} className="border border-border rounded-md p-3 text-sm">
               {onglet === 'Assurances' && <>{it.organisme} · {it.numero_adherent ?? '—'} · {it.taux_couverture ?? '—'} %</>}
               {onglet === 'Antécédents' && <><span className="text-xs uppercase text-primary mr-2">{it.type}</span>{it.libelle} {it.details && <span className="text-fg3">— {it.details}</span>}</>}
-              {onglet === 'Consentements' && <>{it.type} ({it.version_texte}) : <strong>{it.accorde ? 'accordé' : 'refusé'}</strong> · {new Date(it.created_at).toLocaleDateString('fr-FR')}</>}
+              {onglet === 'Consentements' && <>{MODELES_CONSENTEMENT.find(m => m.type === it.type)?.titre ?? it.type} ({it.version_texte}) : <strong>{it.accorde ? 'accordé' : 'refusé'}</strong> · {new Date(it.created_at).toLocaleDateString('fr-FR')}{it.signataire_nom ? <span className="text-fg3"> · signé par {it.signataire_nom}{it.signataire_qualite && it.signataire_qualite !== 'patient' ? ` (${it.signataire_qualite.replace('_', ' ')})` : ''}</span> : <span className="text-fg3"> · {it.preuve ?? 'sans preuve'}</span>}{it.signature_png && <img src={it.signature_png} alt={`Signature de ${it.signataire_nom}`} className="mt-2 h-12 rounded border border-border bg-white" />}</>}
             </div>
           ))}
         </div>

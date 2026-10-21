@@ -16,10 +16,10 @@ Mise à jour : 21 octobre 2026
 - [ ] Connexion Google : saisir l'identifiant et la clé Google du nouvel espace de travail (action manuelle dans Lovable Cloud › Authentification)
 
 ## Étape 2 — Terminer P4 (patient, clinique, portail)
-- [ ] Tests automatiques de la fusion en deux temps + essai à l'écran
+- [x] Fusion en deux temps : **bug corrigé** (0044 écrivait l'audit dans des colonnes inexistantes, aucune fusion ne pouvait aboutir) — migration 0049, tests base écrits (à exécuter : `bun run test:db`), essai à l'écran à faire
 - [ ] Vérifier la liste des analyses sensibles avec le biologiste
-- [ ] Signature du consentement complet à l'écran
-- [ ] Tests du lien unique du portail
+- [x] Signature du consentement complet à l'écran — 4 textes versionnés (à valider par le juriste/CDP), signataire, signature manuscrite, empreintes SHA-256 (migration 0049)
+- [x] Tests du lien unique du portail — écrits dans tests/db (à exécuter)
 
 ## Étape 3 — P5 Exploitation
 - [ ] Stocks pharmacie/réactifs reliés aux consultations et au labo
