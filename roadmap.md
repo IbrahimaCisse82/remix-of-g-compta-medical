@@ -1,62 +1,53 @@
-# Feuille de route G-Compta + G-Santé
+# Plan de développement G-Santé ERP — objectif 100 % fonctionnel
+Mise à jour : 21 octobre 2026
 
-- [x] Préserver et valider tous les modules G-Compta existants
-- [ ] Phase 0 G-Santé — Socle sécurité, multi-structures et onboarding
-  - [x] Ajouter l’identité G-Santé sans remplacer G-Compta
-  - [x] Proposer trois thèmes médicaux sélectionnables par structure
-  - [x] Créer structures, sites, adhésions, rôles, invitations et journaux dédiés
-  - [x] Appliquer l’isolation, les droits et l’audit dans la base
-  - [x] Créer le parcours de création de structure
-  - [ ] Tester le parcours et l’isolation avec plusieurs comptes — bloqué jusqu’à la création du premier compte utilisateur
-  - [ ] Valider les critères de sortie de la phase 0 — attend le test multi-comptes
-- [x] Phase 1 — Dossier patient commun
-- [x] Phase 2 — Cabinet médical
-- [x] Phase 3 — Laboratoire
-- [x] Phase 4 — Facturation, tiers-payant, caisse et export comptable
-- [x] Phase 5 — Portails, notifications et tableaux de bord
-- [ ] Phase 6 — Conformité, durcissement et qualité
+## Déjà livré
+- [x] Comptabilité SYSCOHADA complète (G-Compta) conservée et testée
+- [x] Environnement unique Santé + compta, thèmes médicaux sombre/clair, 3 palettes
+- [x] Phases 0 à 5 Santé : structures, dossier patient, clinique, laboratoire, facturation, portail, tableaux de bord
+- [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire) — 53/53 tests base
+- [x] P4 partiel : allergies, doses pédiatriques, portail lien unique, résultats sensibles masqués, remise en main propre, fusion en deux temps, date estimée, téléphone international
+- [x] E-mails d'authentification déployés (notify.g-sante.app)
 
-## Options Santé (document « G-Compta options Clinique »)
-- [x] Prérequis vérifiés
-- [x] S0 : secteur d'activité, modules, options Clinique/Laboratoire, lien structure ↔ entreprise, isolation testée
-- [x] Démo Santé (2 structures fictives isolées)
-- [x] S1 : dossier patient (création, doublons + fusion tracée, recherche paginée, fiche à onglets, documents privés, journal d'accès)
-- [x] S2 Clinique (+ certificats, paramétrage praticiens/actes ; rappels SMS J-1 via Twilio connecté : envoi manuel « Envoyer les rappels de demain » ; reste : expéditeur à configurer, envoi automatique quotidien)
-  - ancien détail : : praticiens, actes, médicaments, agenda/file d'attente, consultation verrouillée + addenda, constantes, ordonnance A4 — reste : certificats, rappels RDV, prescription d'analyses (avec S3), actes facturables (avec S4), écrans de paramétrage praticiens/actes
-- [x] S3 Laboratoire : catalogue, références sexe/âge, circuit complet, critiques acquittées, double validation, compte rendu A4 + QR, étiquettes code-barres, CQ Westgard bloquant + Levey-Jennings, réactifs/lots/péremption, rectificatif versionné, antériorités + delta-check — reste hors v1 : import CSV/ASTM automates
-- [x] S4 Facturation (factures immuables + avoirs, part patient/organisme, caisse, encaissements Mobile Money, suivi tiers-payant) — reste : bordereau par organisme, export G-Compta
-- [ ] S5 Portail · S6 Conformité
-- [ ] Audit du document « Module Santé (Cabinet + Laboratoire) » : type d'établissement, nomenclature catégorisée — comparer à l'existant
-- [x] Environnement unique G-Santé ERP (menu Santé + compta) aux couleurs santé
-- [x] Cahier des charges réel (état actuel du code) pour consultant
-- [x] Document 2 : compléments (6 points)
+## Étape 1 — Corriger les blocages vus en test (priorité)
+- [ ] Activer automatiquement les modules à la création d'une structure (selon son type)
+- [ ] Rôle par défaut du créateur : administrateur + rôle métier choisi à l'onboarding
+- [ ] Messages « Accès refusé » explicites (rôle manquant, module inactif, MFA requise)
+- [ ] Connexion Google : saisir l'identifiant et la clé Google du nouvel espace de travail
 
-## Mise à jour sécurité (document du 3 oct.)
-- [x] P0 : fonctions base fermées aux visiteurs, portail (code secret + 5 essais/h), notifications (appartenance vérifiée), démo Santé (mot de passe aléatoire, activable), DGID (adresse autorisée + « simulée »), clôture/réouverture d'exercice par la base
-- [ ] P0 : code à usage unique par e-mail pour le portail — attend un domaine d'envoi d'e-mails
-- [ ] P0 : CORS restreint — le serveur renvoie encore l'origine appelante (à revoir)
-- [x] P1bis : écritures automatiques facture/avoir/encaissement santé (VT/CA/BQ, 4111/4114/706/57X/52X) + bordereau mensuel par organisme
-- [x] P1 : note de conformité, registre des violations, consentement vérifié en base
-- [x] P1 : accès d'urgence (motif, 1 h, alerte admin, revue)
-- [ ] P1 : durée de conservation médicale — attend avis juriste / CDP
-- [x] P1bis : facturation automatique (clôture consultation, validation labo), réglable par structure
-- [ ] P2 workflows · P3 nettoyage
+## Étape 2 — Terminer P4 (patient, clinique, portail)
+- [ ] Tests automatiques de la fusion en deux temps + essai à l'écran
+- [ ] Vérifier la liste des analyses sensibles avec le biologiste
+- [ ] Signature du consentement complet à l'écran
+- [ ] Tests du lien unique du portail
 
-## Portail patient, automatisations, pilotage (5 oct.)
-- [x] Portail patient : lien 48 h/24 h depuis la fiche, ou n° dossier + code SMS (session 24 h), téléchargement A4
-- [x] Rappels SMS automatiques chaque soir à 18 h
-- [ ] E-mail au prescripteur/patient à la validation d'un compte rendu — attend un domaine d'envoi d'e-mails (le champ e-mail du praticien est en place dans Catalogue)
-- [x] Tableaux de bord direction, laboratoire (délais), tiers-payant
-- [ ] EN PAUSE (décision utilisateur) : paramétrage SMS Twilio — passage compte payant, enregistrement Sender ID G-SANTE (défaut dans le code), Geo permissions Sénégal
-- [ ] ÉCARTÉ (décision utilisateur 05/10) : module Hospitalisation & lits — ne pas développer sans demande explicite
+## Étape 3 — P5 Exploitation
+- [ ] Stocks pharmacie/réactifs reliés aux consultations et au labo
+- [ ] Personnel : plannings, gardes, lien paie
+- [ ] Rétrocessions aux praticiens
+- [ ] Sauvegardes, supervision, journal d'exploitation
 
-## Mise à jour suite à l'analyse critique (document « MAJ G-SANTE ERP », 5 oct.) — phase par phase, validation entre chaque
-- [x] P0 Sécurité — tests base 20/20, fonctions durcies, MFA TOTP, double validation labo, journal d'accès admin, CI prête. Bloqués : préprod (2e environnement), jeton dans le coffre, CORS passerelle
-- [x] P1 Cloisonnement, besoin d'en connaître, bris de glace, conformité technique (docs/securite/P1-rapport.md). Contenus juridiques à compléter par le porteur
-- [x] P2 critères de sortie atteints (docs/securite/P2-rapport.md)
-- [x] P2 suite livrée (TVA à valider par le fiscaliste, comptes à valider par l'expert-comptable)
-- [x] P3 Laboratoire — 49/49 tests base (docs/securite/P3-rapport.md). Reste hors v1 : connexion directe ASTM/HL7
-- [ ] P4 Patient/clinique/portail — livrés : blocage allergie aux ordonnances, portail lien unique + résultats sensibles masqués, remise en main propre, fusion en deux temps (migration 0044, écran Patients), date de naissance « estimée » (0045), téléphones au format international, alerte doses enfant selon le poids (0046-0047) — 53/53 tests DB. Reste : tests + essai écran de la fusion, vérifier la liste des analyses sensibles, signature du consentement complet à l'écran, e-mail au prescripteur (attente DNS du domaine d'envoi)
-- [ ] P5 Stocks, personnel, rétrocessions, exploitation
+## Étape 4 — Phase 6 Conformité et qualité
+- [ ] Portail : code à usage unique par e-mail
+- [ ] CORS restreint aux domaines g-sante.app
+- [ ] Workflows (P2) et nettoyage du code (P3)
+- [ ] Audit du document « Module Santé (Cabinet + Laboratoire) »
+- [ ] Parcours complet testé sur ordinateur et tablette, tous rôles
+- [ ] Réattribution des rôles réels (retirer « tous les rôles » du compte de test)
 
-- [x] E-mail : auth-email-hook déployée (domaine notify.g-sante.app, modèles aux couleurs G-Santé) — activation effective après vérification DNS, suivi dans Cloud → Emails
+## Étape 5 — Mise en service
+- [ ] Environnement de préproduction séparé
+- [ ] Publication, domaine g-sante.app vérifié
+- [ ] Formation et documentation utilisateur
+
+## En attente d'une action externe
+- [ ] Vérification DNS du domaine d'envoi d'e-mails (e-mails praticien/patient)
+- [ ] Twilio : compte payant, Sender ID G-SANTE, autorisation Sénégal (EN PAUSE)
+- [ ] Juriste / CDP : autorisation de traitement, durée de conservation médicale
+- [ ] Expert-comptable / fiscaliste : comptes santé et TVA
+- [ ] Accès DGID officiels (e-facturation réelle)
+- [ ] Biologiste : durée de conservation des échantillons (7 jours par défaut)
+
+## Écartés
+- Hospitalisation & lits (décision du 05/10/2026)
+- Liaison directe automates ASTM/HL7 (hors v1, import fichier seulement)
