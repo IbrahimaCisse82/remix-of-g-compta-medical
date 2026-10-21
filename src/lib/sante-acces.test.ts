@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
 
-import { classerRefus, estMessageExplicite, messageRefusGenerique } from './sante-acces';
+import { classerRefus, completerMessageModule, estMessageExplicite, messageRefusGenerique } from './sante-acces';
 
 describe('classerRefus', () => {
   it('reconnaît les messages serveur explicites', () => {
@@ -27,6 +27,26 @@ describe('classerRefus', () => {
     expect(estMessageExplicite('mfa')).toBe(true);
     expect(estMessageExplicite('rls')).toBe(false);
     expect(estMessageExplicite(null)).toBe(false);
+  });
+});
+
+describe('messages réels observés en recette (21/10/2026)', () => {
+  it('« Accès refusé » nu est complété avec les rôles', () => {
+    expect(classerRefus({ message: 'Accès refusé', code: 'P0001' })).toBe('rls');
+  });
+  it('« Module laboratoire inactif » reçoit la marche à suivre', () => {
+    expect(classerRefus({ message: 'Module laboratoire inactif', code: 'P0001' })).toBe('module');
+    expect(completerMessageModule('Module laboratoire inactif')).toBe(
+      'Module laboratoire inactif : demandez à l’administrateur de la structure de l’activer (Structure & paramètres).',
+    );
+  });
+  it('un message module déjà complet est conservé', () => {
+    const m = 'Module Dossier patient inactif : contactez votre administrateur pour son activation.';
+    expect(completerMessageModule(m)).toBe(m);
+  });
+  it('les refus métier de l’onboarding restent affichés tels quels', () => {
+    expect(classerRefus({ message: 'Rôle incompatible avec le type de structure', code: 'P0001' })).toBeNull();
+    expect(classerRefus({ message: 'Rôle métier invalide', code: 'P0001' })).toBeNull();
   });
 });
 
