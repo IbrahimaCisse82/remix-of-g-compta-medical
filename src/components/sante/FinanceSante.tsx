@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fcfa } from '@/domain/sante/tiers-payant';
 
-const db = supabase as any;
+const db = supabase;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
 export function OutboxCard({ structureId }: { structureId: string }) {
@@ -17,7 +18,7 @@ export function OutboxCard({ structureId }: { structureId: string }) {
       db.rpc('sante_outbox_resume', { _structure_id: structureId }),
       db.from('sante_compta_evenements').select('id, source_type, libelle, derniere_erreur, tentatives').eq('structure_id', structureId).neq('statut', 'comptabilise').order('created_at').limit(20),
     ]);
-    if (!a.error) setR(a.data); setErreurs(b.data ?? []);
+    if (!a.error) setR(a.data as unknown as { en_attente: number; en_erreur: number; comptabilise: number }); setErreurs(b.data ?? []);
   };
   useEffect(() => { void load(); }, [structureId]);
   if (!r) return null;
@@ -44,7 +45,7 @@ type Remb = { id: string; montant: number; motif: string; statut: string; create
 export function RemboursementsCard({ structureId }: { structureId: string }) {
   const [list, setList] = useState<Remb[]>([]);
   const load = () => db.from('sante_remboursements').select('id, montant, motif, statut, created_at, facture:sante_factures!sante_remboursements_facture_id_fkey(numero)')
-    .eq('structure_id', structureId).in('statut', ['demande', 'approuve']).order('created_at', { ascending: false }).then(({ data }: any) => setList(data ?? []));
+    .eq('structure_id', structureId).in('statut', ['demande', 'approuve']).order('created_at', { ascending: false }).then(({ data }) => setList(data ?? []));
   useEffect(() => { load(); }, [structureId]);
   if (!list.length) return null;
   const decider = async (id: string, ok: boolean) => {
@@ -84,13 +85,13 @@ export function ReglementOrganismeCard({ structureId }: { structureId: string })
   const [ref, setRef] = useState('');
 
   useEffect(() => {
-    db.from('sante_organismes').select('nom').eq('structure_id', structureId).eq('actif', true).order('nom').then(({ data }: any) => setOrganismes((data ?? []).map((o: any) => o.nom)));
+    db.from('sante_organismes').select('nom').eq('structure_id', structureId).eq('actif', true).order('nom').then(({ data }) => setOrganismes((data ?? []).map((o) => o.nom)));
   }, [structureId]);
   const charger = async (o: string) => {
     setOrg(o); setImput({});
     const { data } = await db.from('sante_factures').select('id, numero, part_organisme, organisme').eq('structure_id', structureId).eq('organisme', o)
       .eq('type', 'facture').eq('annulee', false).neq('statut_tiers', 'paye').gt('part_organisme', 0).order('created_at').limit(100);
-    const avecReste = await Promise.all((data ?? []).map(async (f: any) => ({ ...f, reste: Number((await db.rpc('sante_reste_organisme', { _facture_id: f.id })).data ?? 0) })));
+    const avecReste = await Promise.all((data ?? []).map(async (f) => ({ ...f, reste: Number((await db.rpc('sante_reste_organisme', { _facture_id: f.id })).data ?? 0) })));
     setFactures(avecReste.filter(f => f.reste > 0));
   };
   const total = Object.values(imput).reduce((s, v) => s + (Number(v) || 0), 0);
@@ -155,7 +156,7 @@ export function ParametresFinanceCard({ structureId }: { structureId: string }) 
       db.from('structures').select('facturation_labo_moment').eq('id', structureId).maybeSingle(),
       Promise.all(CLES.map(async ([k]) => [k, (await db.rpc('sante_compte', { _structure_id: structureId, _cle: k })).data] as const)),
     ]);
-    setComptes(Object.fromEntries((p.data ?? []).map((x: any) => [x.cle, x.compte])));
+    setComptes(Object.fromEntries((p.data ?? []).map(x => [x.cle, x.compte])));
     setOrgs(o.data ?? []); setMoment(s.data?.facturation_labo_moment ?? 'enregistrement');
     setDefauts(Object.fromEntries(d));
   };
@@ -166,7 +167,7 @@ export function ParametresFinanceCard({ structureId }: { structureId: string }) 
     const { error } = await db.rpc('sante_definir_compte', { _structure_id: structureId, _cle: cle, _compte: compte.trim() });
     if (error) void toastErreurSante(error, structureId); else { toast.success('Compte enregistré'); void load(); }
   };
-  const majOrg = async (id: string, patch: Record<string, unknown>) => {
+  const majOrg = async (id: string, patch: TablesUpdate<'sante_organismes'>) => {
     const { error } = await db.from('sante_organismes').update(patch).eq('id', id);
     if (error) void toastErreurSante(error, structureId); else void load();
   };
@@ -223,11 +224,11 @@ const CATS = ['consultation', 'acte', 'analyses', 'medicaments', 'autres'];
 export function ConventionsCard({ structureId }: { structureId: string }) {
   const [orgs, setOrgs] = useState<string[]>([]);
   const [org, setOrg] = useState('');
-  const [conv, setConv] = useState<any[]>([]);
-  const [tarifs, setTarifs] = useState<any[]>([]);
-  const [excl, setExcl] = useState<any[]>([]);
+  const [conv, setConv] = useState<Tables<'sante_conventions'>[]>([]);
+  const [tarifs, setTarifs] = useState<Tables<'sante_tarifs_convention'>[]>([]);
+  const [excl, setExcl] = useState<Tables<'sante_convention_exclusions'>[]>([]);
   const [f, setF] = useState({ categorie: 'consultation', taux: '80', plafond: '', franchise: '0', code: '', tarif: '', exclu: '' });
-  useEffect(() => { db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data }: any) => setOrgs((data ?? []).map((o: any) => o.nom))); }, [structureId]);
+  useEffect(() => { db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data }) => setOrgs((data ?? []).map((o) => o.nom))); }, [structureId]);
   const charger = async (o: string) => {
     setOrg(o); if (!o) return;
     const [a, b, c] = await Promise.all([
@@ -237,7 +238,7 @@ export function ConventionsCard({ structureId }: { structureId: string }) {
     ]);
     setConv(a.data ?? []); setTarifs(b.data ?? []); setExcl(c.data ?? []);
   };
-  const ok = (r: any) => { if (r.error) toast.error(r.error.message); else void charger(org); };
+  const ok = (r: { error: { message: string } | null }) => { if (r.error) toast.error(r.error.message); else void charger(org); };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
       <h3 className="font-semibold">Conventions tiers-payant</h3>
@@ -273,9 +274,9 @@ export function ConventionsCard({ structureId }: { structureId: string }) {
 
 /** Bons de prise en charge (numéro, validité, plafond, consommation, accord préalable). */
 export function BonsPecCard({ structureId, patientId, organismes }: { structureId: string; patientId: string; organismes: string[] }) {
-  const [bons, setBons] = useState<any[]>([]);
+  const [bons, setBons] = useState<Tables<'sante_bons_pec'>[]>([]);
   const [f, setF] = useState({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false });
-  const load = () => db.from('sante_bons_pec').select('*').eq('patient_id', patientId).order('date_fin', { ascending: false }).then(({ data }: any) => setBons(data ?? []));
+  const load = () => db.from('sante_bons_pec').select('*').eq('patient_id', patientId).order('date_fin', { ascending: false }).then(({ data }) => setBons(data ?? []));
   useEffect(() => { load(); }, [patientId]);
   const ajouter = async () => {
     const { error } = await db.from('sante_bons_pec').insert({ structure_id: structureId, patient_id: patientId, organisme: f.organisme, numero: f.numero.trim(), date_fin: f.date_fin, plafond: f.plafond ? Number(f.plafond) : null, accord_prealable: f.accord });
@@ -299,8 +300,8 @@ export function BonsPecCard({ structureId, patientId, organismes }: { structureI
 
 /** Créances par organisme (âge), relances imprimables, provision des créances douteuses. */
 export function CreancesOrganismesCard({ structureId }: { structureId: string }) {
-  const [rows, setRows] = useState<any[]>([]);
-  const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { if (!error) setRows(data ?? []); });
+  const [rows, setRows] = useState<Database['public']['Functions']['sante_creances_organismes']['Returns']>([]);
+  const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }) => { if (!error) setRows(data ?? []); });
   useEffect(() => { load(); }, [structureId]);
   if (!rows.length) return null;
   const relancer = async (o: string) => {
@@ -308,7 +309,7 @@ export function CreancesOrganismesCard({ structureId }: { structureId: string })
     if (error) { void toastErreurSante(error, structureId); return; }
     const { data: r } = await db.from('sante_relances').select('niveau, montant, factures').eq('id', data).single();
     const { data: fs } = await db.from('sante_factures').select('numero, created_at, part_organisme').in('id', r.factures);
-    const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${o}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${o}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map((f: any) => `<tr><td>${f.numero}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
+    const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${o}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${o}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map(f => `<tr><td>${f.numero}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
     load();
   };
   const provisionner = async (o: string, total: number) => {
@@ -337,7 +338,7 @@ export function AnalytiqueSanteCard({ structureId }: { structureId: string }) {
   const [rows, setRows] = useState<{ axe: string; montant: number; nb: number }[]>([]);
   useEffect(() => {
     const d = new Date(`${mois}-01`); const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-    db.rpc('sante_ca_analytique', { _structure_id: structureId, _debut: `${mois}-01`, _fin: fin, _axe: axe }).then(({ data, error }: any) => setRows(error ? [] : data ?? []));
+    db.rpc('sante_ca_analytique', { _structure_id: structureId, _debut: `${mois}-01`, _fin: fin, _axe: axe }).then(({ data, error }) => setRows(error ? [] : data ?? []));
   }, [structureId, axe, mois]);
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
@@ -357,7 +358,7 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
   const [regime, setRegime] = useState('exonere');
   const [prorata, setProrata] = useState('0');
   const [cr, setCr] = useState(false);
-  const [blocs, setBlocs] = useState<any[]>([]);
+  const [blocs, setBlocs] = useState<Tables<'sante_blocs_secours'>[]>([]);
   const load = async () => {
     const [s, b] = await Promise.all([
       db.from('structures').select('regime_tva, prorata_tva, cr_conditionne_reglement').eq('id', structureId).maybeSingle(),
@@ -401,9 +402,9 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
 
 /** Saisie a posteriori d'une facture papier du mode secours. */
 export function SaisieSecoursCard({ structureId }: { structureId: string }) {
-  const [blocs, setBlocs] = useState<any[]>([]);
+  const [blocs, setBlocs] = useState<Tables<'sante_blocs_secours'>[]>([]);
   const [f, setF] = useState({ bloc: '', rang: '', dossier: '', libelle: '', montant: '' });
-  useEffect(() => { db.from('sante_blocs_secours').select('*').eq('structure_id', structureId).then(({ data }: any) => setBlocs(data ?? [])); }, [structureId]);
+  useEffect(() => { db.from('sante_blocs_secours').select('*').eq('structure_id', structureId).then(({ data }) => setBlocs(data ?? [])); }, [structureId]);
   if (!blocs.length) return null;
   const saisir = async () => {
     const { data: p } = await db.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: f.dossier, _limit: 1, _offset: 0 });

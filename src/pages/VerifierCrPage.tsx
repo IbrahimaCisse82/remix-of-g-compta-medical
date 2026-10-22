@@ -11,7 +11,7 @@ export default function VerifierCrPage() {
   const [v, setV] = useState<Verif | null>(null);
   useEffect(() => {
     document.title = 'Vérification de compte rendu — G-Santé';
-    void supabase.rpc('sante_verifier_cr' as never, { _token: token } as never).then(({ data }) => setV((data as Verif) ?? { authentique: false }));
+    void supabase.rpc('sante_verifier_cr', { _token: token }).then(({ data }) => setV((data as Verif) ?? { authentique: false }));
   }, [token]);
   return (
     <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">

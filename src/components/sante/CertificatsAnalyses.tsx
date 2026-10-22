@@ -3,6 +3,7 @@ import { FileText, FlaskConical, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,9 +14,9 @@ import { NouvelleDemande } from './LaboratoirePage';
 const TYPES = [['autre', 'Certificat médical'], ['aptitude', 'Aptitude'], ['arret_travail', 'Arrêt de travail'], ['repos', 'Repos'], ['constat', 'Constatation']] as const;
 
 /** Certificats médicaux + prescription d'analyses en un clic depuis la consultation. */
-export default function CertificatsAnalyses({ consultation }: { consultation: Record<string, any> }) {
-  const [certs, setCerts] = useState<any[]>([]);
-  const [demandes, setDemandes] = useState<any[]>([]);
+export default function CertificatsAnalyses({ consultation }: { consultation: Tables<'sante_consultations'> & { praticien?: { nom: string } | null } }) {
+  const [certs, setCerts] = useState<Pick<Tables<'sante_certificats'>, 'id' | 'numero' | 'type' | 'emis_le'>[]>([]);
+  const [demandes, setDemandes] = useState<Pick<Tables<'sante_demandes_labo'>, 'id' | 'numero' | 'statut'>[]>([]);
   const [type, setType] = useState<string>('autre');
   const [contenu, setContenu] = useState('');
   const [jours, setJours] = useState('');
