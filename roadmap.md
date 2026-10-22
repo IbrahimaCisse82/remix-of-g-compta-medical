@@ -1,5 +1,8 @@
 # Plan de développement G-Santé ERP — objectif 100 % fonctionnel
-Mise à jour : 21 octobre 2026
+Mise à jour : 22 octobre 2026
+
+## Objectif demandé
+- [ ] Rendre tous les modules du périmètre fonctionnels, avec validation de chaque étape avant la suivante ; ne pas déclarer 100 % tant que les parcours et dépendances externes ne sont pas validés.
 
 ## Déjà livré
 - [x] Comptabilité SYSCOHADA complète (G-Compta) conservée et testée
