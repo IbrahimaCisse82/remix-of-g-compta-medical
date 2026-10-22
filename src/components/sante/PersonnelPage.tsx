@@ -92,17 +92,17 @@ export default function PersonnelPage({ structureId, structureNom }: { structure
       </div>
 
       {admin && (
-        <form onSubmit={ajouter} className="border border-border bg-bg2 rounded-md p-4 grid gap-2 md:grid-cols-[2fr_1fr_1fr_auto_auto_1fr_auto]">
-          <select required aria-label="Personne" className="h-10 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.personne} onChange={e => setF({ ...f, personne: e.target.value })}>
-            <option value="">Personne…</option>{personnes.map(p => <option key={cle(p)} value={cle(p)}>{p.nom} · {p.fonction}{p.employee_id ? '' : ' (hors paie)'}</option>)}
+        <form onSubmit={ajouter} className="border border-border bg-bg2 rounded-md p-4 grid gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto_minmax(0,1fr)_auto]">
+          <select required aria-label="Personne" className="h-10 w-full min-w-0 col-span-2 sm:col-span-3 xl:col-span-1 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.personne} onChange={e => setF({ ...f, personne: e.target.value })}>
+            <option value="">Personne…</option>{personnes.map(p => <option key={cle(p)} value={cle(p)}>{p.nom} · {p.fonction.length > 40 ? p.fonction.slice(0, 40) + '…' : p.fonction}{p.employee_id ? '' : ' (hors paie)'}</option>)}
           </select>
-          <select aria-label="Type de créneau" className="h-10 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.type} onChange={e => setF({ ...f, type: e.target.value as TypeCreneau, ...(e.target.value === 'garde' ? { hd: '20:00', hf: '08:00' } : {}) })}>{TYPES_CRENEAU.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
+          <select aria-label="Type de créneau" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.type} onChange={e => setF({ ...f, type: e.target.value as TypeCreneau, ...(e.target.value === 'garde' ? { hd: '20:00', hf: '08:00' } : {}) })}>{TYPES_CRENEAU.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
           <Input aria-label="Date de début" type="date" value={f.date} onChange={e => setF({ ...f, date: e.target.value })} />
           <Input aria-label="Heure de début" type="time" value={f.hd} onChange={e => setF({ ...f, hd: e.target.value })} />
           <Input aria-label="Heure de fin" type="time" value={f.hf} onChange={e => setF({ ...f, hf: e.target.value })} />
           <Input aria-label="Date de fin (congé sur plusieurs jours)" type="date" title="Facultatif : congé ou absence sur plusieurs jours" value={f.dateFin} onChange={e => setF({ ...f, dateFin: e.target.value })} />
           <Button aria-label="Ajouter le créneau"><Plus /></Button>
-          <Input aria-label="Note" className="md:col-span-7" placeholder="Note (facultatif)" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} />
+          <Input aria-label="Note" className="col-span-2 sm:col-span-3 xl:col-span-7" placeholder="Note (facultatif)" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} />
         </form>
       )}
 

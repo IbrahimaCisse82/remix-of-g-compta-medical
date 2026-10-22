@@ -131,8 +131,8 @@ export default function RetrocessionsPage({ structureId, structureNom }: { struc
                 {rs.length === 0 && <span className="text-fg3 text-xs">Aucun taux : rien ne sera rétrocédé.</span>}
                 {rs.map(r => <span key={r.id} className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5">{LIB_CAT[r.categorie]} : <strong>{Number(r.taux)} %</strong><button aria-label="Retirer ce taux" className="text-fg3 hover:text-destructive" onClick={() => retirerRegle(r.id)}><Trash2 className="h-3 w-3" /></button></span>)}
               </div>
-              <div className="grid grid-cols-[2fr_1fr_auto_auto] gap-2">
-                <select aria-label="Catégorie" className="h-9 bg-bg3 border border-border rounded-md px-2 text-sm" value={n.categorie} onChange={e => setNouvelle(s => ({ ...s, [p.id]: { ...n, categorie: e.target.value as CategorieRetro } }))}>{CATEGORIES_RETRO.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</select>
+              <div className="grid grid-cols-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto_auto] gap-2">
+                <select aria-label="Catégorie" className="h-9 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={n.categorie} onChange={e => setNouvelle(s => ({ ...s, [p.id]: { ...n, categorie: e.target.value as CategorieRetro } }))}>{CATEGORIES_RETRO.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</select>
                 <Input aria-label="Taux en %" inputMode="decimal" placeholder="Taux %" value={n.taux} onChange={e => setNouvelle(s => ({ ...s, [p.id]: { ...n, taux: e.target.value } }))} />
                 <Button size="sm" variant="outline" onClick={() => ajouterRegle(p.id)}>Enregistrer le taux</Button>
                 <Button size="sm" onClick={() => calculer(p.id)}><Calculator />Calculer</Button>
