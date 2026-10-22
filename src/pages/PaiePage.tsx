@@ -47,9 +47,16 @@ export default function PaiePage() {
   const periode = `${annee}-${String(mois).padStart(2, '0')}`;
   const refDate = useMemo(() => new Date(annee, mois - 1, 28), [annee, mois]);
 
+  // Primes de garde/astreinte validées dans G-Santé (Personnel) pour le mois, par salarié.
+  const [primesGardes, setPrimesGardes] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!entreprise) return;
+    void supabase.rpc('sante_primes_gardes_paie', { _entreprise_id: entreprise.id, _annee: annee, _mois: mois })
+      .then(({ data, error }) => setPrimesGardes(error ? {} : Object.fromEntries((data ?? []).map(r => [r.employee_id, Number(r.montant) || 0]))));
+  }, [entreprise, annee, mois]);
   const bulletins = useMemo(
-    () => employees.map(e => ({ emp: e, paie: calculerPaie(e, params, refDate) })),
-    [employees, params, refDate],
+    () => employees.map(e => ({ emp: e, paie: calculerPaie({ ...e, prime_gardes: (e.id && primesGardes[e.id]) || 0 }, params, refDate) })),
+    [employees, params, refDate, primesGardes],
   );
 
   const totaux = useMemo(() => bulletins.reduce((a, b) => ({
@@ -66,7 +73,9 @@ export default function PaiePage() {
   async function saveEmp() {
     if (!entreprise) return;
     if (!form.matricule || !form.prenom || !form.nom) { toast.error('Matricule, prénom, nom obligatoires'); return; }
-    const payload = { ...form, entreprise_id: entreprise.id, salaire_base: Number(form.salaire_base), sursalaire: Number(form.sursalaire), femmes: Number(form.femmes), enfants: Number(form.enfants) };
+    // prime_gardes est calculée chaque mois depuis G-Santé : elle n'est jamais stockée sur la fiche salarié.
+    const { prime_gardes: _primeGardes, ...fiche } = form;
+    const payload = { ...fiche, entreprise_id: entreprise.id, salaire_base: Number(form.salaire_base), sursalaire: Number(form.sursalaire), femmes: Number(form.femmes), enfants: Number(form.enfants) };
     if (editing) {
       const { error } = await supabase.from('employees').update(payload).eq('id', editing.id);
       if (error) return toast.error(error.message);
@@ -106,7 +115,7 @@ export default function PaiePage() {
       employee_id: emp.id,
       periode, annee, mois,
       salaire_base: paie.salaire_base, sursalaire: paie.sursalaire,
-      prime_anciennete: paie.prime_anciennete, brut: paie.brut,
+      prime_anciennete: paie.prime_anciennete, prime_gardes: paie.prime_gardes, brut: paie.brut,
       ir: paie.ir, trimf: paie.trimf,
       ipres_rg_s: paie.ipres_rg_s, ipres_rc_s: paie.ipres_rc_s, ipm_s: paie.ipm_s,
       total_retenues: paie.total_retenues,
@@ -249,6 +258,7 @@ export default function PaiePage() {
                     <Row l="Salaire de base" v={paie.salaire_base} />
                     <Row l="Sursalaire" v={paie.sursalaire} />
                     <Row l={`Prime ancienneté (${paie.anciennete} ans · ${(paie.taux_anciennete*100).toFixed(0)}%)`} v={paie.prime_anciennete} />
+                    {paie.prime_gardes > 0 && <Row l="Primes de garde / astreinte" v={paie.prime_gardes} />}
                     <Row l="SALAIRE BRUT" v={paie.brut} bold />
                     <Row l="IR (parts: " v={paie.ir} neg suffix={`${paie.parts_ir})`} />
                     <Row l={`TRIMF (parts: ${paie.parts_trimf})`} v={paie.trimf} neg />

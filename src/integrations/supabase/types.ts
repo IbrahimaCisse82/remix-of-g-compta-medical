@@ -331,6 +331,7 @@ export type Database = {
           transport: number | null
           trimf: number | null
           updated_at: string
+          prime_gardes: number
         }
         Insert: {
           annee: number
@@ -362,6 +363,7 @@ export type Database = {
           transport?: number | null
           trimf?: number | null
           updated_at?: string
+          prime_gardes?: number
         }
         Update: {
           annee?: number
@@ -393,6 +395,7 @@ export type Database = {
           transport?: number | null
           trimf?: number | null
           updated_at?: string
+          prime_gardes?: number
         }
         Relationships: [
           {
@@ -5061,6 +5064,78 @@ export type Database = {
           },
         ]
       }
+      sante_personnel_parametres: {
+        Row: {
+          forfait_astreinte: number
+          forfait_garde: number
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          forfait_astreinte?: number
+          forfait_garde?: number
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          forfait_astreinte?: number
+          forfait_garde?: number
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sante_plannings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          debut: string
+          employee_id: string | null
+          fin: string
+          id: string
+          membership_id: string | null
+          note: string | null
+          site_id: string | null
+          statut: string
+          structure_id: string
+          type: string
+          valide_le: string | null
+          valide_par: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          debut: string
+          employee_id?: string | null
+          fin: string
+          id?: string
+          membership_id?: string | null
+          note?: string | null
+          site_id?: string | null
+          statut?: string
+          structure_id: string
+          type: string
+          valide_le?: string | null
+          valide_par?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          debut?: string
+          employee_id?: string | null
+          fin?: string
+          id?: string
+          membership_id?: string | null
+          note?: string | null
+          site_id?: string | null
+          statut?: string
+          structure_id?: string
+          type?: string
+          valide_le?: string | null
+          valide_par?: string | null
+        }
+        Relationships: []
+      }
       sante_portail_patient: {
         Row: {
           created_at: string
@@ -7315,6 +7390,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      sante_personnel_liste: {
+        Args: {
+          _structure_id: string
+        }
+        Returns: { employee_id: string | null; fonction: string; membership_id: string | null; nom: string }[]
+      }
       sante_prelever: {
         Args: {
           _conditions: Json
@@ -7323,6 +7404,14 @@ export type Database = {
           _site: string
         }
         Returns: undefined
+      }
+      sante_primes_gardes_paie: {
+        Args: {
+          _annee: number
+          _entreprise_id: string
+          _mois: number
+        }
+        Returns: { astreintes: number; employee_id: string; gardes: number; montant: number }[]
       }
       sante_prochain_numero: {
         Args: { _prefixe: string; _structure_id: string; _type: string }
@@ -7346,6 +7435,14 @@ export type Database = {
         Returns: number
       }
       sante_rapport_caisse: { Args: { _session_id: string }; Returns: Json }
+      sante_recap_personnel: {
+        Args: {
+          _annee: number
+          _mois: number
+          _structure_id: string
+        }
+        Returns: Json
+      }
       sante_recevoir_sous_traitance: {
         Args: { _id: string; _reference: string }
         Returns: undefined
@@ -7522,6 +7619,12 @@ export type Database = {
       sante_traiter_non_conformite: {
         Args: { _action: string; _cloturer: boolean; _id: string }
         Returns: undefined
+      }
+      sante_valider_creneaux: {
+        Args: {
+          _ids: string[]
+        }
+        Returns: number
       }
       sante_valider_demande: {
         Args: { _demande_id: string; _niveau: string }
