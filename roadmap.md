@@ -8,15 +8,16 @@ Mise à jour : 22 octobre 2026
 - [x] Comptabilité SYSCOHADA complète (G-Compta) conservée et testée
 - [x] Environnement unique Santé + compta, thèmes médicaux sombre/clair, 3 palettes
 - [x] Phases 0 à 5 Santé : structures, dossier patient, clinique, laboratoire, facturation, portail, tableaux de bord
-- [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire) — 53/53 tests base
+- [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire) — 60/60 tests base au 22 octobre, dont 7 tests de création ; 9 tests patient/prescription également validés
 - [x] P4 partiel : allergies, doses pédiatriques, portail lien unique, résultats sensibles masqués, remise en main propre, fusion en deux temps, date estimée, téléphone international
 - [x] E-mails d'authentification déployés (notify.g-sante.app)
 
 ## Étape 1 — Corriger les blocages vus en test (priorité)
-- [ ] Activer automatiquement les modules à la création d'une structure (selon son type)
-- [ ] Rôle par défaut du créateur : administrateur + rôle métier choisi à l'onboarding
-- [ ] Messages « Accès refusé » explicites (rôle manquant, module inactif, MFA requise)
-- [ ] Connexion Google : saisir l'identifiant et la clé Google du nouvel espace de travail
+- [x] Activer automatiquement les modules à la création d'une structure (selon son type) — création atomique reliée à l'écran ; types cabinet/laboratoire/mixte testés par l'API réelle
+- [x] Rôle par défaut du créateur : administrateur + rôle métier choisi à l'onboarding — administration seule conservée sans accès clinique
+- [x] Création et ouverture d'un patient testées à l'écran, avec un compte dédié, sans erreur d'exécution
+- [ ] Messages « Accès refusé » explicites dans tous les parcours — création patient corrigée côté serveur ; autres parcours à vérifier
+- [ ] Connexion Google : écran corrigé pour utiliser la connexion gérée Lovable Cloud ; fournisseur activé, connexion complète avec un compte Google encore à vérifier
 
 ## Étape 2 — Terminer P4 (patient, clinique, portail)
 - [ ] Tests automatiques de la fusion en deux temps + essai à l'écran
