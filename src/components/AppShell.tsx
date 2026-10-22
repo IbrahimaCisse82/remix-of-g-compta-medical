@@ -70,6 +70,7 @@ const NAV: NavSection[] = [
   ]}]},
   { key: 'pilotage', section: 'Pilotage', icon: '📊', groups: [{ items: [
     { id: 'sante_pilotage', icon: '📊', label: 'Tableaux de bord santé' },
+    { id: 'sante_personnel', icon: '🗓️', label: 'Personnel & gardes' },
     { id: 'dashboard', icon: '◈', label: 'Tableau de bord financier', shortcut: 'Alt+D' },
     { id: 'clients', icon: '👥', label: 'Mes Clients', cabinet: true },
     { id: 'cabinet_mgmt', icon: '🏛️', label: 'Gestion Cabinet', cabinet: true },

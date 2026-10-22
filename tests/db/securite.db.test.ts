@@ -843,6 +843,35 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     }, 60_000);
   });
 
+  describe('Correctif 0053 — droits comptables jamais NULL', () => {
+    it('un utilisateur sans droit ne peut pas écrire dans le dossier comptable d’une autre entreprise', async () => {
+      const { data: s } = await admin.from('structures').select('entreprise_id').eq('id', S.A.structure).single();
+      if (!s?.entreprise_id) return;
+      const { data: ok } = await S.B.users.comptable.rpc('can_write_entreprise', { _entreprise_id: s.entreprise_id });
+      expect(ok).toBe(false);
+      const { data: exe } = await admin.from('exercices').select('id').eq('entreprise_id', s.entreprise_id).eq('statut', 'en_cours').limit(1).maybeSingle();
+      if (!exe) return;
+      const r = await S.B.users.comptable.rpc('fn_creer_ecriture', { _entreprise_id: s.entreprise_id, _exercice_id: exe.id, _journal_code: 'OD', _date: new Date().toISOString().slice(0, 10), _libelle: 'intrusion', _lignes: [{ compte: '571', debit: 1 }, { compte: '471', credit: 1 }], _piece: 'X', _statut: 'validee', _origine: 'saisie' });
+      expect(r.error).toBeTruthy();
+    }, 60_000);
+  });
+
+  describe('P5 — personnel', () => {
+    it('planning : écriture réservée à l’administrateur, lecture par l’équipe, récapitulatif restreint', async () => {
+      const st = S.A.structure;
+      const { data: m } = await admin.from('structure_memberships').select('id').eq('structure_id', st).limit(1).single();
+      const debut = new Date(Date.now() + 5 * 86400_000).toISOString(), fin = new Date(Date.now() + 5 * 86400_000 + 8 * 3600_000).toISOString();
+      expect((await S.A.users.secretaire.from('sante_plannings').insert({ structure_id: st, membership_id: m!.id, type: 'poste', debut, fin })).error).toBeTruthy();
+      const ok = await S.A.users.admin_structure.from('sante_plannings').insert({ structure_id: st, membership_id: m!.id, type: 'poste', debut, fin }).select('id').single();
+      expect(ok.error).toBeNull();
+      expect(((await S.A.users.lecteur.from('sante_plannings').select('id').eq('id', ok.data!.id)).data ?? []).length).toBe(1);
+      expect((await S.B.users.admin_structure.from('sante_plannings').select('id').eq('id', ok.data!.id)).data ?? []).toHaveLength(0);
+      expect((await S.A.users.medecin.rpc('sante_recap_personnel', { _structure_id: st, _annee: 2026, _mois: 10 })).error).toBeTruthy();
+      expect((await S.A.users.comptable.rpc('sante_recap_personnel', { _structure_id: st, _annee: 2026, _mois: 10 })).error).toBeNull();
+      await admin.from('sante_plannings').delete().eq('id', ok.data!.id);
+    }, 60_000);
+  });
+
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
     for (const role of ROLES) {

@@ -23,7 +23,7 @@ Mise à jour : 21 octobre 2026
 
 ## Étape 3 — P5 Exploitation
 - [x] Stocks pharmacie/réactifs reliés aux consultations et au labo — délivrance en consultation (sortie CUMP + écriture 6031/31x), réactifs consommés par test (FEFO) à la validation technique, alertes (migration 0050)
-- [ ] Personnel : plannings, gardes, lien paie
+- [x] Personnel : plannings, gardes, lien paie — créneaux sans chevauchement, validation « effectué », forfaits garde/astreinte repris dans le brut du bulletin (migration 0052)
 - [x] Rétrocessions aux praticiens — taux par catégorie, retenue à la source, relevé figé, paiement et annulation comptabilisés, sans commission sur prescription (migration 0051)
 - [ ] Sauvegardes, supervision, journal d'exploitation
 
@@ -39,6 +39,10 @@ Mise à jour : 21 octobre 2026
 - [ ] Environnement de préproduction séparé
 - [ ] Publication, domaine g-sante.app vérifié
 - [ ] Formation et documentation utilisateur
+
+## Correctifs de sécurité
+- [x] 22/10/2026 — `can_write_entreprise` / `can_admin_entreprise` renvoyaient NULL au lieu de false : 7 fonctions comptables ne bloquaient pas un utilisateur sans droit (écriture possible dans le dossier d'un autre). Corrigé (migration 0053), aucune exploitation constatée.
+- [x] 22/10/2026 — même piège NULL évité dans les rétrocessions (praticien sans compte).
 
 ## En attente d'une action externe
 - [ ] Vérification DNS du domaine d'envoi d'e-mails (e-mails praticien/patient)
