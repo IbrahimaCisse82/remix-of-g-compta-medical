@@ -766,6 +766,63 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
   });
 
 
+  describe('P5 — stocks reliés aux soins et au laboratoire', () => {
+    const st = () => S.A.structure;
+
+    it('délivrance en consultation : rôles, stock, atomicité, pas de lecture directe des articles par les soignants', async () => {
+      const { data: s } = await admin.from('structures').select('entreprise_id').eq('id', st()).single();
+      if (!s?.entreprise_id) return; // structure de test non reliée à un dossier comptable : couvert par la recette manuelle
+      const { data: art } = await admin.from('articles').upsert({ entreprise_id: s.entreprise_id, code: 'P5GANT', designation: 'Gants P5', unite: 'paire', quantite_stock: 10, prix_achat_moyen: 150, stock_minimum: 0 }, { onConflict: 'entreprise_id,code' }).select('id').single();
+      await admin.from('articles').update({ quantite_stock: 10, actif: true }).eq('id', art!.id);
+      const ligne = (q: number) => [{ article_id: art!.id, quantite: q }];
+      expect((await S.A.users.comptable.rpc('sante_dispenser', { _consultation_id: S.A.consultation, _lignes: ligne(1) })).error).toBeTruthy();
+      expect((await S.A.users.technicien.rpc('sante_dispenser', { _consultation_id: S.A.consultation, _lignes: ligne(1) })).error).toBeTruthy();
+      expect((await S.B.users.medecin.rpc('sante_dispenser', { _consultation_id: S.A.consultation, _lignes: ligne(1) })).error).toBeTruthy();
+      const ok = await S.A.users.medecin.rpc('sante_dispenser', { _consultation_id: S.A.consultation, _lignes: ligne(4) });
+      expect(ok.error).toBeNull();
+      expect(Number((await admin.from('articles').select('quantite_stock').eq('id', art!.id).single()).data!.quantite_stock)).toBe(6);
+      const bloc = await S.A.users.secretaire.rpc('sante_dispenser', { _consultation_id: S.A.consultation, _lignes: [...ligne(1), ...ligne(100)] });
+      expect(String(bloc.error?.message)).toMatch(/Stock insuffisant/);
+      expect(Number((await admin.from('articles').select('quantite_stock').eq('id', art!.id).single()).data!.quantite_stock)).toBe(6);
+      // Lecture de la trace : soignants oui, comptable non ; aucune écriture directe
+      expect(((await S.A.users.medecin.from('sante_dispensations').select('id').eq('consultation_id', S.A.consultation)).data ?? []).length).toBeGreaterThan(0);
+      expect((await S.A.users.comptable.from('sante_dispensations').select('id').eq('consultation_id', S.A.consultation)).data ?? []).toHaveLength(0);
+      expect((await S.A.users.medecin.from('sante_dispensations').insert({ structure_id: st(), consultation_id: S.A.consultation, patient_id: S.A.patient, article_id: art!.id, quantite: 1 })).error).toBeTruthy();
+      // L'écriture comptable ne porte ni nom ni identifiant de patient
+      const { data: ev } = await admin.from('sante_compta_evenements').select('libelle, lignes').eq('source_type', 'dispensation').order('created_at', { ascending: false }).limit(1).single();
+      expect(JSON.stringify(ev)).not.toMatch(new RegExp(S.A.patient));
+      expect(JSON.stringify(ev)).not.toMatch(/TESTA/);
+    }, 60_000);
+
+    it('réactifs par analyse : paramétrage réservé, consommation FEFO à la validation technique, rupture non bloquante', async () => {
+      const { data: re } = await admin.from('sante_reactifs').insert({ structure_id: st(), nom: `P5 réactif ${Date.now()}`, unite: 'test', seuil_alerte: 1 }).select('id').single();
+      const { data: an } = await admin.from('sante_analyses').select('id').eq('structure_id', st()).eq('code', 'P0GLY').single();
+      expect((await S.A.users.technicien.from('sante_analyse_reactifs').insert({ structure_id: st(), analyse_id: an!.id, reactif_id: re!.id, quantite_par_test: 1 })).error).toBeTruthy();
+      expect((await S.B.users.biologiste.from('sante_analyse_reactifs').insert({ structure_id: st(), analyse_id: an!.id, reactif_id: re!.id, quantite_par_test: 1 })).error).toBeTruthy();
+      expect((await S.A.users.biologiste.from('sante_analyse_reactifs').insert({ structure_id: st(), analyse_id: an!.id, reactif_id: re!.id, quantite_par_test: 2 })).error).toBeNull();
+      const j = (n: number) => new Date(Date.now() + n * 86400_000).toISOString().slice(0, 10);
+      await admin.from('sante_lots_reactifs').insert([
+        { structure_id: st(), reactif_id: re!.id, numero_lot: 'TARD', peremption: j(200), quantite_recue: 10, quantite_restante: 10 },
+        { structure_id: st(), reactif_id: re!.id, numero_lot: 'TOT', peremption: j(10), quantite_recue: 1, quantite_restante: 1 },
+      ]);
+      const { data: de } = await S.A.users.secretaire.rpc('sante_creer_demande_labo', { _patient_id: S.A.patient, _analyses: [an!.id], _prescripteur: 'Dr TEST', _urgence: false, _renseignements: null, _consultation_id: null });
+      for (const statut of ['prelevee', 'recue', 'en_analyse', 'validee_technique']) await admin.from('sante_demandes_labo').update({ statut }).eq('id', de as string);
+      const { data: lots } = await admin.from('sante_lots_reactifs').select('numero_lot, quantite_restante').eq('reactif_id', re!.id).order('numero_lot');
+      expect(lots!.map(l => `${l.numero_lot}=${Number(l.quantite_restante)}`)).toEqual(['TARD=9', 'TOT=0']);
+      expect(((await S.A.users.technicien.from('sante_consommations_reactifs').select('id').eq('demande_id', de as string)).data ?? []).length).toBe(2);
+      expect((await S.A.users.secretaire.from('sante_consommations_reactifs').select('id').eq('demande_id', de as string)).data ?? []).toHaveLength(0);
+      await admin.from('sante_analyse_reactifs').update({ quantite_par_test: 500 }).eq('analyse_id', an!.id).eq('reactif_id', re!.id);
+      for (const statut of ['en_analyse', 'validee_technique']) expect((await admin.from('sante_demandes_labo').update({ statut }).eq('id', de as string)).error).toBeNull();
+      const { data: rup } = await admin.from('sante_consommations_reactifs').select('quantite').eq('demande_id', de as string).eq('rupture', true);
+      expect(rup!.map(r => Number(r.quantite))).toEqual([491]);
+      const al = await S.A.users.biologiste.rpc('sante_alertes_stock', { _structure_id: st() });
+      expect(al.error).toBeNull();
+      expect(JSON.stringify(al.data)).toMatch(/P5 réactif/);
+      expect((await S.A.users.comptable.rpc('sante_alertes_stock', { _structure_id: st() })).error).toBeTruthy();
+      await admin.from('sante_analyse_reactifs').delete().eq('reactif_id', re!.id);
+    }, 90_000);
+  });
+
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
     for (const role of ROLES) {

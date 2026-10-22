@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { NonConformites, Eeq, Echantillons } from './QualiteLabo';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { AlertesStockCard, ReactifsParAnalyse } from './StocksSante';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { alertesReactif } from '@/domain/sante/westgard';
@@ -134,6 +135,7 @@ function Reactifs({ structureId }: { structureId: string }) {
 
   return (
     <div className="space-y-4">
+      <AlertesStockCard structureId={structureId} />
       <form onSubmit={creer} className="border border-border bg-bg2 rounded-md p-4 grid grid-cols-[3fr_1fr_1fr_auto] gap-2">
         <Input required aria-label="Nom du réactif" placeholder="Réactif" value={f.nom} onChange={e => setF({ ...f, nom: e.target.value })} />
         <Input aria-label="Unité" placeholder="Unité" value={f.unite} onChange={e => setF({ ...f, unite: e.target.value })} />
@@ -157,6 +159,7 @@ function Reactifs({ structureId }: { structureId: string }) {
           })}
         </section>;
       })}
+      <ReactifsParAnalyse structureId={structureId} />
     </div>
   );
 }
