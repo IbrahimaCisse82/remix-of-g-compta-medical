@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -10,9 +9,9 @@ const VALID_MAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
 /** Paramétrage : praticiens, actes facturables, catalogue d'analyses. Écriture réservée aux administrateurs (contrôlé par la base). */
 export default function CataloguePage({ structureId }: { structureId: string }) {
-  const [praticiens, setPraticiens] = useState<Tables<'sante_praticiens'>[]>([]);
-  const [actes, setActes] = useState<Tables<'sante_actes'>[]>([]);
-  const [analyses, setAnalyses] = useState<Pick<Tables<'sante_analyses'>, 'id' | 'code' | 'libelle' | 'section' | 'tarif' | 'delai_heures' | 'actif'>[]>([]);
+  const [praticiens, setPraticiens] = useState<any[]>([]);
+  const [actes, setActes] = useState<any[]>([]);
+  const [analyses, setAnalyses] = useState<any[]>([]);
   const [pr, setPr] = useState({ nom: '', specialite: '', numero_ordre: '', email: '' });
   const [ac, setAc] = useState({ code: '', libelle: '', tarif: '' });
 

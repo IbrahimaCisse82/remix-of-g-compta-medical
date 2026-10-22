@@ -344,48 +344,6 @@
       "when": 1792587250361,
       "tag": "0048_sante_onboarding_atomic",
       "breakpoints": true
-    },
-    {
-      "idx": 49,
-      "version": "7",
-      "when": 1792606111462,
-      "tag": "0049_p4_fusion_audit_consentement_signe",
-      "breakpoints": true
-    },
-    {
-      "idx": 50,
-      "version": "7",
-      "when": 1792668229603,
-      "tag": "0050_p5_stocks_soins_labo",
-      "breakpoints": true
-    },
-    {
-      "idx": 51,
-      "version": "7",
-      "when": 1792669075882,
-      "tag": "0051_p5_retrocessions_praticiens",
-      "breakpoints": true
-    },
-    {
-      "idx": 52,
-      "version": "7",
-      "when": 1792669744864,
-      "tag": "0052_p5_personnel_plannings_gardes",
-      "breakpoints": true
-    },
-    {
-      "idx": 53,
-      "version": "7",
-      "when": 1792669744865,
-      "tag": "0053_securite_droits_entreprise_null",
-      "breakpoints": true
-    },
-    {
-      "idx": 54,
-      "version": "7",
-      "when": 1792670274822,
-      "tag": "0054_p5_exploitation_supervision",
-      "breakpoints": true
     }
   ]
 }

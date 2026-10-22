@@ -2,13 +2,10 @@
 // Aucune réflexion d'une origine inconnue (réponse « null »).
 // Ajouter le domaine publié / personnalisé via le secret APP_ALLOWED_ORIGINS (séparé par des virgules).
 const PROJET = '5f0ce04a-cf66-48eb-b5c2-ddbb8f8c2a2a';
-const APERCU = [
+const FIXES = [
   `https://id-preview--${PROJET}.lovable.app`,
   `https://${PROJET}.lovableproject.com`,
 ];
-// Domaines de production (README) : le portail patient et la vérification des comptes rendus y sont servis.
-const PRODUCTION = ['https://g-sante.app', 'https://www.g-sante.app'];
-const FIXES = [...APERCU, ...PRODUCTION];
 const EXTRA = (Deno.env.get('APP_ALLOWED_ORIGINS') || '').split(',').map(s => s.trim()).filter(Boolean);
 const LOCAL = Deno.env.get('APP_ALLOW_LOCALHOST') === 'true';
 
@@ -20,7 +17,7 @@ export function origineAutorisee(origin: string): boolean {
 
 /** Vrai seulement pour l'aperçu (pas le site publié) : sert à interdire la démo en production. */
 export function estOrigineApercu(origin: string): boolean {
-  return APERCU.includes(origin) || (LOCAL && /^http:\/\/localhost(:\d+)?$/.test(origin));
+  return FIXES.includes(origin) || (LOCAL && /^http:\/\/localhost(:\d+)?$/.test(origin));
 }
 
 export function corsFor(req: Request): Record<string, string> {

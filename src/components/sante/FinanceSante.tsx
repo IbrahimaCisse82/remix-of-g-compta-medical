@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database, Tables, TablesUpdate } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fcfa } from '@/domain/sante/tiers-payant';
 
-const db = supabase;
+const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
 export function OutboxCard({ structureId }: { structureId: string }) {
@@ -18,13 +16,13 @@ export function OutboxCard({ structureId }: { structureId: string }) {
       db.rpc('sante_outbox_resume', { _structure_id: structureId }),
       db.from('sante_compta_evenements').select('id, source_type, libelle, derniere_erreur, tentatives').eq('structure_id', structureId).neq('statut', 'comptabilise').order('created_at').limit(20),
     ]);
-    if (!a.error) setR(a.data as unknown as { en_attente: number; en_erreur: number; comptabilise: number }); setErreurs(b.data ?? []);
+    if (!a.error) setR(a.data); setErreurs(b.data ?? []);
   };
   useEffect(() => { void load(); }, [structureId]);
   if (!r) return null;
   const rejouer = async () => {
     const { data, error } = await db.rpc('sante_rejouer_outbox', { _structure_id: structureId });
-    if (error) void toastErreurSante(error, structureId); else { toast.success(`${data} écriture(s) comptabilisée(s)`); void load(); }
+    if (error) toast.error(error.message); else { toast.success(`${data} écriture(s) comptabilisée(s)`); void load(); }
   };
   const attente = r.en_attente + r.en_erreur;
   return (
@@ -45,18 +43,18 @@ type Remb = { id: string; montant: number; motif: string; statut: string; create
 export function RemboursementsCard({ structureId }: { structureId: string }) {
   const [list, setList] = useState<Remb[]>([]);
   const load = () => db.from('sante_remboursements').select('id, montant, motif, statut, created_at, facture:sante_factures!sante_remboursements_facture_id_fkey(numero)')
-    .eq('structure_id', structureId).in('statut', ['demande', 'approuve']).order('created_at', { ascending: false }).then(({ data }) => setList(data ?? []));
+    .eq('structure_id', structureId).in('statut', ['demande', 'approuve']).order('created_at', { ascending: false }).then(({ data }: any) => setList(data ?? []));
   useEffect(() => { load(); }, [structureId]);
   if (!list.length) return null;
   const decider = async (id: string, ok: boolean) => {
     const m = prompt(ok ? 'Motif de l’approbation :' : 'Motif du refus :'); if (!m) return;
     const { error } = await db.rpc('sante_decider_remboursement', { _id: id, _approuver: ok, _motif: m });
-    if (error) void toastErreurSante(error, structureId); else load();
+    if (error) toast.error(error.message); else load();
   };
   const payer = async (id: string) => {
     const mode = prompt('Mode (especes, wave, orange_money, cheque, virement) :', 'especes'); if (!mode) return;
     const { error } = await db.rpc('sante_payer_remboursement', { _id: id, _mode: mode.trim() });
-    if (error) void toastErreurSante(error, structureId); else { toast.success('Remboursement payé'); load(); }
+    if (error) toast.error(error.message); else { toast.success('Remboursement payé'); load(); }
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
@@ -85,27 +83,27 @@ export function ReglementOrganismeCard({ structureId }: { structureId: string })
   const [ref, setRef] = useState('');
 
   useEffect(() => {
-    db.from('sante_organismes').select('nom').eq('structure_id', structureId).eq('actif', true).order('nom').then(({ data }) => setOrganismes((data ?? []).map((o) => o.nom)));
+    db.from('sante_organismes').select('nom').eq('structure_id', structureId).eq('actif', true).order('nom').then(({ data }: any) => setOrganismes((data ?? []).map((o: any) => o.nom)));
   }, [structureId]);
   const charger = async (o: string) => {
     setOrg(o); setImput({});
     const { data } = await db.from('sante_factures').select('id, numero, part_organisme, organisme').eq('structure_id', structureId).eq('organisme', o)
       .eq('type', 'facture').eq('annulee', false).neq('statut_tiers', 'paye').gt('part_organisme', 0).order('created_at').limit(100);
-    const avecReste = await Promise.all((data ?? []).map(async (f) => ({ ...f, reste: Number((await db.rpc('sante_reste_organisme', { _facture_id: f.id })).data ?? 0) })));
+    const avecReste = await Promise.all((data ?? []).map(async (f: any) => ({ ...f, reste: Number((await db.rpc('sante_reste_organisme', { _facture_id: f.id })).data ?? 0) })));
     setFactures(avecReste.filter(f => f.reste > 0));
   };
   const total = Object.values(imput).reduce((s, v) => s + (Number(v) || 0), 0);
   const valider = async () => {
     const lignes = Object.entries(imput).filter(([, v]) => Number(v) > 0).map(([facture_id, v]) => ({ facture_id, montant: Number(v) }));
     const { error } = await db.rpc('sante_imputer_reglement', { _structure_id: structureId, _organisme: org, _montant: total, _mode: mode, _reference: ref || null, _imputations: lignes });
-    if (error) void toastErreurSante(error, structureId); else { toast.success('Règlement imputé et comptabilisé'); setRef(''); void charger(org); }
+    if (error) toast.error(error.message); else { toast.success('Règlement imputé et comptabilisé'); setRef(''); void charger(org); }
   };
   const rejeter = async (f: FactOrg) => {
     const type = prompt('Type de rejet : administratif (à corriger et renvoyer), non_prise_en_charge (bascule au patient si la convention l’autorise), perte (passée en charge)', 'administratif'); if (!type) return;
     const motif = prompt('Motif (obligatoire) :'); if (!motif) return;
     const montant = type.trim() === 'administratif' ? null : Number(prompt('Montant concerné :', String(f.reste)));
     const { error } = await db.rpc('sante_rejet_tiers', { _facture_id: f.id, _type: type.trim(), _motif: motif, _montant: montant });
-    if (error) void toastErreurSante(error, structureId); else { toast.success('Rejet enregistré'); void charger(org); }
+    if (error) toast.error(error.message); else { toast.success('Rejet enregistré'); void charger(org); }
   };
 
   return (
@@ -156,7 +154,7 @@ export function ParametresFinanceCard({ structureId }: { structureId: string }) 
       db.from('structures').select('facturation_labo_moment').eq('id', structureId).maybeSingle(),
       Promise.all(CLES.map(async ([k]) => [k, (await db.rpc('sante_compte', { _structure_id: structureId, _cle: k })).data] as const)),
     ]);
-    setComptes(Object.fromEntries((p.data ?? []).map(x => [x.cle, x.compte])));
+    setComptes(Object.fromEntries((p.data ?? []).map((x: any) => [x.cle, x.compte])));
     setOrgs(o.data ?? []); setMoment(s.data?.facturation_labo_moment ?? 'enregistrement');
     setDefauts(Object.fromEntries(d));
   };
@@ -165,20 +163,20 @@ export function ParametresFinanceCard({ structureId }: { structureId: string }) 
   const definir = async (cle: string, compte: string) => {
     if (!compte.trim() || compte === defauts[cle]) return;
     const { error } = await db.rpc('sante_definir_compte', { _structure_id: structureId, _cle: cle, _compte: compte.trim() });
-    if (error) void toastErreurSante(error, structureId); else { toast.success('Compte enregistré'); void load(); }
+    if (error) toast.error(error.message); else { toast.success('Compte enregistré'); void load(); }
   };
-  const majOrg = async (id: string, patch: TablesUpdate<'sante_organismes'>) => {
+  const majOrg = async (id: string, patch: Record<string, unknown>) => {
     const { error } = await db.from('sante_organismes').update(patch).eq('id', id);
-    if (error) void toastErreurSante(error, structureId); else void load();
+    if (error) toast.error(error.message); else void load();
   };
   const ajouter = async () => {
     if (!nouvel.trim()) return;
     const { error } = await db.from('sante_organismes').insert({ structure_id: structureId, nom: nouvel.trim() });
-    if (error) void toastErreurSante(error, structureId); else { setNouvel(''); void load(); }
+    if (error) toast.error(error.message); else { setNouvel(''); void load(); }
   };
   const changerMoment = async (v: string) => {
     const { error } = await db.rpc('sante_config_labo_moment', { _structure_id: structureId, _moment: v });
-    if (error) void toastErreurSante(error, structureId); else { setMoment(v); toast.success('Réglage enregistré'); }
+    if (error) toast.error(error.message); else { setMoment(v); toast.success('Réglage enregistré'); }
   };
 
   return (
@@ -224,11 +222,11 @@ const CATS = ['consultation', 'acte', 'analyses', 'medicaments', 'autres'];
 export function ConventionsCard({ structureId }: { structureId: string }) {
   const [orgs, setOrgs] = useState<string[]>([]);
   const [org, setOrg] = useState('');
-  const [conv, setConv] = useState<Tables<'sante_conventions'>[]>([]);
-  const [tarifs, setTarifs] = useState<Tables<'sante_tarifs_convention'>[]>([]);
-  const [excl, setExcl] = useState<Tables<'sante_convention_exclusions'>[]>([]);
+  const [conv, setConv] = useState<any[]>([]);
+  const [tarifs, setTarifs] = useState<any[]>([]);
+  const [excl, setExcl] = useState<any[]>([]);
   const [f, setF] = useState({ categorie: 'consultation', taux: '80', plafond: '', franchise: '0', code: '', tarif: '', exclu: '' });
-  useEffect(() => { db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data }) => setOrgs((data ?? []).map((o) => o.nom))); }, [structureId]);
+  useEffect(() => { db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data }: any) => setOrgs((data ?? []).map((o: any) => o.nom))); }, [structureId]);
   const charger = async (o: string) => {
     setOrg(o); if (!o) return;
     const [a, b, c] = await Promise.all([
@@ -238,7 +236,7 @@ export function ConventionsCard({ structureId }: { structureId: string }) {
     ]);
     setConv(a.data ?? []); setTarifs(b.data ?? []); setExcl(c.data ?? []);
   };
-  const ok = (r: { error: { message: string } | null }) => { if (r.error) toast.error(r.error.message); else void charger(org); };
+  const ok = (r: any) => { if (r.error) toast.error(r.error.message); else void charger(org); };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
       <h3 className="font-semibold">Conventions tiers-payant</h3>
@@ -274,13 +272,13 @@ export function ConventionsCard({ structureId }: { structureId: string }) {
 
 /** Bons de prise en charge (numéro, validité, plafond, consommation, accord préalable). */
 export function BonsPecCard({ structureId, patientId, organismes }: { structureId: string; patientId: string; organismes: string[] }) {
-  const [bons, setBons] = useState<Tables<'sante_bons_pec'>[]>([]);
+  const [bons, setBons] = useState<any[]>([]);
   const [f, setF] = useState({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false });
-  const load = () => db.from('sante_bons_pec').select('*').eq('patient_id', patientId).order('date_fin', { ascending: false }).then(({ data }) => setBons(data ?? []));
+  const load = () => db.from('sante_bons_pec').select('*').eq('patient_id', patientId).order('date_fin', { ascending: false }).then(({ data }: any) => setBons(data ?? []));
   useEffect(() => { load(); }, [patientId]);
   const ajouter = async () => {
     const { error } = await db.from('sante_bons_pec').insert({ structure_id: structureId, patient_id: patientId, organisme: f.organisme, numero: f.numero.trim(), date_fin: f.date_fin, plafond: f.plafond ? Number(f.plafond) : null, accord_prealable: f.accord });
-    if (error) void toastErreurSante(error, structureId); else { setF({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false }); load(); }
+    if (error) toast.error(error.message); else { setF({ organisme: '', numero: '', date_fin: '', plafond: '', accord: false }); load(); }
   };
   return (
     <div className="space-y-2 text-sm">
@@ -300,23 +298,23 @@ export function BonsPecCard({ structureId, patientId, organismes }: { structureI
 
 /** Créances par organisme (âge), relances imprimables, provision des créances douteuses. */
 export function CreancesOrganismesCard({ structureId }: { structureId: string }) {
-  const [rows, setRows] = useState<Database['public']['Functions']['sante_creances_organismes']['Returns']>([]);
-  const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }) => { if (!error) setRows(data ?? []); });
+  const [rows, setRows] = useState<any[]>([]);
+  const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { if (!error) setRows(data ?? []); });
   useEffect(() => { load(); }, [structureId]);
   if (!rows.length) return null;
   const relancer = async (o: string) => {
     const { data, error } = await db.rpc('sante_relancer', { _structure_id: structureId, _organisme: o });
-    if (error) { void toastErreurSante(error, structureId); return; }
+    if (error) { toast.error(error.message); return; }
     const { data: r } = await db.from('sante_relances').select('niveau, montant, factures').eq('id', data).single();
     const { data: fs } = await db.from('sante_factures').select('numero, created_at, part_organisme').in('id', r.factures);
-    const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${o}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${o}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map(f => `<tr><td>${f.numero}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
+    const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${o}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${o}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map((f: any) => `<tr><td>${f.numero}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
     load();
   };
   const provisionner = async (o: string, total: number) => {
     const m = Number(prompt('Montant à provisionner :', String(total))); if (!m) return;
     const motif = prompt('Motif (créance douteuse) :'); if (!motif) return;
     const { error } = await db.rpc('sante_provisionner_creance', { _structure_id: structureId, _organisme: o, _montant: m, _motif: motif });
-    if (error) void toastErreurSante(error, structureId); else toast.success('Provision enregistrée (module Provisions + écriture)');
+    if (error) toast.error(error.message); else toast.success('Provision enregistrée (module Provisions + écriture)');
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 overflow-x-auto">
@@ -338,7 +336,7 @@ export function AnalytiqueSanteCard({ structureId }: { structureId: string }) {
   const [rows, setRows] = useState<{ axe: string; montant: number; nb: number }[]>([]);
   useEffect(() => {
     const d = new Date(`${mois}-01`); const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-    db.rpc('sante_ca_analytique', { _structure_id: structureId, _debut: `${mois}-01`, _fin: fin, _axe: axe }).then(({ data, error }) => setRows(error ? [] : data ?? []));
+    db.rpc('sante_ca_analytique', { _structure_id: structureId, _debut: `${mois}-01`, _fin: fin, _axe: axe }).then(({ data, error }: any) => setRows(error ? [] : data ?? []));
   }, [structureId, axe, mois]);
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
@@ -358,7 +356,7 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
   const [regime, setRegime] = useState('exonere');
   const [prorata, setProrata] = useState('0');
   const [cr, setCr] = useState(false);
-  const [blocs, setBlocs] = useState<Tables<'sante_blocs_secours'>[]>([]);
+  const [blocs, setBlocs] = useState<any[]>([]);
   const load = async () => {
     const [s, b] = await Promise.all([
       db.from('structures').select('regime_tva, prorata_tva, cr_conditionne_reglement').eq('id', structureId).maybeSingle(),
@@ -370,13 +368,13 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
   useEffect(() => { void load(); }, [structureId]);
   const enregistrer = async () => {
     const { error } = await db.rpc('sante_config_fiscal', { _structure_id: structureId, _regime: regime, _prorata: Number(prorata) || 0, _cr_conditionne: cr });
-    if (error) void toastErreurSante(error, structureId); else toast.success('Réglages enregistrés');
+    if (error) toast.error(error.message); else toast.success('Réglages enregistrés');
   };
   const reserver = async () => {
     const poste = prompt('Nom du poste (ex. Accueil) :'); if (!poste) return;
     const taille = Number(prompt('Nombre de numéros à réserver (10 à 500) :', '50'));
     const { error } = await db.rpc('sante_reserver_bloc', { _structure_id: structureId, _poste: poste, _taille: taille });
-    if (error) void toastErreurSante(error, structureId); else void load();
+    if (error) toast.error(error.message); else void load();
   };
   return (
     <section className="mt-8 border border-border bg-bg2 rounded-md p-4 space-y-3">
@@ -402,15 +400,15 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
 
 /** Saisie a posteriori d'une facture papier du mode secours. */
 export function SaisieSecoursCard({ structureId }: { structureId: string }) {
-  const [blocs, setBlocs] = useState<Tables<'sante_blocs_secours'>[]>([]);
+  const [blocs, setBlocs] = useState<any[]>([]);
   const [f, setF] = useState({ bloc: '', rang: '', dossier: '', libelle: '', montant: '' });
-  useEffect(() => { db.from('sante_blocs_secours').select('*').eq('structure_id', structureId).then(({ data }) => setBlocs(data ?? [])); }, [structureId]);
+  useEffect(() => { db.from('sante_blocs_secours').select('*').eq('structure_id', structureId).then(({ data }: any) => setBlocs(data ?? [])); }, [structureId]);
   if (!blocs.length) return null;
   const saisir = async () => {
     const { data: p } = await db.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: f.dossier, _limit: 1, _offset: 0 });
     if (!p?.[0]) { toast.error('Patient introuvable'); return; }
     const { error } = await db.rpc('sante_saisir_facture_secours', { _bloc_id: f.bloc, _rang: Number(f.rang), _patient_id: p[0].id, _lignes: [{ libelle: f.libelle, prix_unitaire: Number(f.montant) }], _assurance_id: null });
-    if (error) void toastErreurSante(error, structureId); else { toast.success('Facture secours saisie'); setF({ ...f, rang: '', libelle: '', montant: '' }); }
+    if (error) toast.error(error.message); else { toast.success('Facture secours saisie'); setF({ ...f, rang: '', libelle: '', montant: '' }); }
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">

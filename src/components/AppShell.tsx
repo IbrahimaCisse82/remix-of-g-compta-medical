@@ -63,15 +63,12 @@ const NAV: NavSection[] = [
   ]}]},
   { key: 'factu', section: 'Facturation & tiers-payant', icon: '💳', groups: [{ items: [
     { id: 'sante_facturation', icon: '💳', label: 'Factures & caisse' },
-    { id: 'sante_retrocessions', icon: '🤝', label: 'Rétrocessions praticiens' },
     { id: 'facturation', icon: '🧾', label: 'Honoraires & facturation' },
     { id: 'factures_dgid', icon: '📄', label: 'e-Facturation DGID' },
     { id: 'fournisseurs', icon: '📥', label: 'Fournisseurs & laboratoires' },
   ]}]},
   { key: 'pilotage', section: 'Pilotage', icon: '📊', groups: [{ items: [
     { id: 'sante_pilotage', icon: '📊', label: 'Tableaux de bord santé' },
-    { id: 'sante_personnel', icon: '🗓️', label: 'Personnel & gardes' },
-    { id: 'sante_exploitation', icon: '🛡️', label: 'Supervision & sauvegardes' },
     { id: 'dashboard', icon: '◈', label: 'Tableau de bord financier', shortcut: 'Alt+D' },
     { id: 'clients', icon: '👥', label: 'Mes Clients', cabinet: true },
     { id: 'cabinet_mgmt', icon: '🏛️', label: 'Gestion Cabinet', cabinet: true },

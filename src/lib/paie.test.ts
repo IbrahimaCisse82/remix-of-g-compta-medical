@@ -73,15 +73,3 @@ describe('Paie — bulletin complet', () => {
     expect(b.parts_ir).toBe(1.5);
   });
 });
-
-describe('primes de garde (lien G-Santé › Personnel)', () => {
-  it('entrent dans le brut et donc dans les cotisations', () => {
-    const emp = { matricule: 'G1', prenom: 'Awa', nom: 'Test', sexe: 'F' as const, situation_famille: 'Célibataire', femmes: 0, enfants: 0, statut: 'employés', contrat: 'CDI', salaire_base: 200000, sursalaire: 0 };
-    const sans = calculerPaie(emp, DEFAULT_PAIE_PARAMS, new Date(2026, 9, 28));
-    const avec = calculerPaie({ ...emp, prime_gardes: 20000 }, DEFAULT_PAIE_PARAMS, new Date(2026, 9, 28));
-    expect(avec.prime_gardes).toBe(20000);
-    expect(avec.brut - sans.brut).toBe(20000);
-    expect(avec.ipres_rg_s).toBeGreaterThan(sans.ipres_rg_s);
-    expect(calculerPaie({ ...emp, prime_gardes: -5 }, DEFAULT_PAIE_PARAMS).prime_gardes).toBe(0);
-  });
-});

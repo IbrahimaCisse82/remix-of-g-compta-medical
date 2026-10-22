@@ -1,4 +1,0 @@
--- NE PAS APPLIQUER : rétablirait une faille critique (écritures possibles dans le dossier d'un autre).
--- Versions antérieures, pour mémoire uniquement :
---   can_write_entreprise : SELECT public.get_entreprise_role(auth.uid(), _entreprise_id) IN ('admin','comptable');
---   can_admin_entreprise : SELECT public.get_entreprise_role(auth.uid(), _entreprise_id) = 'admin';

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +33,7 @@ export default function ViolationsCard({ structureId }: { structureId: string })
       nb_personnes: form.nb ? Number(form.nb) : null, mesures: form.mesures.trim() || null, declare_par: u.user?.id,
       echeance_notification: new Date(Date.now() + 72 * 3600_000).toISOString(),
     });
-    if (error) { void toastErreurSante(error, structureId); return; }
+    if (error) { toast.error(error.message); return; }
     toast.success("Incident enregistré. Qualification et décision de notification sous 72 h.");
     setForm({ nature: '', donnees: '', nb: '', mesures: '' }); load();
   };
@@ -44,7 +43,7 @@ export default function ViolationsCard({ structureId }: { structureId: string })
     if (!texte.trim()) return;
     const gravite = statut === 'qualifiee' ? (window.prompt('Gravité (faible / moyenne / élevée) :', 'moyenne') ?? 'moyenne') : null;
     const { error } = await supabase.rpc('sante_avancer_violation', { _id: id, _statut: statut, _texte: texte, _gravite: gravite as string });
-    if (error) void toastErreurSante(error, structureId); else load();
+    if (error) toast.error(error.message); else load();
   };
 
   return (

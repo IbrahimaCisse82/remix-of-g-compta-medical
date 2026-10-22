@@ -19,8 +19,6 @@ export type Employee = {
   date_entree?: string | null;
   salaire_base: number;
   sursalaire: number;
-  /** Primes de garde et d'astreinte effectuées (module Santé › Personnel), soumises à cotisations. */
-  prime_gardes?: number;
 };
 
 export type PaieParametres = {
@@ -77,7 +75,7 @@ export function calculerIRAnnuelParPart(baseArr: number): number {
 }
 
 export type BulletinResult = {
-  salaire_base: number; sursalaire: number; prime_anciennete: number; prime_gardes: number; brut: number;
+  salaire_base: number; sursalaire: number; prime_anciennete: number; brut: number;
   anciennete: number; taux_anciennete: number;
   parts_ir: number; parts_trimf: number;
   ir: number; trimf: number;
@@ -94,8 +92,7 @@ export function calculerPaie(emp: Employee, p: PaieParametres, refDate?: Date): 
   const anc = getAnciennete(emp.date_entree, refDate);
   const ancRate = getTauxAnciennete(anc);
   const primeAnc = (emp.salaire_base || 0) * ancRate;
-  const primeGardes = Math.max(0, emp.prime_gardes || 0);
-  const brut = (emp.salaire_base || 0) + (emp.sursalaire || 0) + primeAnc + primeGardes;
+  const brut = (emp.salaire_base || 0) + (emp.sursalaire || 0) + primeAnc;
 
   const partsIR = emp.situation_famille === 'Marié(e)'
     ? 1.5 + (emp.enfants || 0) * 0.5
@@ -136,7 +133,7 @@ export function calculerPaie(emp: Employee, p: PaieParametres, refDate?: Date): 
   const net = brut - total_retenues + transport;
 
   return {
-    salaire_base: emp.salaire_base, sursalaire: emp.sursalaire, prime_anciennete: primeAnc, prime_gardes: primeGardes,
+    salaire_base: emp.salaire_base, sursalaire: emp.sursalaire, prime_anciennete: primeAnc,
     brut, anciennete: anc, taux_anciennete: ancRate,
     parts_ir: partsIR, parts_trimf: partsTRIMF,
     ir, trimf, ipres_rg_s, ipres_rc_s, ipm_s, total_retenues,

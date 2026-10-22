@@ -3,8 +3,6 @@ import { Plus } from 'lucide-react';
 import { NonConformites, Eeq, Echantillons } from './QualiteLabo';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
-import { AlertesStockCard, ReactifsParAnalyse } from './StocksSante';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { alertesReactif } from '@/domain/sante/westgard';
@@ -12,11 +10,6 @@ import { alertesReactif } from '@/domain/sante/westgard';
 const msg = (e: { message: string }) => e.message.includes('row-level') ? 'Action réservée au biologiste ou à l’administrateur' : e.message;
 
 /** Graphique de Levey-Jennings (z-scores, lignes ±1/2/3 s). */
-type Mesure = Pick<Tables<'sante_cq_mesures'>, 'controle_id' | 'valeur' | 'z' | 'statut' | 'regles' | 'saisi_le'>;
-type Controle = Tables<'sante_controles_qualite'> & { parametre: { libelle: string; unite: string | null } | null };
-type Lot = Pick<Tables<'sante_lots_reactifs'>, 'id' | 'numero_lot' | 'peremption' | 'quantite_restante' | 'quantite_recue'>;
-type ReactifAvecLots = Tables<'sante_reactifs'> & { lots: Lot[] };
-
 function LeveyJennings({ points }: { points: { z: number; statut: string }[] }) {
   const W = 520, H = 160, pad = 10, n = Math.max(points.length, 2);
   const y = (z: number) => H / 2 - (Math.max(-4, Math.min(4, z)) / 4) * (H / 2 - pad);
@@ -44,8 +37,8 @@ export default function QualitePage({ structureId }: { structureId: string }) {
 
 function ControleQualite({ structureId }: { structureId: string }) {
   const [params, setParams] = useState<{ id: string; libelle: string }[]>([]);
-  const [ctrls, setCtrls] = useState<Controle[]>([]);
-  const [mesures, setMesures] = useState<Record<string, Mesure[]>>({});
+  const [ctrls, setCtrls] = useState<any[]>([]);
+  const [mesures, setMesures] = useState<Record<string, any[]>>({});
   const [f, setF] = useState({ parametre_id: '', lot: '', niveau: 'normal', automate: '', cible: '', ecart_type: '' });
   const [val, setVal] = useState<Record<string, string>>({});
 
@@ -54,14 +47,13 @@ function ControleQualite({ structureId }: { structureId: string }) {
       supabase.from('sante_analyse_parametres').select('id, libelle, analyse:sante_analyses(libelle)').eq('structure_id', structureId).order('libelle'),
       supabase.from('sante_controles_qualite').select('*, parametre:sante_analyse_parametres(libelle, unite)').eq('structure_id', structureId).eq('actif', true).order('created_at'),
     ]);
-    setParams((p.data ?? []).map(x => ({ id: x.id, libelle: `${x.analyse?.libelle} — ${x.libelle}` })));
-    setCtrls((c.data ?? []) as Controle[]);
+    setParams((p.data ?? []).map((x: any) => ({ id: x.id, libelle: `${x.analyse?.libelle} — ${x.libelle}` })));
+    setCtrls(c.data ?? []);
     const ids = (c.data ?? []).map(x => x.id);
     if (ids.length) {
       const { data } = await supabase.from('sante_cq_mesures').select('controle_id, valeur, z, statut, regles, saisi_le').in('controle_id', ids).order('saisi_le', { ascending: false }).limit(500);
-      const g: Record<string, Mesure[]> = {};
-      // 30 dernières mesures par contrôle (Levey-Jennings)
-      (data ?? []).forEach(m => { const liste = (g[m.controle_id] ??= []); if (liste.length < 30) liste.push(m); });
+      const g: Record<string, any[]> = {};
+      (data ?? []).forEach(m => { (g[m.controle_id] ??= []).length < 30 && g[m.controle_id].push(m); });
       Object.values(g).forEach(a => a.reverse());
       setMesures(g);
     }
@@ -112,7 +104,7 @@ function ControleQualite({ structureId }: { structureId: string }) {
 }
 
 function Reactifs({ structureId }: { structureId: string }) {
-  const [rows, setRows] = useState<ReactifAvecLots[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
   const [f, setF] = useState({ nom: '', unite: 'test', seuil_alerte: '' });
   const [rec, setRec] = useState<Record<string, { lot: string; per: string; q: string }>>({});
   const [conso, setConso] = useState<Record<string, string>>({});
@@ -142,7 +134,6 @@ function Reactifs({ structureId }: { structureId: string }) {
 
   return (
     <div className="space-y-4">
-      <AlertesStockCard structureId={structureId} />
       <form onSubmit={creer} className="border border-border bg-bg2 rounded-md p-4 grid grid-cols-[3fr_1fr_1fr_auto] gap-2">
         <Input required aria-label="Nom du réactif" placeholder="Réactif" value={f.nom} onChange={e => setF({ ...f, nom: e.target.value })} />
         <Input aria-label="Unité" placeholder="Unité" value={f.unite} onChange={e => setF({ ...f, unite: e.target.value })} />
@@ -152,12 +143,12 @@ function Reactifs({ structureId }: { structureId: string }) {
       {rows.length === 0 && <p className="text-sm text-fg3">Aucun réactif.</p>}
       {rows.map(r => {
         const al = alertesReactif(r.lots, Number(r.seuil_alerte));
-        const stock = r.lots.filter(l => new Date(l.peremption + 'T23:59:59') >= new Date()).reduce((s: number, l) => s + Number(l.quantite_restante), 0);
+        const stock = r.lots.filter((l: any) => new Date(l.peremption + 'T23:59:59') >= new Date()).reduce((s: number, l: any) => s + Number(l.quantite_restante), 0);
         const x = rec[r.id] ?? { lot: '', per: '', q: '' };
         return <section key={r.id} className="border border-border bg-bg2 rounded-md p-4 space-y-2">
           <div className="flex flex-wrap justify-between gap-2"><span><strong>{r.nom}</strong> <span className="text-sm text-fg2">· stock utilisable {stock} {r.unite} (seuil {r.seuil_alerte})</span></span>{al.length > 0 && <span className="text-xs text-destructive font-semibold">{al.join(' · ')}</span>}</div>
           <div className="grid grid-cols-[2fr_2fr_1fr_auto] gap-2"><Input aria-label="N° de lot" placeholder="N° de lot" value={x.lot} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, lot: e.target.value } }))} /><Input aria-label="Péremption" type="date" value={x.per} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, per: e.target.value } }))} /><Input aria-label="Quantité reçue" inputMode="numeric" placeholder="Qté" value={x.q} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, q: e.target.value } }))} /><Button size="sm" variant="outline" onClick={() => mvt(r.id, 'reception')}>Réceptionner</Button></div>
-          {r.lots.filter(l => Number(l.quantite_restante) > 0).sort((a, b) => a.peremption.localeCompare(b.peremption)).map(l => {
+          {r.lots.filter((l: any) => Number(l.quantite_restante) > 0).sort((a: any, b: any) => a.peremption.localeCompare(b.peremption)).map((l: any) => {
             const perime = new Date(l.peremption + 'T23:59:59') < new Date();
             return <div key={l.id} className={`flex flex-wrap items-center justify-between gap-2 text-sm border-t border-border pt-2 ${perime ? 'text-destructive' : ''}`}>
               <span>Lot {l.numero_lot} · périme le {new Date(l.peremption).toLocaleDateString('fr-FR')} · reste {l.quantite_restante}/{l.quantite_recue}{perime && ' · PÉRIMÉ'}</span>
@@ -166,7 +157,6 @@ function Reactifs({ structureId }: { structureId: string }) {
           })}
         </section>;
       })}
-      <ReactifsParAnalyse structureId={structureId} />
     </div>
   );
 }

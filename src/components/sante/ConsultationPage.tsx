@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Lock, Plus, Printer, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
-import type { Json, Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,21 +10,17 @@ import { alertesConstantes, classeImc, imc, validerOrdonnance, type LigneOrdonna
 import { libelleAge } from '@/domain/sante/patient';
 import { imprimerOrdonnance } from './print-ordonnance';
 import CertificatsAnalyses from './CertificatsAnalyses';
-import { DelivranceConsultation } from './StocksSante';
 
 const CHAMPS = [['motif', 'Motif'], ['anamnese', 'Anamnèse'], ['examen', 'Examen clinique'], ['diagnostic', 'Diagnostic'], ['conduite', 'Conduite à tenir']] as const;
 const CONST = [['ta_sys', 'TA sys.'], ['ta_dia', 'TA dia.'], ['pouls', 'Pouls'], ['temperature', 'T° °C'], ['poids', 'Poids kg'], ['taille', 'Taille cm'], ['spo2', 'SpO₂ %'], ['glycemie', 'Glyc. g/L']] as const;
 
-type Consultation = Tables<'sante_consultations'> & { praticien: { nom: string } | null };
-type LigneEnvoyee = LigneOrdonnance & { justification_allergie?: string; justification_pediatrie?: string };
-
 export default function ConsultationPage({ id, onBack }: { id: string; onBack: () => void }) {
-  const [c, setC] = useState<Consultation | null>(null);
-  const [patient, setPatient] = useState<Tables<'sante_patients'> | null>(null);
-  const [historique, setHistorique] = useState<Pick<Tables<'sante_consultations'>, 'id' | 'created_at' | 'motif' | 'diagnostic' | 'statut'>[]>([]);
-  const [constantes, setConstantes] = useState<Tables<'sante_constantes'>[]>([]);
-  const [addenda, setAddenda] = useState<Tables<'sante_consultation_addenda'>[]>([]);
-  const [ordonnances, setOrdonnances] = useState<(Tables<'sante_ordonnances'> & { lignes: Tables<'sante_ordonnance_lignes'>[] })[]>([]);
+  const [c, setC] = useState<Record<string, any> | null>(null);
+  const [patient, setPatient] = useState<Record<string, any> | null>(null);
+  const [historique, setHistorique] = useState<Record<string, any>[]>([]);
+  const [constantes, setConstantes] = useState<Record<string, any>[]>([]);
+  const [addenda, setAddenda] = useState<Record<string, any>[]>([]);
+  const [ordonnances, setOrdonnances] = useState<Record<string, any>[]>([]);
   const [cst, setCst] = useState<Record<string, string>>({});
   const [addendum, setAddendum] = useState('');
   const [lignes, setLignes] = useState<LigneOrdonnance[]>([{ medicament: '', posologie: '', duree: '', quantite: '' }]);
@@ -34,7 +28,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   const [medocs, setMedocs] = useState<string[]>([]);
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('sante_consultations').select('*, praticien:sante_praticiens(nom)').eq('id', id).maybeSingle();
+    const { data } = await supabase.from('sante_consultations').select('*').eq('id', id).maybeSingle();
     if (!data) { toast.error('Consultation non accessible'); return onBack(); }
     setC(data);
     const [p, h, k, a, o, m] = await Promise.all([
@@ -55,21 +49,21 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
 
   const enregistrer = async () => {
     const { error } = await supabase.from('sante_consultations').update({ motif: c.motif, anamnese: c.anamnese, examen: c.examen, diagnostic: c.diagnostic, conduite: c.conduite }).eq('id', id);
-    if (error) return void toastErreurSante(error);
+    if (error) return toast.error(error.message);
     toast.success('Consultation enregistrée');
   };
   const cloturer = async () => {
     await enregistrer();
     if (!confirm('Clôturer la consultation ? Elle ne pourra plus être modifiée (addendum uniquement).')) return;
     const { error } = await supabase.rpc('sante_cloturer_consultation', { _consultation_id: id });
-    if (error) return void toastErreurSante(error);
+    if (error) return toast.error(error.message);
     toast.success('Consultation clôturée'); load();
   };
   const ajouterConstantes = async () => {
-    const mesures: Partial<Record<(typeof CONST)[number][0], number>> = {};
-    CONST.forEach(([k]) => { if (cst[k]) mesures[k] = Number(cst[k].replace(',', '.')); });
-    if (Object.keys(mesures).length === 0) return;
-    const { error } = await supabase.from('sante_constantes').insert({ consultation_id: id, patient_id: c.patient_id, ...mesures });
+    const row: Record<string, number | string> = { consultation_id: id, patient_id: c.patient_id };
+    CONST.forEach(([k]) => { if (cst[k]) row[k] = Number(cst[k].replace(',', '.')); });
+    if (Object.keys(row).length === 2) return;
+    const { error } = await supabase.from('sante_constantes').insert(row as any);
     if (error) return toast.error('Valeur hors limites ou consultation clôturée');
     setCst({}); load();
   };
@@ -82,22 +76,21 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   const emettre = async () => {
     const errs = validerOrdonnance(lignes);
     if (errs.length) return toast.error(errs[0]);
-    // Dose saisie « 12,5 » → « 12.5 » : le serveur attend un nombre décimal à point.
-    let envoi: LigneEnvoyee[] = lignes.filter(l => l.medicament.trim()).map(l => ({ ...l, dose_mg_jour: l.dose_mg_jour?.trim().replace(',', '.') || undefined }));
-    let { data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as unknown as Json, _recommandations: reco });
+    let envoi: any[] = lignes.filter(l => l.medicament.trim());
+    let { data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco });
     if (error?.message?.startsWith('ALLERGIE')) {
       const just = window.prompt(`${error.message.replace('ALLERGIE: ', '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`);
       if (!just || just.trim().length < 15) return toast.error('Prescription annulée : justification de 15 caractères minimum requise');
       envoi = envoi.map(l => ({ ...l, justification_allergie: just.trim() }));
-      ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as unknown as Json, _recommandations: reco }));
+      ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));
     }
     if (error?.message?.startsWith('PEDIATRIE')) {
       const just = window.prompt(`${error.message.replace(/^PEDIATRIE_\w+: /, '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`);
       if (!just || just.trim().length < 15) return toast.error('Prescription annulée : justification de 15 caractères minimum requise');
       envoi = envoi.map(l => ({ ...l, justification_pediatrie: just.trim() }));
-      ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as unknown as Json, _recommandations: reco }));
+      ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));
     }
-    if (error) return void toastErreurSante(error);
+    if (error) return toast.error(error.message);
     toast.success('Ordonnance émise');
     setLignes([{ medicament: '', posologie: '', duree: '', quantite: '' }]); setReco('');
     await load();
@@ -177,7 +170,6 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
               </div>
             ))}
           </section>
-          <DelivranceConsultation consultationId={id} structureId={c.structure_id} />
           <CertificatsAnalyses consultation={c} />
         </div>
 

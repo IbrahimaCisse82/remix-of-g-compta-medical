@@ -3,7 +3,6 @@ import { BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
-import { AlertesStockCard } from './StocksSante';
 
 const xof = (n: unknown) => `${Math.round(Number(n) || 0).toLocaleString('fr-FR')} FCFA`;
 const v = (n: unknown, u = '') => (n === null || n === undefined ? '—' : `${n}${u}`);
@@ -22,33 +21,21 @@ function Table({ titre, cols, rows }: { titre: string; cols: string[]; rows: (st
   );
 }
 
-type N = number | null;
-/** Réponse de sante_tableau_bord (champs lus par cet écran). */
-type TableauBord = {
-  attente_moyenne_min: N;
-  praticiens?: { nom: string; specialite: string | null; rdv: number; honores: number; absents: number; occupation: N; attente_min: N }[];
-  ca_specialites?: { specialite: string; montant: number }[];
-  ca_actes?: { libelle: string; nombre: number; montant: number }[];
-  labo?: { demandes: number; validees: number; tat_total_h: N; tat_analytique_h: N; tat_urgent_h: N };
-  techniciens?: { nom: string; resultats: number; demandes: number }[];
-  tiers?: { organisme: string | null; factures: number; montant: number; paye: number; creances: number; rejets: number; taux_rejet: N; delai_envoi_jours: N; delai_jours: N }[];
-};
-
 export default function PilotagePage({ structureId }: { structureId: string }) {
   const now = new Date();
   const [debut, setDebut] = useState(iso(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [fin, setFin] = useState(iso(now));
-  const [d, setD] = useState<TableauBord | null>(null);
+  const [d, setD] = useState<any>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc('sante_tableau_bord', { _structure_id: structureId, _debut: debut, _fin: fin });
     if (error) { toast.error(error.message.includes('Droit') ? 'Réservé à la direction, aux médecins, biologistes et comptables.' : error.message); return; }
-    setD(data as unknown as TableauBord);
+    setD(data);
   }, [structureId, debut, fin]);
   useEffect(() => { void load(); }, [load]);
 
-  const caTotal = (d?.ca_actes ?? []).reduce((s: number, r) => s + Number(r.montant), 0);
-  const creances = (d?.tiers ?? []).reduce((s: number, r) => s + Number(r.creances), 0);
+  const caTotal = (d?.ca_actes ?? []).reduce((s: number, r: any) => s + Number(r.montant), 0);
+  const creances = (d?.tiers ?? []).reduce((s: number, r: any) => s + Number(r.creances), 0);
 
   return (
     <div className="max-w-6xl space-y-5">
@@ -56,20 +43,19 @@ export default function PilotagePage({ structureId }: { structureId: string }) {
         <div className="flex items-center gap-2"><BarChart3 className="text-primary" /><h1 className="font-serif text-2xl">Pilotage médico-économique</h1></div>
         <div className="flex gap-2 items-center text-sm"><Input type="date" aria-label="Début" value={debut} onChange={e => setDebut(e.target.value)} /><span>→</span><Input type="date" aria-label="Fin" value={fin} onChange={e => setFin(e.target.value)} /></div>
       </div>
-      <AlertesStockCard structureId={structureId} />
       {d && <>
         <h2 className="font-semibold">Direction / Clinique</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Kpi l="Chiffre d’affaires" val={xof(caTotal)} />
           <Kpi l="Attente moyenne" val={v(d.attente_moyenne_min, ' min')} />
-          <Kpi l="Rendez-vous" val={String((d.praticiens ?? []).reduce((s: number, p) => s + p.rdv, 0))} />
+          <Kpi l="Rendez-vous" val={String((d.praticiens ?? []).reduce((s: number, p: any) => s + p.rdv, 0))} />
           <Kpi l="Créances assurances" val={xof(creances)} />
         </div>
         <Table titre="Activité par praticien (occupation sur 8 h/jour)" cols={['Praticien', 'Spécialité', 'RDV', 'Honorés', 'Absents', 'Occupation', 'Attente moy.']}
-          rows={(d.praticiens ?? []).map(p => [p.nom, p.specialite ?? '—', p.rdv, p.honores, p.absents, v(p.occupation, ' %'), v(p.attente_min, ' min')])} />
+          rows={(d.praticiens ?? []).map((p: any) => [p.nom, p.specialite ?? '—', p.rdv, p.honores, p.absents, v(p.occupation, ' %'), v(p.attente_min, ' min')])} />
         <div className="grid md:grid-cols-2 gap-4">
-          <Table titre="Chiffre d’affaires par spécialité" cols={['Spécialité', 'Montant']} rows={(d.ca_specialites ?? []).map(r => [r.specialite, xof(r.montant)])} />
-          <Table titre="Chiffre d’affaires par acte" cols={['Acte', 'Nombre', 'Montant']} rows={(d.ca_actes ?? []).map(r => [r.libelle, r.nombre, xof(r.montant)])} />
+          <Table titre="Chiffre d’affaires par spécialité" cols={['Spécialité', 'Montant']} rows={(d.ca_specialites ?? []).map((r: any) => [r.specialite, xof(r.montant)])} />
+          <Table titre="Chiffre d’affaires par acte" cols={['Acte', 'Nombre', 'Montant']} rows={(d.ca_actes ?? []).map((r: any) => [r.libelle, r.nombre, xof(r.montant)])} />
         </div>
         <h2 className="font-semibold pt-2">Laboratoire</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -79,10 +65,10 @@ export default function PilotagePage({ structureId }: { structureId: string }) {
           <Kpi l="Délai réception → validation" val={v(d.labo?.tat_analytique_h, ' h')} />
           <Kpi l="Délai urgences" val={v(d.labo?.tat_urgent_h, ' h')} />
         </div>
-        <Table titre="Volume par technicien" cols={['Technicien', 'Résultats saisis', 'Demandes']} rows={(d.techniciens ?? []).map(t => [t.nom, t.resultats, t.demandes])} />
+        <Table titre="Volume par technicien" cols={['Technicien', 'Résultats saisis', 'Demandes']} rows={(d.techniciens ?? []).map((t: any) => [t.nom, t.resultats, t.demandes])} />
         <h2 className="font-semibold pt-2">Tiers-payant (IPM / assurances)</h2>
         <Table titre="Recouvrement par organisme" cols={['Organisme', 'Factures', 'Part organisme', 'Payé', 'Créances', 'Rejets', 'Taux de rejet', 'Délai avant envoi', 'Délai de règlement']}
-          rows={(d.tiers ?? []).map(t => [t.organisme ?? '—', t.factures, xof(t.montant), xof(t.paye), xof(t.creances), t.rejets, v(t.taux_rejet, ' %'), v(t.delai_envoi_jours, ' j'), v(t.delai_jours, ' j')])} />
+          rows={(d.tiers ?? []).map((t: any) => [t.organisme ?? '—', t.factures, xof(t.montant), xof(t.paye), xof(t.creances), t.rejets, v(t.taux_rejet, ' %'), v(t.delai_envoi_jours, ' j'), v(t.delai_jours, ' j')])} />
       </>}
     </div>
   );

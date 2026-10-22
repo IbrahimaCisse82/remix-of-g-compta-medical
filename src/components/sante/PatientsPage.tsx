@@ -1,18 +1,14 @@
 import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
-import ConsentementSigne from './ConsentementSigne';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { libelleAge, normaliserTelephone, validerPatient, type NouveauPatient } from '@/domain/sante/patient';
-import { MODELES_CONSENTEMENT, etatConsentements } from '@/domain/sante/consentements';
 
 type Ligne = { id: string; numero_dossier: string; nom: string; prenoms: string; sexe: string; date_naissance: string | null; telephone: string | null; total: number };
 const PAGE = 25;
@@ -25,7 +21,7 @@ export default function PatientsPage({ structureId }: { structureId: string }) {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: q, _limit: PAGE, _offset: page * PAGE });
-    if (error) return void toastErreurSante(error, structureId);
+    if (error) return toast.error(error.message);
     setRows((data ?? []) as Ligne[]);
   }, [structureId, q, page]);
 
@@ -95,7 +91,7 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
       setDoublons(d ?? []);
       return;
     }
-    if (error) return void toastErreurSante(error, structureId);
+    if (error) return toast.error(error.message);
     toast.success('Patient créé');
     onDone(data as string);
   };
@@ -134,17 +130,13 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
   );
 }
 
-type ElementDossier = { id: string; created_at: string } & Partial<Tables<'sante_antecedents'> & Tables<'sante_patient_assurances'> & Tables<'sante_consentements'> & Tables<'sante_documents_patient'>>;
-type Fusion = Pick<Tables<'sante_fusions'>, 'id' | 'patient_conserve' | 'patient_fusionne' | 'motif'> & { created_at?: string; confirme_le?: string | null };
-
 const ONGLETS = ['Identité', 'Assurances', 'Antécédents', 'Consentements', 'Documents'] as const;
 
 function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
-  const [p, setP] = useState<Tables<'sante_patients'> | null>(null);
+  const [p, setP] = useState<Record<string, any> | null>(null);
   const [onglet, setOnglet] = useState<(typeof ONGLETS)[number]>('Identité');
-  const [items, setItems] = useState<ElementDossier[]>([]);
+  const [items, setItems] = useState<Record<string, any>[]>([]);
   const [ajout, setAjout] = useState({ a: '', b: '', c: '' });
-  const [recueil, setRecueil] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -166,10 +158,11 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
 
   const ajouter = async () => {
     if (!ajout.a.trim()) return;
-    const { error } = onglet === 'Assurances'
-      ? await supabase.from('sante_patient_assurances').insert({ patient_id: id, organisme: ajout.a, numero_adherent: ajout.b || null, taux_couverture: ajout.c ? Number(ajout.c) : null })
-      : await supabase.from('sante_antecedents').insert({ patient_id: id, type: ajout.b || 'medical', libelle: ajout.a, details: ajout.c || null });
-    if (error) return void toastErreurSante(error, p?.structure_id);
+    const row = onglet === 'Assurances'
+      ? { patient_id: id, organisme: ajout.a, numero_adherent: ajout.b || null, taux_couverture: ajout.c ? Number(ajout.c) : null }
+      : { patient_id: id, type: ajout.b || 'medical', libelle: ajout.a, details: ajout.c || null };
+    const { error } = await supabase.from(table as 'sante_antecedents').insert(row as any);
+    if (error) return toast.error('Ajout refusé : ' + error.message);
     setAjout({ a: '', b: '', c: '' });
     loadItems();
   };
@@ -198,19 +191,6 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         </dl>
       ) : (
         <div className="space-y-3">
-          {onglet === 'Consentements' && (recueil ? (
-            <ConsentementSigne patient={{ id, nom: p.nom, prenoms: p.prenoms, date_naissance: p.date_naissance }} onCancel={() => setRecueil(false)} onDone={() => { setRecueil(false); loadItems(); }} />
-          ) : (
-            <div className="border border-border rounded-md p-3 space-y-2">
-              <div className="flex flex-wrap gap-2 text-xs">
-                {MODELES_CONSENTEMENT.map(m => {
-                  const e = etatConsentements(items as { type: string; accorde: boolean; created_at: string }[])[m.type];
-                  return <span key={m.type} className={`rounded-full border px-2 py-1 ${e ? (e.accorde ? 'border-primary text-primary' : 'border-destructive text-destructive') : 'border-border text-fg3'}`}>{m.titre} : {e ? (e.accorde ? 'accordé' : 'refusé') : 'non recueilli'}</span>;
-                })}
-              </div>
-              <Button size="sm" onClick={() => setRecueil(true)}><Plus />Recueillir un consentement signé</Button>
-            </div>
-          ))}
           {onglet !== 'Consentements' && (
             <div className="flex flex-wrap gap-2 border border-border rounded-md p-3">
               <Input className="flex-1 min-w-40" placeholder={onglet === 'Assurances' ? 'Organisme' : 'Libellé'} value={ajout.a} onChange={e => setAjout(s => ({ ...s, a: e.target.value }))} />
@@ -227,7 +207,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
             <div key={it.id} className="border border-border rounded-md p-3 text-sm">
               {onglet === 'Assurances' && <>{it.organisme} · {it.numero_adherent ?? '—'} · {it.taux_couverture ?? '—'} %</>}
               {onglet === 'Antécédents' && <><span className="text-xs uppercase text-primary mr-2">{it.type}</span>{it.libelle} {it.details && <span className="text-fg3">— {it.details}</span>}</>}
-              {onglet === 'Consentements' && <>{MODELES_CONSENTEMENT.find(m => m.type === it.type)?.titre ?? it.type} ({it.version_texte}) : <strong>{it.accorde ? 'accordé' : 'refusé'}</strong> · {new Date(it.created_at).toLocaleDateString('fr-FR')}{it.signataire_nom ? <span className="text-fg3"> · signé par {it.signataire_nom}{it.signataire_qualite && it.signataire_qualite !== 'patient' ? ` (${it.signataire_qualite.replace('_', ' ')})` : ''}</span> : <span className="text-fg3"> · {it.preuve ?? 'sans preuve'}</span>}{it.signature_png && <img src={it.signature_png} alt={`Signature de ${it.signataire_nom}`} className="mt-2 h-12 rounded border border-border bg-white" />}</>}
+              {onglet === 'Consentements' && <>{it.type} ({it.version_texte}) : <strong>{it.accorde ? 'accordé' : 'refusé'}</strong> · {new Date(it.created_at).toLocaleDateString('fr-FR')}</>}
             </div>
           ))}
         </div>
@@ -240,8 +220,8 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
   const [open, setOpen] = useState(false);
   const [numero, setNumero] = useState('');
   const [motif, setMotif] = useState('');
-  const [enAttente, setEnAttente] = useState<Fusion[]>([]);
-  const [confirmees, setConfirmees] = useState<Fusion[]>([]);
+  const [enAttente, setEnAttente] = useState<any[]>([]);
+  const [confirmees, setConfirmees] = useState<any[]>([]);
   const charger = useCallback(async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
       supabase.from('sante_fusions').select('id, patient_conserve, patient_fusionne, motif, created_at').eq('structure_id', structureId).eq('statut', 'proposee').or(`patient_conserve.eq.${patientId},patient_fusionne.eq.${patientId}`),
@@ -256,20 +236,20 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
     if (!cible || cible.id === patientId) return toast.error('Dossier en double introuvable');
     if (!confirm(`Proposer la fusion de ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ?\nLa fusion ne sera appliquée qu'après confirmation par un autre médecin ou secrétaire.`)) return;
     const { error } = await supabase.rpc('sante_proposer_fusion', { _conserve: patientId, _fusionne: cible.id, _motif: motif });
-    if (error) return void toastErreurSante(error, structureId);
+    if (error) return toast.error(error.message);
     toast.success('Fusion proposée — confirmation par une autre personne requise'); setNumero(''); setMotif(''); void charger();
   };
   const confirmer = async (id: string) => {
     if (!confirm('Confirmer la fusion ? Les antécédents, assurances et consentements du dossier en double seront transférés.')) return;
     const { error } = await supabase.rpc('sante_confirmer_fusion', { _fusion_id: id });
-    if (error) return void toastErreurSante(error, structureId);
+    if (error) return toast.error(error.message);
     toast.success('Dossiers fusionnés'); onDone();
   };
   const annuler = async (id: string) => {
     const m = prompt('Motif d’annulation (10 caractères minimum) — réservé à l’administrateur :');
     if (!m) return;
     const { error } = await supabase.rpc('sante_annuler_fusion', { _fusion_id: id, _motif: m });
-    if (error) return void toastErreurSante(error, structureId);
+    if (error) return toast.error(error.message);
     toast.success('Fusion annulée, dossiers restaurés'); void charger(); onDone();
   };
   if (!open) return <button className="float-right text-xs underline text-fg3" onClick={() => setOpen(true)}>Fusionner un doublon</button>;
@@ -298,7 +278,7 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
   );
 }
 
-function DocumentsPatient({ patientId, structureId, items, onChange }: { patientId: string; structureId: string; items: ElementDossier[]; onChange: () => void }) {
+function DocumentsPatient({ patientId, structureId, items, onChange }: { patientId: string; structureId: string; items: Record<string, any>[]; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const envoyer = async (file: File) => {
     if (file.size > 20 * 1024 * 1024) return toast.error('Fichier trop volumineux (20 Mo max)');
@@ -308,7 +288,7 @@ function DocumentsPatient({ patientId, structureId, items, onChange }: { patient
     if (up.error) { setBusy(false); return toast.error('Envoi refusé'); }
     const { error } = await supabase.from('sante_documents_patient').insert({ patient_id: patientId, structure_id: structureId, nom: file.name, storage_path: path, mime_type: file.type, taille_octets: file.size });
     setBusy(false);
-    if (error) return void toastErreurSante(error, structureId);
+    if (error) return toast.error(error.message);
     onChange();
   };
   const ouvrir = async (path: string) => {

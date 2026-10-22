@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { toastErreurSante } from '@/lib/sante-acces';
 import { ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ export function BrisGlaceButton({ patientId, onOpened }: { patientId: string; on
   const [texte, setTexte] = useState('');
   const valider = async () => {
     const { error } = await supabase.rpc('sante_bris_de_glace', { _patient_id: patientId, _motif: texte, _motif_code: code });
-    if (error) { void toastErreurSante(error); return; }
+    if (error) { toast.error(error.message); return; }
     toast.success("Accès d'urgence ouvert pour 1 heure.");
     setOuvert(false); setCode(''); setTexte(''); onOpened();
   };
@@ -80,17 +79,17 @@ export function SecuriteFacturationCard({ structureId }: { structureId: string }
 
   const enregistrer = async () => {
     const { error } = await supabase.rpc('sante_config_facturation', { _structure_id: structureId, _auto: auto, _acte_code: acte || null });
-    if (error) void toastErreurSante(error, structureId); else toast.success('Réglage enregistré.');
+    if (error) toast.error(error.message); else toast.success('Réglage enregistré.');
   };
   const enregistrerAcces = async () => {
     const { error } = await supabase.rpc('sante_config_acces', { _structure_id: structureId, _tous: tous, _seuil: seuil, _renouv: renouv });
-    if (error) void toastErreurSante(error, structureId); else toast.success("Règles d'accès enregistrées.");
+    if (error) toast.error(error.message); else toast.success("Règles d'accès enregistrées.");
   };
   const revoir = async (id: string) => {
     const c = window.prompt('Commentaire de revue (obligatoire) :') ?? '';
     if (!c.trim()) return;
     const { error } = await supabase.rpc('sante_revoir_bris_glace', { _id: id, _commentaire: c });
-    if (error) void toastErreurSante(error, structureId); else void load();
+    if (error) toast.error(error.message); else void load();
   };
   const exporter = () => telecharger(`acces-urgence-${new Date().toISOString().slice(0, 10)}.csv`, csv([
     ['Date', 'Dossier', 'Utilisateur', 'Motif', 'Justification', 'Revu le', 'Commentaire revue', 'Escaladé le'],
