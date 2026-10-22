@@ -9,8 +9,8 @@ export async function imprimerOrdonnance(ordonnanceId: string) {
     .select('*, lignes:sante_ordonnance_lignes(*), patient:sante_patients(nom, prenoms, date_naissance, sexe, numero_dossier), praticien:sante_praticiens(nom, specialite, numero_ordre), structure:structures(nom, adresse, telephone, ninea, rccm, autorisation_exercice)')
     .eq('id', ordonnanceId).maybeSingle();
   if (!o) return toast.error('Ordonnance introuvable');
-  const s: any = o.structure, p: any = o.patient, pr: any = o.praticien;
-  const lignes = [...(o.lignes as any[])].sort((a, b) => a.ordre - b.ordre);
+  const s = o.structure, p = o.patient, pr = o.praticien;
+  const lignes = [...o.lignes].sort((a, b) => a.ordre - b.ordre);
   const w = window.open('', '_blank');
   if (!w) return toast.error('Autorisez les fenêtres pour imprimer');
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Ordonnance ${esc(o.numero)}</title>

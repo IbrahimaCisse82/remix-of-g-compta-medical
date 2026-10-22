@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -11,7 +12,7 @@ const sel = 'h-9 rounded-md border border-input bg-background px-2 text-sm';
 
 /** Registre des non-conformités : déclaration par le personnel, clôture avec action corrective par biologiste/admin (imposé par la base). */
 export function NonConformites({ structureId }: { structureId: string }) {
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<Tables<'sante_non_conformites'>[]>([]);
   const [f, setF] = useState({ type: 'analytique', gravite: 'mineure', description: '' });
   const [actions, setActions] = useState<Record<string, string>>({});
   const load = useCallback(async () => {
@@ -50,7 +51,7 @@ export function NonConformites({ structureId }: { structureId: string }) {
 
 /** Évaluations externes de la qualité : z-score calculé par la base ; |z| > 2 ouvre une non-conformité. */
 export function Eeq({ structureId }: { structureId: string }) {
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<Tables<'sante_eeq'>[]>([]);
   const [f, setF] = useState({ organisme: '', campagne: '', analyse: '', obtenue: '', cible: '', ecart: '' });
   const load = useCallback(async () => {
     const { data } = await supabase.from('sante_eeq').select('*').eq('structure_id', structureId).order('date_campagne', { ascending: false }).limit(100);
@@ -83,7 +84,7 @@ export function Eeq({ structureId }: { structureId: string }) {
 /** Conservation des échantillons, envois en sous-traitance et élimination tracée. */
 export function Echantillons({ structureId }: { structureId: string }) {
   const [jours, setJours] = useState<number | null>(null);
-  const [envois, setEnvois] = useState<any[]>([]);
+  const [envois, setEnvois] = useState<(Pick<Tables<'sante_sous_traitance'>, 'id' | 'laboratoire' | 'reference_externe' | 'statut' | 'envoye_le' | 'recu_le'> & { demande: { numero: string } | null; analyse: { libelle: string } | null })[]>([]);
   const load = useCallback(async () => {
     const [{ data: s }, { data: e }] = await Promise.all([
       supabase.from('structures').select('conservation_echantillons_jours').eq('id', structureId).maybeSingle(),

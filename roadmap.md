@@ -30,7 +30,8 @@ Mise à jour : 21 octobre 2026
 ## Étape 4 — Phase 6 Conformité et qualité
 - [ ] Portail : code à usage unique par e-mail — **bloqué** : aucun service d'e-mail transactionnel (Lovable Emails à activer) + vérification DNS du domaine d'envoi
 - [~] CORS restreint aux domaines g-sante.app — liste blanche déjà stricte ; g-sante.app et www ajoutés (code fusionné) — **déploiement des fonctions à faire via Lovable**
-- [ ] Workflows (P2) et nettoyage du code (P3)
+- [x] Nettoyage du code (P3) — module Santé entièrement typé (≈ 110 erreurs → 0), contournements du typage supprimés (`as any`, `as never`) ; 2 anomalies révélées et corrigées : prescripteur vide sur les analyses prescrites depuis la consultation, dose « 12,5 » refusée
+- [ ] Workflows (P2) — reste : sélecteur d'acte santé dans Honoraires (**décision métier** : le comptable ne doit voir ni patient ni libellé d'acte), règles d'ayants droit
 - [ ] Audit du document « Module Santé (Cabinet + Laboratoire) »
 - [~] Parcours complet testé sur ordinateur et tablette, tous rôles — 13 écrans Santé parcourus le 22/10/2026 (ordinateur + tablette 768 px) : aucune erreur console ; débordement tablette corrigé (Personnel, Stocks, Rétrocessions). Reste : rôles autres qu'administrateur (comptes de test p0-* via `bun run test:db`)
 - [ ] Réattribution des rôles réels (retirer « tous les rôles » du compte de test)

@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,12 +134,15 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
   );
 }
 
+type ElementDossier = { id: string; created_at: string } & Partial<Tables<'sante_antecedents'> & Tables<'sante_patient_assurances'> & Tables<'sante_consentements'> & Tables<'sante_documents_patient'>>;
+type Fusion = Pick<Tables<'sante_fusions'>, 'id' | 'patient_conserve' | 'patient_fusionne' | 'motif'> & { created_at?: string; confirme_le?: string | null };
+
 const ONGLETS = ['Identité', 'Assurances', 'Antécédents', 'Consentements', 'Documents'] as const;
 
 function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
-  const [p, setP] = useState<Record<string, any> | null>(null);
+  const [p, setP] = useState<Tables<'sante_patients'> | null>(null);
   const [onglet, setOnglet] = useState<(typeof ONGLETS)[number]>('Identité');
-  const [items, setItems] = useState<Record<string, any>[]>([]);
+  const [items, setItems] = useState<ElementDossier[]>([]);
   const [ajout, setAjout] = useState({ a: '', b: '', c: '' });
   const [recueil, setRecueil] = useState(false);
 
@@ -162,11 +166,10 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
 
   const ajouter = async () => {
     if (!ajout.a.trim()) return;
-    const row = onglet === 'Assurances'
-      ? { patient_id: id, organisme: ajout.a, numero_adherent: ajout.b || null, taux_couverture: ajout.c ? Number(ajout.c) : null }
-      : { patient_id: id, type: ajout.b || 'medical', libelle: ajout.a, details: ajout.c || null };
-    const { error } = await supabase.from(table as 'sante_antecedents').insert(row as any);
-    if (error) return toast.error('Ajout refusé : ' + error.message);
+    const { error } = onglet === 'Assurances'
+      ? await supabase.from('sante_patient_assurances').insert({ patient_id: id, organisme: ajout.a, numero_adherent: ajout.b || null, taux_couverture: ajout.c ? Number(ajout.c) : null })
+      : await supabase.from('sante_antecedents').insert({ patient_id: id, type: ajout.b || 'medical', libelle: ajout.a, details: ajout.c || null });
+    if (error) return void toastErreurSante(error, p?.structure_id);
     setAjout({ a: '', b: '', c: '' });
     loadItems();
   };
@@ -237,8 +240,8 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
   const [open, setOpen] = useState(false);
   const [numero, setNumero] = useState('');
   const [motif, setMotif] = useState('');
-  const [enAttente, setEnAttente] = useState<any[]>([]);
-  const [confirmees, setConfirmees] = useState<any[]>([]);
+  const [enAttente, setEnAttente] = useState<Fusion[]>([]);
+  const [confirmees, setConfirmees] = useState<Fusion[]>([]);
   const charger = useCallback(async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
       supabase.from('sante_fusions').select('id, patient_conserve, patient_fusionne, motif, created_at').eq('structure_id', structureId).eq('statut', 'proposee').or(`patient_conserve.eq.${patientId},patient_fusionne.eq.${patientId}`),
@@ -295,7 +298,7 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
   );
 }
 
-function DocumentsPatient({ patientId, structureId, items, onChange }: { patientId: string; structureId: string; items: Record<string, any>[]; onChange: () => void }) {
+function DocumentsPatient({ patientId, structureId, items, onChange }: { patientId: string; structureId: string; items: ElementDossier[]; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const envoyer = async (file: File) => {
     if (file.size > 20 * 1024 * 1024) return toast.error('Fichier trop volumineux (20 Mo max)');

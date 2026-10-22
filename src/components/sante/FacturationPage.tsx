@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { toastErreurSante } from '@/lib/sante-acces';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,9 @@ type Item = { code: string; libelle: string; tarif: number };
 type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; envoye_tiers_le: string | null; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
 type Session = { id: string; fond_initial: number; ouverte_le: string } | null;
 
-const db = supabase as any;
+const db = supabase;
+type FonctionSante = keyof Database['public']['Functions'];
+type RapportCaisse = { session: { ouverte_le: string; fermee_le: string; fond_initial: number; montant_attendu: number; montant_compte: number; ecart: number }; par_mode: Record<string, number>; remboursements_especes: number; nb_encaissements: number };
 const TIERS: Record<string, string> = { sans: '—', a_facturer: 'À facturer', envoye: 'Envoyé', paye: 'Payé', rejete: 'Rejeté' };
 
 export default function FacturationPage({ structureId }: { structureId: string }) {
@@ -40,8 +43,8 @@ export default function FacturationPage({ structureId }: { structureId: string }
       db.from('sante_analyses').select('code, libelle, tarif').eq('structure_id', structureId).eq('actif', true),
     ]);
     setSession(s.data);
-    setFactures((f.data || []).map((x: any) => ({ ...x, encaisse: (x.enc || []).filter((e: any) => e.mode !== 'organisme').reduce((t: number, e: any) => t + Number(e.montant), 0) })));
-    setCatalogue([...(a.data || []), ...(an.data || [])].map((i: any) => ({ ...i, tarif: Number(i.tarif) })));
+    setFactures((f.data || []).map(x => ({ ...x, encaisse: (x.enc || []).filter(e => e.mode !== 'organisme').reduce((t: number, e) => t + Number(e.montant), 0) })));
+    setCatalogue([...(a.data || []), ...(an.data || [])].map(i => ({ ...i, tarif: Number(i.tarif) })));
   };
   useEffect(() => { void load(); }, [structureId]);
 
@@ -55,8 +58,9 @@ export default function FacturationPage({ structureId }: { structureId: string }
     setAssurances(data || []); setAssuranceId('aucune');
   };
 
-  const run = async (fn: string, args: object, ok: string) => {
-    const { error } = await db.rpc(fn, args);
+  // Appel générique d'une fonction serveur santé (nom vérifié à la compilation, arguments contrôlés côté serveur).
+  const run = async (fn: FonctionSante, args: Record<string, unknown>, ok: string) => {
+    const { error } = await (db.rpc as unknown as (f: string, a: Record<string, unknown>) => Promise<{ error: { message: string; code?: string } | null }>)(fn, args);
     if (error) { void toastErreurSante(error, structureId); return false; }
     toast.success(ok); await load(); return true;
   };
@@ -75,9 +79,10 @@ export default function FacturationPage({ structureId }: { structureId: string }
   const imprimerRapport = async (id: string) => {
     const { data, error } = await db.rpc('sante_rapport_caisse', { _session_id: id });
     if (error) { void toastErreurSante(error, structureId); return; }
-    const s = data.session; const modes = Object.entries(data.par_mode as Record<string, number>).map(([m, v]) => `<tr><td>${m}</td><td style="text-align:right">${fcfa(Number(v))}</td></tr>`).join('');
+    const rapport = data as unknown as RapportCaisse;
+    const s = rapport.session; const modes = Object.entries(rapport.par_mode).map(([m, v]) => `<tr><td>${m}</td><td style="text-align:right">${fcfa(Number(v))}</td></tr>`).join('');
     const w = window.open('', '_blank'); if (!w) return;
-    w.document.write(`<html><head><title>Rapport de caisse</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%;margin:10px 0}</style></head><body><h2>Rapport de fin de journée — caisse</h2><p>Ouverte le ${new Date(s.ouverte_le).toLocaleString('fr-FR')} · clôturée le ${new Date(s.fermee_le).toLocaleString('fr-FR')}</p><table><tr><th>Mode</th><th>Encaissé</th></tr>${modes}</table><table><tr><td>Fond initial</td><td style="text-align:right">${fcfa(Number(s.fond_initial))}</td></tr><tr><td>Remboursements espèces</td><td style="text-align:right">${fcfa(Number(data.remboursements_especes))}</td></tr><tr><td>Espèces attendues</td><td style="text-align:right">${fcfa(Number(s.montant_attendu))}</td></tr><tr><td>Espèces comptées</td><td style="text-align:right">${fcfa(Number(s.montant_compte))}</td></tr><tr><td><b>Écart</b></td><td style="text-align:right"><b>${fcfa(Number(s.ecart))}</b></td></tr></table><p>${data.nb_encaissements} encaissement(s). Session verrouillée.</p><p style="margin-top:40px">Signature caissier : ____________ &nbsp; Visa responsable : ____________</p><script>print()</script></body></html>`);
+    w.document.write(`<html><head><title>Rapport de caisse</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%;margin:10px 0}</style></head><body><h2>Rapport de fin de journée — caisse</h2><p>Ouverte le ${new Date(s.ouverte_le).toLocaleString('fr-FR')} · clôturée le ${new Date(s.fermee_le).toLocaleString('fr-FR')}</p><table><tr><th>Mode</th><th>Encaissé</th></tr>${modes}</table><table><tr><td>Fond initial</td><td style="text-align:right">${fcfa(Number(s.fond_initial))}</td></tr><tr><td>Remboursements espèces</td><td style="text-align:right">${fcfa(Number(rapport.remboursements_especes))}</td></tr><tr><td>Espèces attendues</td><td style="text-align:right">${fcfa(Number(s.montant_attendu))}</td></tr><tr><td>Espèces comptées</td><td style="text-align:right">${fcfa(Number(s.montant_compte))}</td></tr><tr><td><b>Écart</b></td><td style="text-align:right"><b>${fcfa(Number(s.ecart))}</b></td></tr></table><p>${rapport.nb_encaissements} encaissement(s). Session verrouillée.</p><p style="margin-top:40px">Signature caissier : ____________ &nbsp; Visa responsable : ____________</p><script>print()</script></body></html>`);
   };
 
   const imprimer = (f: Facture) => {

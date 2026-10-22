@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { toastErreurSante } from '@/lib/sante-acces';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -12,7 +13,7 @@ const LIB: Record<string, string> = { envoye: 'Envoyé', echec: 'Échec', sans_f
 export default function RappelsSmsCard({ structureId }: { structureId: string }) {
   const [actifs, setActifs] = useState(false);
   const [exp, setExp] = useState('');
-  const [hist, setHist] = useState<any[]>([]);
+  const [hist, setHist] = useState<Pick<Tables<'sante_rappels'>, 'id' | 'statut' | 'erreur' | 'created_at' | 'envoye_le'>[]>([]);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
