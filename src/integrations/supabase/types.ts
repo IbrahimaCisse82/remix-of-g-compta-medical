@@ -4596,6 +4596,42 @@ export type Database = {
           },
         ]
       }
+      sante_journal_exploitation: {
+        Row: {
+          acquitte_le: string | null
+          acquitte_par: string | null
+          created_at: string
+          details: Json | null
+          id: number
+          message: string
+          niveau: string
+          source: string
+          structure_id: string | null
+        }
+        Insert: {
+          acquitte_le?: string | null
+          acquitte_par?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: number
+          message: string
+          niveau: string
+          source: string
+          structure_id?: string | null
+        }
+        Update: {
+          acquitte_le?: string | null
+          acquitte_par?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: number
+          message?: string
+          niveau?: string
+          source?: string
+          structure_id?: string | null
+        }
+        Relationships: []
+      }
       sante_lots_reactifs: {
         Row: {
           id: string
@@ -7013,6 +7049,12 @@ export type Database = {
         Args: { _resultat_id: string }
         Returns: undefined
       }
+      sante_acquitter_journal: {
+        Args: {
+          _ids: number[]
+        }
+        Returns: number
+      }
       sante_alertes_stock: {
         Args: {
           _structure_id: string
@@ -7333,6 +7375,12 @@ export type Database = {
       }
       sante_escalader_bris_glace: { Args: never; Returns: number }
       sante_export_dossier: { Args: { _patient_id: string }; Returns: Json }
+      sante_export_structure: {
+        Args: {
+          _structure_id: string
+        }
+        Returns: Json
+      }
       sante_fermer_caisse: {
         Args: { _compte: number; _session_id: string }
         Returns: number
@@ -7611,6 +7659,12 @@ export type Database = {
         Returns: undefined
       }
       sante_storage_patient: { Args: { _name: string }; Returns: string }
+      sante_supervision: {
+        Args: {
+          _structure_id: string
+        }
+        Returns: Json
+      }
       sante_tableau_bord: {
         Args: { _debut: string; _fin: string; _structure_id: string }
         Returns: Json
