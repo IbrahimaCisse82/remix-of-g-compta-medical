@@ -358,6 +358,13 @@
       "when": 1792668229603,
       "tag": "0050_p5_stocks_soins_labo",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792669075882,
+      "tag": "0051_p5_retrocessions_praticiens",
+      "breakpoints": true
     }
   ]
 }
