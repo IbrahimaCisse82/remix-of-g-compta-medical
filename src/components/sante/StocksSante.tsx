@@ -54,8 +54,8 @@ export function DelivranceConsultation({ consultationId, structureId }: { consul
         {lignes.map((l, i) => {
           const a = nom(l.article_id);
           return (
-            <div key={i} className="grid grid-cols-[3fr_1fr_auto] gap-2 mb-2">
-              <select aria-label="Article" className="h-10 bg-bg3 border border-border rounded-md px-2 text-sm" value={l.article_id} onChange={e => setLignes(ls => ls.map((x, j) => j === i ? { ...x, article_id: e.target.value } : x))}>
+            <div key={i} className="grid grid-cols-[minmax(0,3fr)_minmax(0,1fr)_auto] gap-2 mb-2">
+              <select aria-label="Article" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={l.article_id} onChange={e => setLignes(ls => ls.map((x, j) => j === i ? { ...x, article_id: e.target.value } : x))}>
                 <option value="">Choisir un article…</option>
                 {articles.map(x => <option key={x.id} value={x.id} disabled={x.quantite_stock <= 0}>{x.designation} · {x.quantite_stock} {x.unite}</option>)}
               </select>
@@ -114,11 +114,11 @@ export function ReactifsParAnalyse({ structureId }: { structureId: string }) {
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
       <h2 className="font-semibold">Consommation automatique par analyse</h2>
       <p className="text-xs text-fg3">À chaque validation technique, les quantités ci-dessous sont déduites des lots (le plus proche de la péremption d’abord). Un manque de stock est signalé mais ne bloque jamais la validation.</p>
-      <form onSubmit={ajouter} className="grid grid-cols-[2fr_2fr_1fr_auto] gap-2">
-        <select aria-label="Analyse" className="h-10 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.analyse_id} onChange={e => setF({ ...f, analyse_id: e.target.value })}>
+      <form onSubmit={ajouter} className="grid grid-cols-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_auto] gap-2">
+        <select aria-label="Analyse" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.analyse_id} onChange={e => setF({ ...f, analyse_id: e.target.value })}>
           <option value="">Analyse…</option>{analyses.map(a => <option key={a.id} value={a.id}>{a.code} · {a.libelle}</option>)}
         </select>
-        <select aria-label="Réactif" className="h-10 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.reactif_id} onChange={e => setF({ ...f, reactif_id: e.target.value })}>
+        <select aria-label="Réactif" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.reactif_id} onChange={e => setF({ ...f, reactif_id: e.target.value })}>
           <option value="">Réactif…</option>{reactifs.map(r => <option key={r.id} value={r.id}>{r.nom} ({r.unite})</option>)}
         </select>
         <Input aria-label="Quantité par test" inputMode="decimal" value={f.q} onChange={e => setF({ ...f, q: e.target.value })} />

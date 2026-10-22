@@ -28,11 +28,11 @@ Mise à jour : 21 octobre 2026
 - [x] Sauvegardes, supervision, journal d'exploitation — contrôle quotidien planifié (6 h 05), tableau de supervision, journal acquittable, export mensuel de la structure (migration 0054)
 
 ## Étape 4 — Phase 6 Conformité et qualité
-- [ ] Portail : code à usage unique par e-mail
-- [ ] CORS restreint aux domaines g-sante.app
+- [ ] Portail : code à usage unique par e-mail — **bloqué** : aucun service d'e-mail transactionnel (Lovable Emails à activer) + vérification DNS du domaine d'envoi
+- [~] CORS restreint aux domaines g-sante.app — liste blanche déjà stricte ; g-sante.app et www ajoutés (code fusionné) — **déploiement des fonctions à faire via Lovable**
 - [ ] Workflows (P2) et nettoyage du code (P3)
 - [ ] Audit du document « Module Santé (Cabinet + Laboratoire) »
-- [ ] Parcours complet testé sur ordinateur et tablette, tous rôles
+- [~] Parcours complet testé sur ordinateur et tablette, tous rôles — 13 écrans Santé parcourus le 22/10/2026 (ordinateur + tablette 768 px) : aucune erreur console ; débordement tablette corrigé (Personnel, Stocks, Rétrocessions). Reste : rôles autres qu'administrateur (comptes de test p0-* via `bun run test:db`)
 - [ ] Réattribution des rôles réels (retirer « tous les rôles » du compte de test)
 
 ## Étape 5 — Mise en service
