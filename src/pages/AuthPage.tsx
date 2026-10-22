@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { lovable } from '@/integrations/lovable/index';
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -56,11 +57,15 @@ export default function AuthPage() {
   };
 
   const handleGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) toast.error(error.message);
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', { redirect_uri: window.location.origin });
+      if (result.error) toast.error('Connexion Google impossible. Réessayez ou connectez-vous par e-mail.');
+    } catch {
+      toast.error('Connexion Google impossible. Réessayez ou connectez-vous par e-mail.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -70,7 +75,7 @@ export default function AuthPage() {
       <p className="text-[11px] text-fg3 tracking-[3px] uppercase font-mono mb-8">Comptabilité SYSCOHADA</p>
 
       <div className="bg-bg2 border border-border rounded-xl p-6 w-full max-w-[400px]">
-        <Button type="button" variant="outline" className="w-full mb-4" onClick={handleGoogle}>Continuer avec Google</Button>
+        <Button type="button" variant="outline" disabled={loading} className="w-full mb-4" onClick={handleGoogle}>Continuer avec Google</Button>
         <div className="flex items-center gap-3 mb-4"><span className="h-px flex-1 bg-border" /><span className="text-[10px] uppercase text-fg3">ou</span><span className="h-px flex-1 bg-border" /></div>
         <div className="flex gap-1 mb-5 bg-bg3 rounded-lg p-0.5">
           <button onClick={() => setMode('login')} className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'login' ? 'bg-primary text-primary-foreground' : 'text-fg2'}`}>Connexion</button>

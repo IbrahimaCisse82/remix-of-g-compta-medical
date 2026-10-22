@@ -7,6 +7,7 @@ import { useMedicalPalette, useTheme } from '@/hooks/use-theme';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type StructureType = MedicalStructure['type'];
 
@@ -21,6 +22,7 @@ export default function HealthOnboarding() {
   const { toggle, resolved } = useTheme();
   const { palette, setPalette } = useMedicalPalette();
   const [type, setType] = useState<StructureType>('cabinet');
+  const [roleMetier, setRoleMetier] = useState<'admin_structure' | 'secretaire' | 'medecin' | 'biologiste'>('secretaire');
   const [nom, setNom] = useState('');
   const [ninea, setNinea] = useState('');
   const [autorisation, setAutorisation] = useState('');
@@ -30,9 +32,12 @@ export default function HealthOnboarding() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
-    const { data, error } = await supabase.rpc('create_medical_structure', {
+    try {
+    const { data, error } = await supabase.rpc('sante_creer_structure', {
       _type: type,
+      _role_metier: roleMetier,
       _nom: nom,
       _ninea: ninea || undefined,
       _autorisation_exercice: autorisation || undefined,
@@ -42,25 +47,15 @@ export default function HealthOnboarding() {
     });
     if (error || !data) {
       toast.error(error?.message || 'Création impossible.');
-      setSaving(false);
       return;
     }
-    // Dossier comptable SYSCOHADA créé et relié automatiquement (best effort, non bloquant).
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      if (auth.user) {
-        const { data: ent } = await supabase.from('entreprises')
-          .insert({ nom, user_id: auth.user.id, monnaie: 'FCFA', ninea: ninea || null, adresse: adresse || null })
-          .select('id').single();
-        if (ent) {
-          const secteur = type === 'laboratoire' ? 'sante_laboratoire' : type === 'cabinet' ? 'sante_clinique' : 'sante_mixte';
-          await supabase.rpc('set_secteur_activite', { _entreprise_id: ent.id, _secteur: secteur });
-          await supabase.rpc('lier_structure_entreprise', { _structure_id: data, _entreprise_id: ent.id });
-        }
-      }
-    } catch { /* la liaison reste possible depuis Structure & équipe */ }
-    completeHealthOnboarding({ id: data, nom, type, theme_medical: palette });
+    completeHealthOnboarding({ id: data, nom: nom.trim(), type, theme_medical: palette });
     toast.success('Votre structure Santé est prête.');
+    } catch {
+      toast.error('Création impossible. Vérifiez votre connexion puis réessayez.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -84,12 +79,27 @@ export default function HealthOnboarding() {
                 ['laboratoire', 'Laboratoire', FlaskConical],
                 ['mixte', 'Structure mixte', Hospital],
               ] as const).map(([id, label, Icon]) => (
-                <Button key={id} type="button" variant={type === id ? 'default' : 'outline'} className="h-20 justify-start" onClick={() => setType(id)}>
+                <Button key={id} type="button" disabled={saving} variant={type === id ? 'default' : 'outline'} className="h-20 justify-start" onClick={() => { setType(id); setRoleMetier('secretaire'); }}>
                   <Icon /><span>{label}</span>{type === id && <Check className="ml-auto" />}
                 </Button>
               ))}
             </div>
           </fieldset>
+
+          <div>
+            <Label htmlFor="role-metier">Votre rôle métier</Label>
+            <Select value={roleMetier} disabled={saving} onValueChange={value => {
+              if (value === 'admin_structure' || value === 'secretaire' || value === 'medecin' || value === 'biologiste') setRoleMetier(value);
+            }}>
+              <SelectTrigger id="role-metier" className="mt-2"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="secretaire">Secrétaire / accueil</SelectItem>
+                {type !== 'laboratoire' && <SelectItem value="medecin">Médecin</SelectItem>}
+                {type !== 'cabinet' && <SelectItem value="biologiste">Biologiste</SelectItem>}
+                <SelectItem value="admin_structure">Administration uniquement</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <fieldset>
             <legend className="text-sm font-semibold mb-3">Palette médicale</legend>
