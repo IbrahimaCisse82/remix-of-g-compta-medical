@@ -39,7 +39,7 @@ Mise à jour : 21 octobre 2026
 ## Étape 5 — Mise en service
 - [ ] Environnement de préproduction séparé
 - [ ] Publication, domaine g-sante.app vérifié
-- [ ] Formation et documentation utilisateur
+- [~] Formation et documentation utilisateur — guide utilisateur par rôle rédigé le 22/10/2026 (prise en main, rôles, accueil, consultation, laboratoire, caisse, gestion, sécurité, messages d'erreur) : https://claude.ai/artifact/8gUv8ap7VN7oJLWfda53MP — reste : sessions de formation sur site
 
 ## Correctifs de sécurité
 - [x] 22/10/2026 — `can_write_entreprise` / `can_admin_entreprise` renvoyaient NULL au lieu de false : 7 fonctions comptables ne bloquaient pas un utilisateur sans droit (écriture possible dans le dossier d'un autre). Corrigé (migration 0053), aucune exploitation constatée.
