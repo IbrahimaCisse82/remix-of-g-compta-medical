@@ -1,5 +1,6 @@
 import RetrocessionsPage from '@/components/sante/RetrocessionsPage';
 import PersonnelPage from '@/components/sante/PersonnelPage';
+import ExploitationPage from '@/components/sante/ExploitationPage';
 import PilotagePage from './sante/PilotagePage';
 import { useEffect, useState } from 'react';
 import { Building2, ClipboardList, FlaskConical, LayoutDashboard, LogOut, MapPin, Plus, Send, Settings, Stethoscope, SunMoon, Users } from 'lucide-react';
@@ -28,7 +29,7 @@ import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
 
-export type HealthView = 'accueil' | 'pilotage' | 'patients' | 'agenda' | 'laboratoire' | 'qualite' | 'facturation' | 'catalogue' | 'parametres' | 'retrocessions' | 'personnel';
+export type HealthView = 'accueil' | 'pilotage' | 'patients' | 'agenda' | 'laboratoire' | 'qualite' | 'facturation' | 'catalogue' | 'parametres' | 'retrocessions' | 'personnel' | 'exploitation';
 
 export default function HealthShell({ embeddedView }: { embeddedView?: HealthView } = {}) {
   const { medicalStructure, logout } = useApp();
@@ -80,7 +81,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
 
   const content = (
         <main className="p-5 sm:p-8">
-          {view === 'personnel' && medicalStructure ? <PersonnelPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} /> : view === 'retrocessions' && medicalStructure ? <RetrocessionsPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} /> : view === 'pilotage' && medicalStructure ? <PilotagePage structureId={medicalStructure.id} /> : view === 'facturation' && medicalStructure ? <FacturationPage structureId={medicalStructure.id} /> : view === 'laboratoire' && medicalStructure ? <LaboratoirePage structureId={medicalStructure.id} /> : view === 'qualite' && medicalStructure ? <QualitePage structureId={medicalStructure.id} /> : view === 'catalogue' && medicalStructure ? <CataloguePage structureId={medicalStructure.id} /> : view === 'agenda' && medicalStructure ? (consultationId ? <ConsultationPage id={consultationId} onBack={() => setConsultationId(null)} /> : <AgendaPage structureId={medicalStructure.id} onConsultation={setConsultationId} />) : view === 'patients' && medicalStructure ? <PatientsPage structureId={medicalStructure.id} /> : view === 'accueil' ? (
+          {view === 'exploitation' && medicalStructure ? <ExploitationPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} /> : view === 'personnel' && medicalStructure ? <PersonnelPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} /> : view === 'retrocessions' && medicalStructure ? <RetrocessionsPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} /> : view === 'pilotage' && medicalStructure ? <PilotagePage structureId={medicalStructure.id} /> : view === 'facturation' && medicalStructure ? <FacturationPage structureId={medicalStructure.id} /> : view === 'laboratoire' && medicalStructure ? <LaboratoirePage structureId={medicalStructure.id} /> : view === 'qualite' && medicalStructure ? <QualitePage structureId={medicalStructure.id} /> : view === 'catalogue' && medicalStructure ? <CataloguePage structureId={medicalStructure.id} /> : view === 'agenda' && medicalStructure ? (consultationId ? <ConsultationPage id={consultationId} onBack={() => setConsultationId(null)} /> : <AgendaPage structureId={medicalStructure.id} onConsultation={setConsultationId} />) : view === 'patients' && medicalStructure ? <PatientsPage structureId={medicalStructure.id} /> : view === 'accueil' ? (
           <div className="max-w-5xl">
             <p className="text-xs font-mono uppercase text-primary mb-2">Espace Santé</p>
             <h1 className="font-serif text-3xl mb-2">Fondations opérationnelles</h1>

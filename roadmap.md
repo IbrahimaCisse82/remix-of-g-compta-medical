@@ -25,7 +25,7 @@ Mise à jour : 21 octobre 2026
 - [x] Stocks pharmacie/réactifs reliés aux consultations et au labo — délivrance en consultation (sortie CUMP + écriture 6031/31x), réactifs consommés par test (FEFO) à la validation technique, alertes (migration 0050)
 - [x] Personnel : plannings, gardes, lien paie — créneaux sans chevauchement, validation « effectué », forfaits garde/astreinte repris dans le brut du bulletin (migration 0052)
 - [x] Rétrocessions aux praticiens — taux par catégorie, retenue à la source, relevé figé, paiement et annulation comptabilisés, sans commission sur prescription (migration 0051)
-- [ ] Sauvegardes, supervision, journal d'exploitation
+- [x] Sauvegardes, supervision, journal d'exploitation — contrôle quotidien planifié (6 h 05), tableau de supervision, journal acquittable, export mensuel de la structure (migration 0054)
 
 ## Étape 4 — Phase 6 Conformité et qualité
 - [ ] Portail : code à usage unique par e-mail
