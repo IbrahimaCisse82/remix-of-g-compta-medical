@@ -3,6 +3,7 @@ import { BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
+import { AlertesStockCard } from './StocksSante';
 
 const xof = (n: unknown) => `${Math.round(Number(n) || 0).toLocaleString('fr-FR')} FCFA`;
 const v = (n: unknown, u = '') => (n === null || n === undefined ? '—' : `${n}${u}`);
@@ -43,6 +44,7 @@ export default function PilotagePage({ structureId }: { structureId: string }) {
         <div className="flex items-center gap-2"><BarChart3 className="text-primary" /><h1 className="font-serif text-2xl">Pilotage médico-économique</h1></div>
         <div className="flex gap-2 items-center text-sm"><Input type="date" aria-label="Début" value={debut} onChange={e => setDebut(e.target.value)} /><span>→</span><Input type="date" aria-label="Fin" value={fin} onChange={e => setFin(e.target.value)} /></div>
       </div>
+      <AlertesStockCard structureId={structureId} />
       {d && <>
         <h2 className="font-semibold">Direction / Clinique</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

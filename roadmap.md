@@ -22,7 +22,7 @@ Mise à jour : 21 octobre 2026
 - [x] Tests du lien unique du portail — écrits dans tests/db (à exécuter)
 
 ## Étape 3 — P5 Exploitation
-- [ ] Stocks pharmacie/réactifs reliés aux consultations et au labo
+- [x] Stocks pharmacie/réactifs reliés aux consultations et au labo — délivrance en consultation (sortie CUMP + écriture 6031/31x), réactifs consommés par test (FEFO) à la validation technique, alertes (migration 0050)
 - [ ] Personnel : plannings, gardes, lien paie
 - [ ] Rétrocessions aux praticiens
 - [ ] Sauvegardes, supervision, journal d'exploitation

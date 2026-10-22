@@ -2771,6 +2771,33 @@ export type Database = {
           },
         ]
       }
+      sante_analyse_reactifs: {
+        Row: {
+          analyse_id: string
+          created_at: string
+          id: string
+          quantite_par_test: number
+          reactif_id: string
+          structure_id: string
+        }
+        Insert: {
+          analyse_id: string
+          created_at?: string
+          id?: string
+          quantite_par_test: number
+          reactif_id: string
+          structure_id: string
+        }
+        Update: {
+          analyse_id?: string
+          created_at?: string
+          id?: string
+          quantite_par_test?: number
+          reactif_id?: string
+          structure_id?: string
+        }
+        Relationships: []
+      }
       sante_analyses: {
         Row: {
           accord_prealable: boolean
@@ -3417,6 +3444,45 @@ export type Database = {
           },
         ]
       }
+      sante_consommations_reactifs: {
+        Row: {
+          analyse_id: string
+          created_at: string
+          created_by: string | null
+          demande_id: string
+          id: string
+          lot_id: string | null
+          quantite: number
+          reactif_id: string
+          rupture: boolean
+          structure_id: string
+        }
+        Insert: {
+          analyse_id: string
+          created_at?: string
+          created_by?: string | null
+          demande_id: string
+          id?: string
+          lot_id?: string | null
+          quantite: number
+          reactif_id: string
+          rupture?: boolean
+          structure_id: string
+        }
+        Update: {
+          analyse_id?: string
+          created_at?: string
+          created_by?: string | null
+          demande_id?: string
+          id?: string
+          lot_id?: string | null
+          quantite?: number
+          reactif_id?: string
+          rupture?: boolean
+          structure_id?: string
+        }
+        Relationships: []
+      }
       sante_constantes: {
         Row: {
           consultation_id: string
@@ -3970,6 +4036,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sante_dispensations: {
+        Row: {
+          article_id: string
+          consultation_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          montant: number
+          mouvement_id: string | null
+          patient_id: string
+          prix_unitaire: number
+          quantite: number
+          structure_id: string
+        }
+        Insert: {
+          article_id: string
+          consultation_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          montant?: number
+          mouvement_id?: string | null
+          patient_id: string
+          prix_unitaire?: number
+          quantite: number
+          structure_id: string
+        }
+        Update: {
+          article_id?: string
+          consultation_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          montant?: number
+          mouvement_id?: string | null
+          patient_id?: string
+          prix_unitaire?: number
+          quantite?: number
+          structure_id?: string
+        }
+        Relationships: []
       }
       sante_documents_patient: {
         Row: {
@@ -6722,6 +6830,12 @@ export type Database = {
         Args: { _resultat_id: string }
         Returns: undefined
       }
+      sante_alertes_stock: {
+        Args: {
+          _structure_id: string
+        }
+        Returns: Json
+      }
       sante_annuler_facture: {
         Args: { _facture_id: string; _motif: string }
         Returns: string
@@ -6733,6 +6847,12 @@ export type Database = {
       sante_annuler_fusion: {
         Args: { _fusion_id: string; _motif: string }
         Returns: undefined
+      }
+      sante_articles_disponibles: {
+        Args: {
+          _structure_id: string
+        }
+        Returns: { code: string; designation: string; id: string; quantite_stock: number; stock_minimum: number; unite: string }[]
       }
       sante_assurance_active: { Args: { _patient_id: string }; Returns: string }
       sante_aux_organisme: {
@@ -6945,6 +7065,13 @@ export type Database = {
           _rdv_id?: string
         }
         Returns: string
+      }
+      sante_dispenser: {
+        Args: {
+          _consultation_id: string
+          _lignes: Json
+        }
+        Returns: number
       }
       sante_doublons_patient: {
         Args: {

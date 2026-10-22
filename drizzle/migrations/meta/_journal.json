@@ -351,6 +351,13 @@
       "when": 1792606111462,
       "tag": "0049_p4_fusion_audit_consentement_signe",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792668229603,
+      "tag": "0050_p5_stocks_soins_labo",
+      "breakpoints": true
     }
   ]
 }
