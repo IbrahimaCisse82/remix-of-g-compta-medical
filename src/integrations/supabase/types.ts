@@ -5144,6 +5144,7 @@ export type Database = {
           specialite: string | null
           structure_id: string
           user_id: string | null
+          taux_retenue_source: number
         }
         Insert: {
           actif?: boolean
@@ -5155,6 +5156,7 @@ export type Database = {
           specialite?: string | null
           structure_id: string
           user_id?: string | null
+          taux_retenue_source?: number
         }
         Update: {
           actif?: boolean
@@ -5166,6 +5168,7 @@ export type Database = {
           specialite?: string | null
           structure_id?: string
           user_id?: string | null
+          taux_retenue_source?: number
         }
         Relationships: [
           {
@@ -5920,6 +5923,111 @@ export type Database = {
           structure_id?: string
           valeur_num?: number | null
           valeur_texte?: string | null
+        }
+        Relationships: []
+      }
+      sante_retrocession_regles: {
+        Row: {
+          actif: boolean
+          categorie: string
+          created_at: string
+          created_by: string | null
+          id: string
+          praticien_id: string
+          structure_id: string
+          taux: number
+        }
+        Insert: {
+          actif?: boolean
+          categorie: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          praticien_id: string
+          structure_id: string
+          taux: number
+        }
+        Update: {
+          actif?: boolean
+          categorie?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          praticien_id?: string
+          structure_id?: string
+          taux?: number
+        }
+        Relationships: []
+      }
+      sante_retrocessions: {
+        Row: {
+          annule_le: string | null
+          annule_par: string | null
+          base: number
+          details: Json
+          id: string
+          mode_paiement: string | null
+          montant_brut: number
+          montant_net: number
+          motif_annulation: string | null
+          numero: string
+          paye_le: string | null
+          paye_par: string | null
+          periode_debut: string
+          periode_fin: string
+          praticien_id: string
+          reference_paiement: string | null
+          retenue: number
+          statut: string
+          structure_id: string
+          valide_le: string
+          valide_par: string | null
+        }
+        Insert: {
+          annule_le?: string | null
+          annule_par?: string | null
+          base?: number
+          details?: Json
+          id?: string
+          mode_paiement?: string | null
+          montant_brut?: number
+          montant_net?: number
+          motif_annulation?: string | null
+          numero: string
+          paye_le?: string | null
+          paye_par?: string | null
+          periode_debut: string
+          periode_fin: string
+          praticien_id: string
+          reference_paiement?: string | null
+          retenue?: number
+          statut?: string
+          structure_id: string
+          valide_le?: string
+          valide_par?: string | null
+        }
+        Update: {
+          annule_le?: string | null
+          annule_par?: string | null
+          base?: number
+          details?: Json
+          id?: string
+          mode_paiement?: string | null
+          montant_brut?: number
+          montant_net?: number
+          motif_annulation?: string | null
+          numero?: string
+          paye_le?: string | null
+          paye_par?: string | null
+          periode_debut?: string
+          periode_fin?: string
+          praticien_id?: string
+          reference_paiement?: string | null
+          retenue?: number
+          statut?: string
+          structure_id?: string
+          valide_le?: string
+          valide_par?: string | null
         }
         Relationships: []
       }
@@ -6848,6 +6956,13 @@ export type Database = {
         Args: { _fusion_id: string; _motif: string }
         Returns: undefined
       }
+      sante_annuler_retrocession: {
+        Args: {
+          _id: string
+          _motif: string
+        }
+        Returns: undefined
+      }
       sante_articles_disponibles: {
         Args: {
           _structure_id: string
@@ -6885,6 +7000,14 @@ export type Database = {
           montant: number
           nb: number
         }[]
+      }
+      sante_calcul_retrocession: {
+        Args: {
+          _debut: string
+          _fin: string
+          _praticien_id: string
+        }
+        Returns: Json
       }
       sante_categorie_code: {
         Args: { _code: string; _structure_id: string }
@@ -7184,6 +7307,14 @@ export type Database = {
         Args: { _id: string; _mode: string }
         Returns: undefined
       }
+      sante_payer_retrocession: {
+        Args: {
+          _id: string
+          _mode: string
+          _reference?: string
+        }
+        Returns: undefined
+      }
       sante_prelever: {
         Args: {
           _conditions: Json
@@ -7395,6 +7526,14 @@ export type Database = {
       sante_valider_demande: {
         Args: { _demande_id: string; _niveau: string }
         Returns: undefined
+      }
+      sante_valider_retrocession: {
+        Args: {
+          _debut: string
+          _fin: string
+          _praticien_id: string
+        }
+        Returns: string
       }
       sante_ventes_par_categorie: {
         Args: { _debut: string; _fin: string; _structure_id: string }

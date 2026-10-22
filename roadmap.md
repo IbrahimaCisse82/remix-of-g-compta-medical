@@ -24,7 +24,7 @@ Mise à jour : 21 octobre 2026
 ## Étape 3 — P5 Exploitation
 - [x] Stocks pharmacie/réactifs reliés aux consultations et au labo — délivrance en consultation (sortie CUMP + écriture 6031/31x), réactifs consommés par test (FEFO) à la validation technique, alertes (migration 0050)
 - [ ] Personnel : plannings, gardes, lien paie
-- [ ] Rétrocessions aux praticiens
+- [x] Rétrocessions aux praticiens — taux par catégorie, retenue à la source, relevé figé, paiement et annulation comptabilisés, sans commission sur prescription (migration 0051)
 - [ ] Sauvegardes, supervision, journal d'exploitation
 
 ## Étape 4 — Phase 6 Conformité et qualité

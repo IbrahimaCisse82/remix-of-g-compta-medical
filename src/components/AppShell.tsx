@@ -63,6 +63,7 @@ const NAV: NavSection[] = [
   ]}]},
   { key: 'factu', section: 'Facturation & tiers-payant', icon: '💳', groups: [{ items: [
     { id: 'sante_facturation', icon: '💳', label: 'Factures & caisse' },
+    { id: 'sante_retrocessions', icon: '🤝', label: 'Rétrocessions praticiens' },
     { id: 'facturation', icon: '🧾', label: 'Honoraires & facturation' },
     { id: 'factures_dgid', icon: '📄', label: 'e-Facturation DGID' },
     { id: 'fournisseurs', icon: '📥', label: 'Fournisseurs & laboratoires' },

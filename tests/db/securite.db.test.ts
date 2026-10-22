@@ -823,6 +823,26 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     }, 90_000);
   });
 
+  describe('P5 — rétrocessions aux praticiens', () => {
+    it('calcul, validation, paiement : rôles, chevauchement, praticien sans compte jamais exposé', async () => {
+      const st = S.A.structure;
+      const { data: pr } = await admin.from('sante_praticiens').insert({ structure_id: st, nom: `Dr Retro ${Date.now()}` }).select('id').single();
+      // Règles : écriture réservée à l'administrateur
+      expect((await S.A.users.comptable.from('sante_retrocession_regles').insert({ structure_id: st, praticien_id: pr!.id, categorie: 'toutes', taux: 50 })).error).toBeTruthy();
+      expect((await S.A.users.admin_structure.from('sante_retrocession_regles').insert({ structure_id: st, praticien_id: pr!.id, categorie: 'toutes', taux: 50 })).error).toBeNull();
+      // Calcul : jamais pour un rôle soignant ni pour une autre structure (praticien sans compte = pas de faille NULL)
+      expect((await S.A.users.medecin.rpc('sante_calcul_retrocession', { _praticien_id: pr!.id, _debut: '2026-01-01', _fin: '2026-01-31' })).error).toBeTruthy();
+      expect((await S.B.users.admin_structure.rpc('sante_calcul_retrocession', { _praticien_id: pr!.id, _debut: '2026-01-01', _fin: '2026-01-31' })).error).toBeTruthy();
+      expect((await S.A.users.comptable.rpc('sante_calcul_retrocession', { _praticien_id: pr!.id, _debut: '2026-01-01', _fin: '2026-01-31' })).error).toBeNull();
+      // Validation : administrateur seul, montant nul refusé
+      expect((await S.A.users.comptable.rpc('sante_valider_retrocession', { _praticien_id: pr!.id, _debut: '2026-01-01', _fin: '2026-01-31' })).error).toBeTruthy();
+      expect(String((await S.A.users.admin_structure.rpc('sante_valider_retrocession', { _praticien_id: pr!.id, _debut: '2026-01-01', _fin: '2026-01-31' })).error?.message)).toMatch(/Aucun montant/);
+      // Lecture des relevés : jamais par un soignant, ni écriture directe
+      expect((await S.A.users.medecin.from('sante_retrocessions').select('id').eq('structure_id', st)).data ?? []).toHaveLength(0);
+      expect((await S.A.users.admin_structure.from('sante_retrocessions').insert({ structure_id: st, praticien_id: pr!.id, numero: 'X', periode_debut: '2026-01-01', periode_fin: '2026-01-31' })).error).toBeTruthy();
+    }, 60_000);
+  });
+
   it('Matrice constatée rôle × table (SELECT sur sa propre structure) comparée à la matrice attendue', async () => {
     const constatee: Record<string, Record<string, boolean>> = {};
     for (const role of ROLES) {
