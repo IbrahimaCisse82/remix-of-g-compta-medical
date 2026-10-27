@@ -351,6 +351,13 @@
       "when": 1793125069942,
       "tag": "0049_sante_exercice_auto",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793130009041,
+      "tag": "0050_sante_tiers_envoi_rejet",
+      "breakpoints": true
     }
   ]
 }
