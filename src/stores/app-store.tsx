@@ -363,7 +363,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const { data, error } = await supabase
       .from('structure_memberships')
-      .select('structure_id, structures(id, nom, type, theme_medical, entreprise_id)')
+      .select('id, structure_id, structures(id, nom, type, theme_medical, entreprise_id)')
       .eq('user_id', user.id)
       .eq('statut', 'actif')
       .limit(1)
@@ -376,6 +376,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       type: structure.type,
       theme_medical: structure.theme_medical,
     } : null);
+    // Rôles médicaux du membre : pilotent le filtrage d'affichage du menu.
+    if (data?.id) {
+      const { data: rolesData } = await supabase
+        .from('medical_user_roles')
+        .select('role')
+        .eq('membership_id', data.id);
+      setMedicalRoles((rolesData || []).map(r => r.role as RoleMedical));
+    } else {
+      setMedicalRoles([]);
+    }
     // Charger l'entreprise comptable liée pour que les menus compta du même environnement fonctionnent.
     if (structure?.entreprise_id) {
       try {
@@ -415,6 +425,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setJournal([]);
     setPlan([]);
     setCurrentPage('dashboard');
+    setMedicalStructure(null);
+    setMedicalRoles([]);
     await supabase.auth.signOut();
   }, []);
 
