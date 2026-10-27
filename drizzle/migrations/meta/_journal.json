@@ -372,6 +372,13 @@
       "when": 1793141262746,
       "tag": "0052_rapprochement_bancaire_persistant",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1793141385438,
+      "tag": "0053_banque_validation_ecriture",
+      "breakpoints": true
     }
   ]
 }
