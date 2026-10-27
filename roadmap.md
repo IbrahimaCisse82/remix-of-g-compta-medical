@@ -24,7 +24,10 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Corrigé : fiche praticien reliable au compte (« C'est ma fiche »), ajout d'analyses à l'écran, réglage « Laboratoire avec un seul biologiste »
 - [ ] Catalogue de départ pour les nouveaux laboratoires (liste + tarifs à fournir par le client)
 - [x] Tiers payant à l'écran (27/10, caissier) : facture 80 % IPM → encaissement part patient → envoi → rejet → renvoi → réglé ; corrigé : envoi et rejet bloqués
-- [ ] Stocks, plannings, rétrocessions, clôture de caisse
+- [x] Stocks : écran Qualité & réactifs (réceptions, consommations, alertes) ouvert sans erreur le 27/10 ; pharmacie via l'écran Stocks existant
+- [x] Plannings & gardes : écran créé et testé à l'écran le 27/10 (ajout d'une plage, marquage effectuée, forfaits garde/astreinte)
+- [x] Rétrocessions : écran créé et testé à l'écran le 27/10 (règle 30 %, simulation 10 000 → 3 000, validation, paiement espèces) ; corrigé : le calcul ne créait rien, il y a maintenant simulation puis validation
+- [x] Clôture de caisse à l'écran le 27/10 : ouverture fond 20 000, clôture avec écart 0, rapport
 - [ ] Chaque rôle testé (médecin, secrétaire, biologiste, caissier, comptable, admin)
 - [ ] Impressions A4 (factures, ordonnances, comptes rendus) avec NINEA/RCCM
 
