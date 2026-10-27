@@ -33,13 +33,23 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
     const debut = `${mois}-01T00:00:00Z`;
     const finMois = new Date(`${mois}-01T00:00:00Z`);
     finMois.setUTCMonth(finMois.getUTCMonth() + 1);
-    const [m, p, pf] = await Promise.all([
-      supabase.from('structure_memberships').select('id, profiles(full_name, email)').eq('structure_id', structureId).eq('statut', 'actif'),
+    const [m, p, pf, u] = await Promise.all([
+      supabase.from('structure_memberships').select('id, user_id').eq('structure_id', structureId).eq('statut', 'actif'),
       supabase.from('sante_plannings').select('id, membership_id, type, debut, fin, statut, note, valide_le').eq('structure_id', structureId)
         .gte('debut', debut).lt('debut', finMois.toISOString()).order('debut'),
       supabase.from('sante_personnel_parametres').select('forfait_garde, forfait_astreinte').eq('structure_id', structureId).maybeSingle(),
+      supabase.auth.getUser(),
     ]);
-    setMembres((m.data ?? []).map((x: any) => ({ id: x.id, nom: x.profiles?.full_name || x.profiles?.email || 'Membre' })));
+    // Chaque utilisateur ne lit que son propre profil (RLS) : nom complet pour soi, repère court pour les autres.
+    let monNom = '';
+    if (u.data.user) {
+      const { data: prof } = await supabase.from('profiles').select('full_name, email').eq('id', u.data.user.id).maybeSingle();
+      monNom = prof?.full_name || prof?.email || '';
+    }
+    setMembres((m.data ?? []).map((x: any) => ({
+      id: x.id,
+      nom: x.user_id === u.data.user?.id && monNom ? monNom : `Membre ${String(x.user_id).slice(0, 8)}`,
+    })));
     setPlannings(p.data ?? []);
     if (pf.data) setForfaits({ garde: String(pf.data.forfait_garde || ''), astreinte: String(pf.data.forfait_astreinte || '') });
   }, [structureId, mois]);
