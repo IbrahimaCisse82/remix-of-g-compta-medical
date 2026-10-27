@@ -17,9 +17,9 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Tous les tests relancés le 27/10 : 140 métier + 60 sécurité, tous verts
 
 ## Sprint 2 — Recette par parcours (3 à 4 jours)
-- [ ] Cabinet : accueil → consultation → ordonnance → facture → caisse → compta
-- [ ] Laboratoire : demande → prélèvement → résultats → validation → portail
-- [ ] Tiers payant : prise en charge → facture organisme → règlement → lettrage
+- [x] Cabinet : accueil → consultation → ordonnance → facture → caisse → compta (test automatique ; anomalie corrigée : exercice comptable créé automatiquement)
+- [~] Laboratoire : étapes couvertes par les tests sécurité ; essai écran à faire
+- [~] Tiers payant : étapes couvertes par les tests ; essai écran à faire
 - [ ] Stocks, plannings, rétrocessions, clôture de caisse
 - [ ] Chaque rôle testé (médecin, secrétaire, biologiste, caissier, comptable, admin)
 - [ ] Impressions A4 (factures, ordonnances, comptes rendus) avec NINEA/RCCM
@@ -30,6 +30,8 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [ ] Publier sur g-sante.app, vérifier le domaine
 - [ ] Analyse de sécurité finale
 - [ ] Formation + guide utilisateur remis au client
+
+- [ ] Passage d'année : ouvrir l'exercice suivant au 1er janvier (sinon la compta santé se met en attente)
 
 ## Après livraison (selon tiers externes)
 - [ ] SMS Twilio (compte payant + Sender ID G-SANTE)
