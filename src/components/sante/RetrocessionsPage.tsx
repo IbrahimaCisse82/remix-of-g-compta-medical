@@ -31,6 +31,7 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
   const [retros, setRetros] = useState<Retro[]>([]);
   const [regle, setRegle] = useState({ praticien_id: '', categorie: 'toutes' as string, taux: '' });
   const [calcul, setCalcul] = useState({ praticien_id: '', debut: '', fin: '' });
+  const [simulation, setSimulation] = useState<{ praticien: string; base: number; montant_brut: number; retenue: number; montant_net: number; nb_factures: number; nb_avoirs: number; categories: Record<string, { base: number; taux: number; montant: number }> } | null>(null);
   const [paiement, setPaiement] = useState<Record<string, { mode: string; reference: string }>>({});
   const [busy, setBusy] = useState(false);
 
@@ -69,10 +70,19 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
     event.preventDefault();
     if (!calcul.praticien_id || !calcul.debut || !calcul.fin) return;
     setBusy(true);
-    const { error } = await supabase.rpc('sante_calcul_retrocession', { _praticien_id: calcul.praticien_id, _debut: calcul.debut, _fin: calcul.fin });
+    setSimulation(null);
+    const { data, error } = await supabase.rpc('sante_calcul_retrocession', { _praticien_id: calcul.praticien_id, _debut: calcul.debut, _fin: calcul.fin });
     setBusy(false);
     if (error) toast.error(messageErreur(error));
-    else { toast.success('Rétrocession calculée et validée.'); await load(); }
+    else setSimulation(data as typeof simulation);
+  };
+
+  const valider = async () => {
+    setBusy(true);
+    const { error } = await supabase.rpc('sante_valider_retrocession', { _praticien_id: calcul.praticien_id, _debut: calcul.debut, _fin: calcul.fin });
+    setBusy(false);
+    if (error) toast.error(messageErreur(error));
+    else { setSimulation(null); toast.success('Rétrocession créée et validée.'); await load(); }
   };
 
   const payer = async (id: string) => {
@@ -136,9 +146,27 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
               </Select>
               <div><Label htmlFor="r-debut" className="sr-only">Début</Label><Input id="r-debut" type="date" required value={calcul.debut} onChange={e => setCalcul({ ...calcul, debut: e.target.value })} /></div>
               <div><Label htmlFor="r-fin" className="sr-only">Fin</Label><Input id="r-fin" type="date" required value={calcul.fin} onChange={e => setCalcul({ ...calcul, fin: e.target.value })} /></div>
-              <Button type="submit" disabled={busy}>{busy ? '…' : 'Calculer'}</Button>
+              <Button type="submit" disabled={busy}>{busy ? '…' : 'Simuler'}</Button>
             </form>
-            <p className="text-xs text-fg3">Le calcul se base sur les actes facturés et encaissés du praticien sur la période, selon les règles de taux actives.</p>
+            <p className="text-xs text-fg3">La simulation se base sur les actes facturés du praticien sur la période, selon les règles de taux actives. Rien n’est enregistré tant que vous ne validez pas.</p>
+            {simulation && (
+              <div className="border border-primary/40 rounded-md p-4 space-y-2">
+                <p className="font-semibold">Simulation — {simulation.praticien}</p>
+                <div className="flex flex-wrap gap-4 text-xs text-fg2">
+                  <span>{simulation.nb_factures} facture(s), {simulation.nb_avoirs} avoir(s)</span>
+                  <span>Base : {fcfa(simulation.base)}</span>
+                  <span>Brut : {fcfa(simulation.montant_brut)}</span>
+                  <span>Retenue : {fcfa(simulation.retenue)}</span>
+                  <span className="font-semibold text-foreground">Net : {fcfa(simulation.montant_net)}</span>
+                </div>
+                {Object.entries(simulation.categories ?? {}).map(([cat, d]) => (
+                  <p key={cat} className="text-xs text-fg3 capitalize">{cat} : base {fcfa(d.base)} × {d.taux} % = {fcfa(d.montant)}</p>
+                ))}
+                {simulation.base > 0
+                  ? <Button size="sm" onClick={() => void valider()} disabled={busy}>{busy ? '…' : 'Valider et créer la rétrocession'}</Button>
+                  : <p className="text-xs text-fg3">Base nulle sur cette période : rien à créer.</p>}
+              </div>
+            )}
           </section>
 
           <section className="border border-border bg-bg2 rounded-md p-5">
