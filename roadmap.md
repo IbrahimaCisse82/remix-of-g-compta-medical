@@ -28,7 +28,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Plannings & gardes : écran créé et testé à l'écran le 27/10 (ajout d'une plage, marquage effectuée, forfaits garde/astreinte)
 - [x] Rétrocessions : écran créé et testé à l'écran le 27/10 (règle 30 %, simulation 10 000 → 3 000, validation, paiement espèces) ; corrigé : le calcul ne créait rien, il y a maintenant simulation puis validation
 - [x] Clôture de caisse à l'écran le 27/10 : ouverture fond 20 000, clôture avec écart 0, rapport
-- [ ] Chaque rôle testé (médecin, secrétaire, biologiste, caissier, comptable, admin)
+- [x] Chaque rôle testé à l'écran (27/10) : médecin/admin (parcours cabinet), biologiste (labo complet), caissier (tiers payant, caisse), secrétaire (patients), comptable (journal) ; corrigé : le comptable et le caissier ne voyaient pas l'entreprise comptable liée (« Entreprise — », journal vide) — lecture ouverte aux rôles à vocation comptable, test ajouté (65 tests DB)
 - [x] Impressions A4 avec NINEA/RCCM (27/10) : ordonnances, certificats, comptes rendus (QR de vérification), étiquettes code-barres, relances organismes déjà en place ; facture réécrite en vrai document A4 (en-tête structure, lignes détaillées, totaux, règlements, pied NINEA/RCCM) et rapport de clôture de caisse complété — testée à l'écran
 
 ## Sprint 3 — Préparer la livraison (2 jours)
