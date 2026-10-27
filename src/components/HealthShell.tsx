@@ -24,13 +24,31 @@ import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
+import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
+import type { PageId } from '@/stores/app-store';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
+
+const VUES: { v: HealthView; label: string; Icon: typeof LayoutDashboard }[] = [
+  { v: 'accueil', label: 'Accueil', Icon: LayoutDashboard },
+  { v: 'patients', label: 'Patients', Icon: Users },
+  { v: 'agenda', label: 'Agenda & consultations', Icon: ClipboardList },
+  { v: 'laboratoire', label: 'Laboratoire', Icon: FlaskConical },
+  { v: 'qualite', label: 'Qualité & réactifs', Icon: ClipboardList },
+  { v: 'facturation', label: 'Factures & caisse', Icon: ClipboardList },
+  { v: 'catalogue', label: 'Catalogue & tarifs', Icon: Building2 },
+  { v: 'plannings', label: 'Plannings & gardes', Icon: CalendarClock },
+  { v: 'retrocessions', label: 'Rétrocessions', Icon: HandCoins },
+  { v: 'parametres', label: 'Paramètres', Icon: Settings },
+];
 
 export type HealthView = 'accueil' | 'pilotage' | 'patients' | 'agenda' | 'laboratoire' | 'qualite' | 'facturation' | 'catalogue' | 'plannings' | 'retrocessions' | 'parametres';
 
 export default function HealthShell({ embeddedView }: { embeddedView?: HealthView } = {}) {
-  const { medicalStructure, logout } = useApp();
+  const { medicalStructure, medicalRoles, logout } = useApp();
+  // Filtrage d'affichage selon le type de structure et les rôles du membre.
+  const ctxNav: ContexteNavigation = { typeStructure: medicalStructure?.type ?? null, roles: medicalRoles };
+  const vuesVisibles = VUES.filter(({ v }) => moduleVisible(`sante_${v}` as PageId, ctxNav));
   const { toggle } = useTheme();
   const { palette, setPalette } = useMedicalPalette(medicalStructure?.theme_medical);
   const [stateView, setView] = useState<HealthView>('accueil');
