@@ -32,17 +32,23 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Impressions A4 avec NINEA/RCCM (27/10) : ordonnances, certificats, comptes rendus (QR de vérification), étiquettes code-barres, relances organismes déjà en place ; facture réécrite en vrai document A4 (en-tête structure, lignes détaillées, totaux, règlements, pied NINEA/RCCM) et rapport de clôture de caisse complété — testée à l'écran
 
 ## Sprint 3 — Préparer la livraison (2 jours)
-- [ ] Retirer « tous les rôles » du compte de test, attribuer les rôles réels
-- [ ] Nettoyer les données de test, créer la structure du client
-- [ ] Publier sur g-sante.app, vérifier le domaine
-- [ ] Analyse de sécurité finale
-- [ ] Formation + guide utilisateur remis au client
+- [x] Inventaire de préparation (27/10, 22:34 UTC) : 65 structures dont 63 portant un marqueur test/essai/recette/parcours/P0 ; 64 comptes @gsante.test ; 3 adhésions actives avec plus de deux rôles. Les marqueurs ne prouvent pas que les données sont supprimables.
+- [ ] Retirer « tous les rôles » et attribuer les rôles réels — attend la confirmation des fonctions de chaque personne ; aucune permission retirée automatiquement
+- [ ] Isoler les données de test sans effacer les dossiers, audits ni écritures ; créer la structure du client — attend l'identification de la structure à livrer et une stratégie de conservation validée
+- [ ] Publier sur g-sante.app, vérifier le domaine — attend une demande explicite de publication et la levée des points bloquants
+- [x] Recette automatique relancée le 27/10 : 140 tests métier + 65 tests base réussis
+- [x] Contrôle rapide de sécurité le 27/10 : une information sur la lecture publique des plans d'abonnement (catalogue commercial), aucune alerte critique de ce contrôle ; ne constitue pas une validation de sécurité complète
+- [ ] Analyse approfondie de sécurité finale — lancée le 27/10, résultat attendu
+- [ ] Corriger les bibliothèques signalées par le contrôle des dépendances (ws, DOMPurify/fflate, routeur, lodash, Zod), puis relancer tests et contrôle ; aucune mise à jour appliquée dans cette étape
+- [x] Guide de prise en main et procédure de livraison rédigés : `docs/livraison/guide-utilisateur.md`, `docs/livraison/checklist.md`
+- [ ] Formation réalisée, guide remis et procès-verbal de recette signé par le client
+- [ ] Autorisation CDP et revue juridique avant toute mise en service avec de vrais patients — statut actuel à confirmer avec la structure (la note de conformité ne prouve pas l'obtention)
 
 - [ ] Passage d'année : ouvrir l'exercice suivant au 1er janvier (sinon la compta santé se met en attente)
 
 ## Après livraison (selon tiers externes)
 - [ ] SMS Twilio (compte payant + Sender ID G-SANTE)
-- [ ] E-mails praticien/patient (domaine d'envoi)
+- [ ] E-mails praticien/patient : domaine notify.g-sante.app déjà configuré dans l'historique ; vérifier les parcours de notification et la réception réelle, ne pas confondre e-mails de connexion et notifications métier
 - [ ] DGID e-facturation réelle
 - [ ] Validations juriste/CDP, expert-comptable, biologiste
 
