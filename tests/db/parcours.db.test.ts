@@ -88,4 +88,19 @@ describe.skipIf(!enabled)('Parcours cabinet de bout en bout', () => {
     const r = await caissier.from('sante_consultations').select('id, motif').eq('id', consultation);
     expect(r.data ?? []).toHaveLength(0);
   });
+
+  it('comptabilité lisible par le comptable de la structure, pas par la secrétaire', async () => {
+    // Règle : les rôles à vocation comptable (comptable, caissier, admin_structure, lecteur)
+    // lisent l'entreprise liée ; les autres rôles médicaux non.
+    const ent = await comptable.from('entreprises').select('id').eq('id', entreprise);
+    expect(ent.data ?? []).toHaveLength(1);
+    const exc = await comptable.from('exercices').select('id').eq('entreprise_id', entreprise);
+    expect(exc.data!.length).toBeGreaterThanOrEqual(1);
+    const ecr = await comptable.from('ecritures').select('id').eq('entreprise_id', entreprise);
+    expect(ecr.data!.length).toBeGreaterThanOrEqual(2);
+    const entSec = await secretaire.from('entreprises').select('id').eq('id', entreprise);
+    expect(entSec.data ?? []).toHaveLength(0);
+    const ecrSec = await secretaire.from('ecritures').select('id').eq('entreprise_id', entreprise);
+    expect(ecrSec.data ?? []).toHaveLength(0);
+  });
 });
