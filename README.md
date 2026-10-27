@@ -2,10 +2,15 @@
 
 ERP dédié aux structures de santé du Sénégal (cabinets médicaux, cliniques, laboratoires, structures mixtes), avec la comptabilité SYSCOHADA intégrée (ex-G-Compta). Éditeur : GROW HUB SARL.
 
-- Production : https://g-sante.app
+- Domaine cible de livraison : https://g-sante.app (publication et disponibilité à vérifier)
 - Feuille de route détaillée : [`roadmap.md`](roadmap.md)
 - Règles d'architecture : [`AGENTS.md`](AGENTS.md)
 - Rapports sécurité : `docs/securite/P0..P3-rapport.md` · Conformité : `docs/conformite-donnees-sante.md`
+- Livraison : [`checklist`](docs/livraison/checklist.md) · [`guide utilisateur`](docs/livraison/guide-utilisateur.md)
+
+## État de livraison — 27 octobre 2026
+
+Sprint 3 en cours, pas encore de validation de mise en production. Dernière recette : **140 tests métier et 65 tests base réussis**. L'analyse approfondie de sécurité est en cours et le contrôle des dépendances signale des bibliothèques à corriger. Les rôles réels, la structure cliente, la conservation des données de test et les formalités CDP restent à confirmer ; voir la checklist pour les critères de décision.
 
 ## Modules
 
@@ -32,3 +37,5 @@ npm run dev        # application
 bun run test       # tests métier (Vitest)
 bun run test:db    # tests sécurité base (comptes p0-*@gsante.test)
 ```
+
+**Attention aux tests base :** ils écrivent des comptes, structures, dossiers, factures et écritures persistants. Cette instance sert la prévisualisation et la version publiée. Ne pas les relancer après livraison sur des données réelles sans environnement de recette isolé et procédure validée. Ne pas supprimer les écritures, les dossiers ou leurs audits pour « nettoyer » les tests : la conservation comptable est de 10 ans et les contraintes d'audit doivent être préservées.
