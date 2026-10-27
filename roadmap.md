@@ -23,7 +23,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Laboratoire à l'écran : validation technique (technicien) → validation biologique → remise avec pièce d'identité
 - [x] Corrigé : fiche praticien reliable au compte (« C'est ma fiche »), ajout d'analyses à l'écran, réglage « Laboratoire avec un seul biologiste »
 - [ ] Catalogue de départ pour les nouveaux laboratoires (liste + tarifs à fournir par le client)
-- [~] Tiers payant : étapes couvertes par les tests ; essai écran à faire
+- [x] Tiers payant à l'écran (27/10, caissier) : facture 80 % IPM → encaissement part patient → envoi → rejet → renvoi → réglé ; corrigé : envoi et rejet bloqués
 - [ ] Stocks, plannings, rétrocessions, clôture de caisse
 - [ ] Chaque rôle testé (médecin, secrétaire, biologiste, caissier, comptable, admin)
 - [ ] Impressions A4 (factures, ordonnances, comptes rendus) avec NINEA/RCCM
