@@ -71,8 +71,8 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-5"
       style={{ background: 'radial-gradient(ellipse at 65% 15%, rgba(56,189,248,.07) 0%, transparent 55%), radial-gradient(ellipse at 20% 80%, rgba(167,139,250,.07) 0%, transparent 50%), hsl(var(--background))' }}>
-      <h1 className="font-serif text-4xl text-primary tracking-tight mb-1">G-Compta</h1>
-      <p className="text-[11px] text-fg3 tracking-[3px] uppercase font-mono mb-8">Comptabilité SYSCOHADA</p>
+      <h1 className="font-serif text-4xl text-primary tracking-tight mb-1">G-Santé ERP</h1>
+      <p className="text-[11px] text-fg3 tracking-[3px] uppercase font-mono mb-8">Santé · Comptabilité SYSCOHADA</p>
 
       <div className="bg-bg2 border border-border rounded-xl p-6 w-full max-w-[400px]">
         <Button type="button" variant="outline" disabled={loading} className="w-full mb-4" onClick={handleGoogle}>Continuer avec Google</Button>
