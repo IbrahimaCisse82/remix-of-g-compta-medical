@@ -77,7 +77,7 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
 
   const sauverForfaits = async () => {
     const { error } = await supabase.from('sante_personnel_parametres').upsert({
-      structure_id: structureId, forfait_garde: Number(forfait.garde || 0), forfait_astreinte: Number(forfait.astreinte || 0), updated_at: new Date().toISOString(),
+      structure_id: structureId, forfait_garde: Number(forfaits.garde || 0), forfait_astreinte: Number(forfaits.astreinte || 0), updated_at: new Date().toISOString(),
     }, { onConflict: 'structure_id' });
     if (error) toast.error(messageErreur(error));
     else toast.success('Forfaits enregistrés.');
@@ -133,11 +133,11 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
       <section className="border border-border bg-bg2 rounded-md p-5 max-w-xl">
         <h2 className="font-semibold mb-4">Forfaits garde et astreinte</h2>
         <div className="grid grid-cols-2 gap-3">
-          <div><Label htmlFor="f-garde">Forfait garde (FCFA)</Label><Input id="f-garde" type="number" min={0} value={forfait.garde} onChange={e => setForfaits({ ...forfaits, garde: e.target.value })} /></div>
-          <div><Label htmlFor="f-astreinte">Forfait astreinte (FCFA)</Label><Input id="f-astreinte" type="number" min={0} value={forfait.astreinte} onChange={e => setForfaits({ ...forfaits, astreinte: e.target.value })} /></div>
+          <div><Label htmlFor="f-garde">Forfait garde (FCFA)</Label><Input id="f-garde" type="number" min={0} value={forfaits.garde} onChange={e => setForfaits({ ...forfaits, garde: e.target.value })} /></div>
+          <div><Label htmlFor="f-astreinte">Forfait astreinte (FCFA)</Label><Input id="f-astreinte" type="number" min={0} value={forfaits.astreinte} onChange={e => setForfaits({ ...forfaits, astreinte: e.target.value })} /></div>
         </div>
         <Button className="mt-3" onClick={() => void sauverForfaits()}>Enregistrer les forfaits</Button>
-        <p className="text-xs text-fg3 mt-2">Ces montants servent au lien avec la paie. Exemple : garde {fcfa(Number(forfait.garde || 0))}.</p>
+        <p className="text-xs text-fg3 mt-2">Ces montants servent au lien avec la paie. Exemple : garde {fcfa(Number(forfaits.garde || 0))}.</p>
       </section>
     </div>
   );
