@@ -151,7 +151,7 @@ describe.skipIf(!actif)('Fonctions serveur — opérations interdites refusées 
       for (const role of REFUSES) {
         it(`${type} / ${role} : import de relevé refusé`, async () => {
           const r = await S.users[role].rpc('banque_importer', {
-            _entreprise_id: S.entreprises[type], _exercice_id: randomBytes(16).toString('hex'),
+            _entreprise_id: S.entreprises[type], _exercice_id: '00000000-0000-0000-0000-000000000000',
             _compte: '521000', _nom_fichier: 'pirate.csv', _empreinte: `pirate-${run}`, _solde_initial: 0, _operations: [],
           });
           refusAvec(r.error, /Accès refusé|comptable|Droit/i);

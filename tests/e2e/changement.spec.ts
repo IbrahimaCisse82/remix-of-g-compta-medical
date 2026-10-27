@@ -31,12 +31,8 @@ test.describe('Actualisation après changement de rôle', () => {
 
     // L'administrateur change le rôle côté serveur : secrétaire → comptable.
     const { data: st } = await admin.from('structures').select('id').eq('nom', 'E2E cabinet').single();
-    const { data: user } = await admin.from('auth.users' as never).select('id').eq('email', 'e2e-change-role@gsante.test' as never).maybeSingle();
-    let userId = (user as { id?: string } | null)?.id;
-    if (!userId) {
-      const list = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      userId = list.data.users.find(u => u.email === 'e2e-change-role@gsante.test')!.id;
-    }
+    const list = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const userId = list.data.users.find(u => u.email === 'e2e-change-role@gsante.test')!.id;
     const { data: m } = await admin.from('structure_memberships').select('id').eq('structure_id', st!.id).eq('user_id', userId!).single();
     await admin.from('medical_user_roles').delete().eq('membership_id', m!.id);
     await admin.from('medical_user_roles').insert({ membership_id: m!.id, role: 'comptable' });
