@@ -253,10 +253,17 @@ export default function AppShell() {
     return () => window.removeEventListener('show-shortcuts', handler);
   }, []);
 
-  const { medicalStructure, workspace } = useApp();
+  const { medicalStructure, medicalRoles, workspace } = useApp();
   useEffect(() => { if (workspace === 'sante') setPage('sante_accueil'); }, [workspace]); // eslint-disable-line react-hooks/exhaustive-deps
   const healthView = currentPage.startsWith('sante_') ? currentPage.slice(6) as HealthView : null;
   const PageComponent = currentPage === 'clients' ? ClientsPage : (PAGES[currentPage] || Dashboard);
+
+  // Filtrage d'affichage du menu : type de structure + rôles médicaux.
+  // Hors espace santé (compta seule / démo), typeStructure = null → aucun filtrage.
+  const ctxNav: ContexteNavigation = {
+    typeStructure: workspace === 'sante' && medicalStructure ? medicalStructure.type : null,
+    roles: medicalRoles,
+  };
 
   const handlePageChange = (page: PageId) => {
     setPage(page);
@@ -308,7 +315,7 @@ export default function AppShell() {
           <nav className="py-1.5 flex-1">
             {NAV.map(section => {
               const groups = (section.groups ?? [])
-                .map(g => ({ ...g, items: (g.items ?? []).filter(i => !i.cabinet || env === 'cabinet') }))
+                .map(g => ({ ...g, items: (g.items ?? []).filter(i => (!i.cabinet || env === 'cabinet') && moduleVisible(i.id, ctxNav)) }))
                 .filter(g => g.items.length);
               if (!groups.length) return null;
               const hasActive = groups.some(g => g.items.some(i => i.id === currentPage));
