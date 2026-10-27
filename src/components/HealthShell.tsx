@@ -152,21 +152,17 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
       <aside className="hidden md:flex w-60 border-r border-border bg-bg2 p-4 flex-col">
         <div className="flex items-center gap-2 text-primary font-serif text-xl mb-8"><Stethoscope />G‑Santé</div>
         <nav className="space-y-1">
-          <Button variant={view === 'accueil' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('accueil')}><LayoutDashboard />Accueil</Button>
-          <Button variant={view === 'patients' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('patients')}><Users />Patients</Button>
-          <Button variant={view === 'agenda' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => { setConsultationId(null); setView('agenda'); }}><ClipboardList />Agenda & consultations</Button>
-          <Button variant={view === 'laboratoire' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('laboratoire')}><FlaskConical />Laboratoire</Button>
-          <Button variant={view === 'qualite' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('qualite')}><ClipboardList />Qualité & réactifs</Button>
-          <Button variant={view === 'facturation' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('facturation')}><ClipboardList />Factures & caisse</Button>
-          <Button variant={view === 'catalogue' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('catalogue')}><Building2 />Catalogue & tarifs</Button>
-          <Button variant={view === 'plannings' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('plannings')}><CalendarClock />Plannings & gardes</Button>
-          <Button variant={view === 'retrocessions' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('retrocessions')}><HandCoins />Rétrocessions</Button>
-          <Button variant={view === 'parametres' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setView('parametres')}><Settings />Paramètres</Button>
+          {vuesVisibles.map(({ v, label, Icon }) => (
+            <Button key={v} variant={view === v ? 'secondary' : 'ghost'} className="w-full justify-start"
+              onClick={() => { if (v === 'agenda') setConsultationId(null); setView(v); }}>
+              <Icon />{label}
+            </Button>
+          ))}
         </nav>
         <div className="mt-auto text-xs text-fg3">Clinique · Laboratoire</div>
       </aside>
       <div className="flex-1 min-w-0">
-        <nav className="md:hidden flex gap-1 border-b border-border bg-bg2 p-2 overflow-x-auto">{(['accueil','patients','agenda','laboratoire','qualite','facturation','catalogue','plannings','retrocessions','parametres'] as const).map(v => <Button key={v} size="sm" variant={view === v ? 'secondary' : 'ghost'} onClick={() => setView(v)} className="capitalize">{v === 'parametres' ? 'Paramètres' : v === 'plannings' ? 'Plannings' : v === 'retrocessions' ? 'Rétrocessions' : v}</Button>)}</nav>
+        <nav className="md:hidden flex gap-1 border-b border-border bg-bg2 p-2 overflow-x-auto">{vuesVisibles.map(({ v, label }) => <Button key={v} size="sm" variant={view === v ? 'secondary' : 'ghost'} onClick={() => setView(v)}>{label}</Button>)}</nav>
         <header className="h-16 border-b border-border bg-bg2 flex items-center justify-between px-4 sm:px-6">
           <div><p className="font-semibold truncate">{medicalStructure?.nom}</p><p className="text-xs text-fg3 capitalize">{medicalStructure?.type}</p></div>
           <div className="flex items-center gap-2">
