@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fcfa } from '@/domain/sante/tiers-payant';
 
+import { messageErreur } from '@/lib/erreurs';
 const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
