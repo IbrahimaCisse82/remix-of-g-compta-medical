@@ -145,8 +145,9 @@ describe.skipIf(!actif)('Accès direct aux modules — la base refuse ce que le 
   });
 
   describe('Module Clinique & consultations (cabinet et mixte uniquement)', () => {
-    const AUTORISES: Role[] = ['medecin', 'biologiste'];
-    const REFUSES: Role[] = ['admin_structure', 'technicien', 'preleveur', 'secretaire', 'caissier', 'comptable', 'lecteur', 'tiers_payant'];
+    // Contenu clinique limité à la relation de soin : seul le médecin qui consulte le patient voit la consultation.
+    const AUTORISES: Role[] = ['medecin'];
+    const REFUSES: Role[] = ['admin_structure', 'biologiste', 'technicien', 'preleveur', 'secretaire', 'caissier', 'comptable', 'lecteur', 'tiers_payant'];
     for (const type of ['cabinet', 'mixte'] as const) {
       for (const role of AUTORISES) {
         it(`${type} / ${role} : voit les consultations`, async () => {
@@ -175,8 +176,9 @@ describe.skipIf(!actif)('Accès direct aux modules — la base refuse ce que le 
   });
 
   describe('Module Laboratoire (laboratoire et mixte uniquement)', () => {
-    const AUTORISES: Role[] = ['admin_structure', 'medecin', 'biologiste', 'technicien', 'preleveur', 'secretaire'];
-    const REFUSES: Role[] = ['caissier', 'comptable', 'lecteur', 'tiers_payant'];
+    // Périmètre labo : biologiste/technicien/préleveur ; médecin uniquement si relation de soin ; secrétaire et admin exclus.
+    const AUTORISES: Role[] = ['biologiste', 'technicien', 'preleveur'];
+    const REFUSES: Role[] = ['admin_structure', 'secretaire', 'caissier', 'comptable', 'lecteur', 'tiers_payant'];
     for (const type of ['laboratoire', 'mixte'] as const) {
       for (const role of AUTORISES) {
         it(`${type} / ${role} : voit les demandes d'analyses`, async () => {
@@ -205,8 +207,9 @@ describe.skipIf(!actif)('Accès direct aux modules — la base refuse ce que le 
   });
 
   describe('Module Facturation & caisse (toutes structures)', () => {
-    const AUTORISES: Role[] = ['admin_structure', 'secretaire', 'caissier', 'comptable', 'lecteur', 'tiers_payant'];
-    const REFUSES: Role[] = ['technicien', 'preleveur'];
+    // Besoin d'en connaître : ni l'équipe clinique ni le lecteur ne voient les factures.
+    const AUTORISES: Role[] = ['admin_structure', 'secretaire', 'caissier', 'comptable', 'tiers_payant'];
+    const REFUSES: Role[] = ['medecin', 'biologiste', 'technicien', 'preleveur', 'lecteur'];
     for (const type of TYPES) {
       for (const role of AUTORISES) {
         it(`${type} / ${role} : voit les factures`, async () => {
