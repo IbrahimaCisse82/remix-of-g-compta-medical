@@ -74,14 +74,47 @@ export default function FacturationPage({ structureId }: { structureId: string }
   const imprimerRapport = async (id: string) => {
     const { data, error } = await db.rpc('sante_rapport_caisse', { _session_id: id });
     if (error) { toast.error(error.message); return; }
+    const { data: st } = await db.from('structures').select('nom, adresse, telephone, ninea, rccm').eq('id', structureId).maybeSingle();
+    const esc = (x: unknown) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
     const s = data.session; const modes = Object.entries(data.par_mode as Record<string, number>).map(([m, v]) => `<tr><td>${m}</td><td style="text-align:right">${fcfa(Number(v))}</td></tr>`).join('');
     const w = window.open('', '_blank'); if (!w) return;
-    w.document.write(`<html><head><title>Rapport de caisse</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%;margin:10px 0}</style></head><body><h2>Rapport de fin de journée — caisse</h2><p>Ouverte le ${new Date(s.ouverte_le).toLocaleString('fr-FR')} · clôturée le ${new Date(s.fermee_le).toLocaleString('fr-FR')}</p><table><tr><th>Mode</th><th>Encaissé</th></tr>${modes}</table><table><tr><td>Fond initial</td><td style="text-align:right">${fcfa(Number(s.fond_initial))}</td></tr><tr><td>Remboursements espèces</td><td style="text-align:right">${fcfa(Number(data.remboursements_especes))}</td></tr><tr><td>Espèces attendues</td><td style="text-align:right">${fcfa(Number(s.montant_attendu))}</td></tr><tr><td>Espèces comptées</td><td style="text-align:right">${fcfa(Number(s.montant_compte))}</td></tr><tr><td><b>Écart</b></td><td style="text-align:right"><b>${fcfa(Number(s.ecart))}</b></td></tr></table><p>${data.nb_encaissements} encaissement(s). Session verrouillée.</p><p style="margin-top:40px">Signature caissier : ____________ &nbsp; Visa responsable : ____________</p><script>print()</script></body></html>`);
+    w.document.write(`<html><head><title>Rapport de caisse</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%;margin:10px 0}footer{position:fixed;bottom:0;left:0;right:0;font-size:8pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:4px}</style></head><body><h2>${esc(st?.nom)} — Rapport de fin de journée · caisse</h2><p><small>${esc(st?.adresse)} · Tél. ${esc(st?.telephone)}</small><br>Ouverte le ${new Date(s.ouverte_le).toLocaleString('fr-FR')} · clôturée le ${new Date(s.fermee_le).toLocaleString('fr-FR')}</p><table><tr><th>Mode</th><th>Encaissé</th></tr>${modes}</table><table><tr><td>Fond initial</td><td style="text-align:right">${fcfa(Number(s.fond_initial))}</td></tr><tr><td>Remboursements espèces</td><td style="text-align:right">${fcfa(Number(data.remboursements_especes))}</td></tr><tr><td>Espèces attendues</td><td style="text-align:right">${fcfa(Number(s.montant_attendu))}</td></tr><tr><td>Espèces comptées</td><td style="text-align:right">${fcfa(Number(s.montant_compte))}</td></tr><tr><td><b>Écart</b></td><td style="text-align:right"><b>${fcfa(Number(s.ecart))}</b></td></tr></table><p>${data.nb_encaissements} encaissement(s). Session verrouillée.</p><p style="margin-top:40px">Signature caissier : ____________ &nbsp; Visa responsable : ____________</p><footer>NINEA ${esc(st?.ninea)} · RCCM ${esc(st?.rccm)} · Document émis électroniquement</footer><script>print()</script></body></html>`);
+    w.document.close();
   };
 
-  const imprimer = (f: Facture) => {
-    const w = window.open('', '_blank'); if (!w) return;
-    w.document.write(`<html><head><title>${f.numero}</title><style>body{font-family:sans-serif;padding:40px;max-width:700px}td{padding:6px}</style></head><body><h2>${f.type === 'avoir' ? 'Avoir' : 'Reçu'} ${f.numero}</h2><p>${f.patient?.nom ?? ''} ${f.patient?.prenoms ?? ''} — ${f.patient?.numero_dossier ?? ''}</p><table><tr><td>Total</td><td>${fcfa(f.total)}</td></tr><tr><td>Part organisme ${f.organisme ?? ''}</td><td>${fcfa(f.part_organisme)}</td></tr><tr><td>Part patient</td><td>${fcfa(f.part_patient)}</td></tr><tr><td>Encaissé</td><td>${fcfa(f.encaisse)}</td></tr><tr><td><b>Reste dû</b></td><td><b>${fcfa(resteDu(f.part_patient, f.encaisse))}</b></td></tr></table><p style="font-size:11px;margin-top:40px">Date : ${new Date(f.created_at).toLocaleString('fr-FR')}</p><script>print()</script></body></html>`);
+  const imprimer = async (f: Facture) => {
+    const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const [{ data: s }, { data: lignes }, { data: encs }] = await Promise.all([
+      db.from('structures').select('nom, adresse, telephone, ninea, rccm, autorisation_exercice').eq('id', structureId).maybeSingle(),
+      db.from('sante_facture_lignes').select('libelle, code, quantite, prix_unitaire, montant').eq('facture_id', f.id),
+      db.from('sante_encaissements').select('mode, montant, created_at').eq('facture_id', f.id).order('created_at'),
+    ]);
+    const w = window.open('', '_blank'); if (!w) { toast.error('Autorisez les fenêtres pour imprimer'); return; }
+    const reste = resteDu(f.part_patient, f.encaisse);
+    const titre = f.type === 'avoir' ? 'AVOIR' : 'FACTURE';
+    const lignesHtml = (lignes ?? []).map((l: any) =>
+      `<tr><td>${esc(l.libelle)}${l.code ? ` <small>(${esc(l.code)})</small>` : ''}</td><td style="text-align:center">${esc(l.quantite)}</td><td style="text-align:right">${fcfa(Number(l.prix_unitaire))}</td><td style="text-align:right">${fcfa(Number(l.montant))}</td></tr>`).join('');
+    const encHtml = (encs ?? []).map((e: any) =>
+      `<tr><td>${esc(e.mode)}</td><td>${new Date(e.created_at).toLocaleString('fr-FR')}</td><td style="text-align:right">${fcfa(Number(e.montant))}</td></tr>`).join('');
+    w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(f.numero)}</title>
+<style>@page{size:A4;margin:16mm}body{font-family:Georgia,serif;color:#111;font-size:11pt}header{display:flex;justify-content:space-between;border-bottom:2px solid #0e7490;padding-bottom:8px}
+h1{font-size:16pt;margin:0;color:#0e7490}small{color:#444}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border-bottom:1px solid #ddd;padding:5px;text-align:left}th{background:#f1f5f9;font-size:9pt}
+.tot{margin-top:12px;margin-left:auto;width:70mm}.tot td{padding:4px}.sig{margin-top:50px;text-align:right}
+footer{position:fixed;bottom:0;left:0;right:0;font-size:8pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:4px}</style></head><body>
+<header><div><h1>${esc(s?.nom)}</h1><small>${esc(s?.adresse)}<br>Tél. ${esc(s?.telephone)}</small></div>
+<div style="text-align:right"><strong>${titre} ${esc(f.numero)}</strong>${f.annulee ? '<br><span style="color:#b91c1c;font-weight:bold">ANNULÉE</span>' : ''}<br><small>${new Date(f.created_at).toLocaleString('fr-FR')}</small></div></header>
+<p style="margin:14px 0"><strong>Patient :</strong> ${esc(f.patient?.nom)} ${esc(f.patient?.prenoms ?? '')} · Dossier ${esc(f.patient?.numero_dossier ?? '')}${f.organisme ? `<br><strong>Prise en charge :</strong> ${esc(f.organisme)}` : ''}</p>
+<table><thead><tr><th>Acte / analyse</th><th style="text-align:center">Qté</th><th style="text-align:right">Prix unit.</th><th style="text-align:right">Montant</th></tr></thead><tbody>${lignesHtml || '<tr><td colspan="4">—</td></tr>'}</tbody></table>
+<table class="tot"><tr><td>Total</td><td style="text-align:right">${fcfa(f.total)}</td></tr>
+${f.part_organisme > 0 ? `<tr><td>Part ${esc(f.organisme ?? 'organisme')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>` : ''}
+<tr><td><b>Part patient</b></td><td style="text-align:right"><b>${fcfa(f.part_patient)}</b></td></tr>
+<tr><td>Encaissé</td><td style="text-align:right">${fcfa(f.encaisse)}</td></tr>
+<tr><td><b>Reste dû</b></td><td style="text-align:right"><b>${fcfa(reste)}</b></td></tr></table>
+${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><thead><tr><th>Mode</th><th>Date</th><th style="text-align:right">Montant</th></tr></thead><tbody>${encHtml}</tbody></table>` : ''}
+<div class="sig">Signature et cachet</div>
+<footer>NINEA ${esc(s?.ninea)} · RCCM ${esc(s?.rccm)}${s?.autorisation_exercice ? ' · Autorisation ' + esc(s.autorisation_exercice) : ''} · Document émis électroniquement, non modifiable</footer>
+<script>window.onload=()=>window.print()</script></body></html>`);
+    w.document.close();
   };
 
   return (
