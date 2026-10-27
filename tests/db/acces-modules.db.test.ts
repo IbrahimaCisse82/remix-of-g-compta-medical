@@ -194,6 +194,12 @@ describe.skipIf(!actif)('Accès direct aux modules — la base refuse ce que le 
     it('cabinet : module laboratoire inactif, aucune demande visible même pour le biologiste', async () => {
       expect(await lignes(S.users.biologiste, 'sante_demandes_labo', 'structure_id', S.structures.cabinet)).toBe(0);
     });
+    it('laboratoire / médecin sans relation de soin : aucune demande visible', async () => {
+      expect(await lignes(S.users.medecin, 'sante_demandes_labo', 'structure_id', S.structures.laboratoire)).toBe(0);
+    });
+    it('mixte / médecin en relation de soin avec le patient : voit la demande', async () => {
+      expect(await lignes(S.users.medecin, 'sante_demandes_labo', 'structure_id', S.structures.mixte)).toBeGreaterThan(0);
+    });
     it('cabinet / biologiste : créer une demande d\'analyse est refusé par le serveur', async () => {
       const r = await S.users.biologiste.rpc('sante_creer_demande_labo', { _patient_id: S.patients.cabinet, _analyses: [S.analyses.cabinet] });
       refus(r.error);
