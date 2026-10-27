@@ -243,6 +243,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDemo(false);
     setLoading(true);
     setCurrentPage('dashboard');
+    setMedicalStructure(null);
+    setMedicalRoles([]);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -775,7 +777,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       workspace, env, demo, launched, loading, currentPage, entreprise, exercice, exercices,
-      balance, balanceN1, journal, plan, entreprises, medicalStructure,
+      balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles,
       setPage: setCurrentPage, launchDemo, launchUser, logout, addJournalEntry,
       launchHealth, completeHealthOnboarding, setWorkspace,
       deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte,
