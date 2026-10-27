@@ -2346,6 +2346,83 @@ export type Database = {
           },
         ]
       }
+      operations_bancaires: {
+        Row: {
+          compte: string
+          date_operation: string
+          entreprise_id: string
+          exercice_id: string
+          id: string
+          journal_id: string | null
+          libelle: string
+          montant: number
+          numero_ligne: number
+          rapproche_le: string | null
+          rapproche_par: string | null
+          reference: string
+          releve_id: string
+        }
+        Insert: {
+          compte: string
+          date_operation: string
+          entreprise_id: string
+          exercice_id: string
+          id?: string
+          journal_id?: string | null
+          libelle: string
+          montant: number
+          numero_ligne: number
+          rapproche_le?: string | null
+          rapproche_par?: string | null
+          reference?: string
+          releve_id: string
+        }
+        Update: {
+          compte?: string
+          date_operation?: string
+          entreprise_id?: string
+          exercice_id?: string
+          id?: string
+          journal_id?: string | null
+          libelle?: string
+          montant?: number
+          numero_ligne?: number
+          rapproche_le?: string | null
+          rapproche_par?: string | null
+          reference?: string
+          releve_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operations_bancaires_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operations_bancaires_exercice_id_fkey"
+            columns: ["exercice_id"]
+            isOneToOne: false
+            referencedRelation: "exercices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operations_bancaires_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: true
+            referencedRelation: "journal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operations_bancaires_releve_id_fkey"
+            columns: ["releve_id"]
+            isOneToOne: false
+            referencedRelation: "releves_bancaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paie_parametres: {
         Row: {
           created_at: string
@@ -2648,6 +2725,109 @@ export type Database = {
           },
           {
             foreignKeyName: "provisions_exercice_id_fkey"
+            columns: ["exercice_id"]
+            isOneToOne: false
+            referencedRelation: "exercices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rapprochements_bancaires_audit: {
+        Row: {
+          action: string
+          created_at: string
+          entreprise_id: string
+          id: string
+          journal_id: string
+          operation_id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entreprise_id: string
+          id?: string
+          journal_id: string
+          operation_id: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entreprise_id?: string
+          id?: string
+          journal_id?: string
+          operation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rapprochements_bancaires_audit_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rapprochements_bancaires_audit_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "journal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rapprochements_bancaires_audit_operation_id_fkey"
+            columns: ["operation_id"]
+            isOneToOne: false
+            referencedRelation: "operations_bancaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      releves_bancaires: {
+        Row: {
+          compte: string
+          created_at: string
+          created_by: string
+          empreinte: string
+          entreprise_id: string
+          exercice_id: string
+          id: string
+          nom_fichier: string
+          solde_initial: number
+        }
+        Insert: {
+          compte: string
+          created_at?: string
+          created_by?: string
+          empreinte: string
+          entreprise_id: string
+          exercice_id: string
+          id?: string
+          nom_fichier: string
+          solde_initial?: number
+        }
+        Update: {
+          compte?: string
+          created_at?: string
+          created_by?: string
+          empreinte?: string
+          entreprise_id?: string
+          exercice_id?: string
+          id?: string
+          nom_fichier?: string
+          solde_initial?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "releves_bancaires_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "releves_bancaires_exercice_id_fkey"
             columns: ["exercice_id"]
             isOneToOne: false
             referencedRelation: "exercices"
@@ -7068,6 +7248,23 @@ export type Database = {
       accept_medical_invitation: {
         Args: { _invitation_id: string }
         Returns: string
+      }
+      banque_importer: {
+        Args: {
+          _compte: string
+          _empreinte: string
+          _entreprise_id: string
+          _exercice_id: string
+          _nom_fichier: string
+          _operations: Json
+          _solde_initial: number
+        }
+        Returns: string
+      }
+      banque_peut_ecrire: { Args: { _entreprise_id: string }; Returns: boolean }
+      banque_rapprocher: {
+        Args: { _journal_id: string; _operation_id: string }
+        Returns: undefined
       }
       can_access_clinique: { Args: { _patient_id: string }; Returns: boolean }
       can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
