@@ -184,6 +184,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDemo(true);
     setLoading(true);
     setCurrentPage('dashboard');
+    setMedicalStructure(null);
+    setMedicalRoles([]);
 
     try {
       const [entRes, excsRes, balRes, jourRes, planRes] = await Promise.all([

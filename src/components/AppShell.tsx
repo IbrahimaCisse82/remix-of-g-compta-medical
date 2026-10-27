@@ -46,6 +46,7 @@ import FacturesDgidPage from '@/pages/FacturesDgidPage';
 import AnomaliesPage from '@/pages/AnomaliesPage';
 import HealthShell, { type HealthView } from '@/components/HealthShell';
 import HealthOnboarding from '@/components/HealthOnboarding';
+import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
 
 type NavItem = { id: PageId; icon: string; label: string; shortcut?: string; cabinet?: boolean };
 type NavSection = { key: string; section: string; icon: string; groups: { title?: string; items: NavItem[] }[] };
