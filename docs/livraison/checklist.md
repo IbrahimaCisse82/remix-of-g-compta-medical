@@ -6,7 +6,11 @@ Date : 27 octobre 2026. Décision actuelle : **mise en production non validée**
 
 - Tests métier : 140/140 réussis ; tests API/base : 65/65 réussis.
 - Contrôle rapide : une information sur la lecture publique du catalogue `plans_abonnement` ; ses colonnes décrivent des offres commerciales. Ne pas fermer cette lecture sans examiner son utilisation publique.
-- Analyse approfondie lancée, résultat attendu. Ce document ne constitue ni une certification de sécurité, ni une autorisation juridique.
+- Analyse approfondie terminée : 10 avertissements, à examiner et corriger avant validation. Ce document ne constitue ni une certification de sécurité, ni une autorisation juridique.
+- Impressions/rapports : 5 alertes d'injection de contenu exécutable (bordereaux organismes, relances, états financiers, rapport fiscal, liasse fiscale complète).
+- Exports : 2 alertes de formules malveillantes dans les fichiers comptables et les justifications d'accès exportées.
+- Fichiers : 3 alertes de liens signés encore utilisables après révocation (téléversement portail, lecture portail, documents patient). Examiner la durée effective, le contrôle de révocation et les possibilités de remplacement.
+- Aucun de ces avertissements n'est marqué corrigé ou ignoré ; la recette de 205 tests ne couvre pas automatiquement ces nouveaux constats.
 - Contrôle des dépendances : alertes élevées et modérées sur ws, DOMPurify, fflate, le routeur, lodash et Zod. Mises à jour compatibles, recette et nouveau contrôle requis avant validation.
 - Inventaire agrégé : 65 structures, 63 portant un marqueur de test au sens large, 64 comptes du domaine de test, 3 adhésions actives avec plus de deux rôles. Un nom de test n'autorise pas la suppression.
 - Aucune suppression de données, aucun retrait de rôle et aucune publication effectués à cette étape.
