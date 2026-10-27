@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DEMO_ENTREPRISE, DEMO_EXERCICE, DEMO_LBH_BALANCE, DEMO_LBH_JOURNAL, buildPlan } from '@/lib/demo-data';
 import { creerEcriture, contrepasserEcriture, enregistrerLignesJournal, getBalanceDerivee } from '@/lib/ecritures';
 import { toast } from 'sonner';
+import type { RoleMedical } from '@/lib/navigation-sante';
 
 
 export type EnvMode = 'entreprise' | 'cabinet';
@@ -33,6 +34,7 @@ interface AppState {
   plan: PlanCompte[];
   entreprises: Entreprise[];
   medicalStructure: MedicalStructure | null;
+  medicalRoles: RoleMedical[];
   setPage: (page: PageId) => void;
   launchDemo: (env: EnvMode) => void;
   launchUser: (env: EnvMode) => void;
@@ -127,6 +129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<PlanCompte[]>([]);
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [medicalStructure, setMedicalStructure] = useState<MedicalStructure | null>(null);
+  const [medicalRoles, setMedicalRoles] = useState<RoleMedical[]>([]);
 
   const isExerciceCloture = useCallback(() => {
     return exercice?.statut === 'cloture';
@@ -181,6 +184,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDemo(true);
     setLoading(true);
     setCurrentPage('dashboard');
+    setMedicalStructure(null);
+    setMedicalRoles([]);
 
     try {
       const [entRes, excsRes, balRes, jourRes, planRes] = await Promise.all([
@@ -240,6 +245,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDemo(false);
     setLoading(true);
     setCurrentPage('dashboard');
+    setMedicalStructure(null);
+    setMedicalRoles([]);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -360,7 +367,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const { data, error } = await supabase
       .from('structure_memberships')
-      .select('structure_id, structures(id, nom, type, theme_medical, entreprise_id)')
+      .select('id, structure_id, structures(id, nom, type, theme_medical, entreprise_id)')
       .eq('user_id', user.id)
       .eq('statut', 'actif')
       .limit(1)
@@ -373,6 +380,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       type: structure.type,
       theme_medical: structure.theme_medical,
     } : null);
+    // Rôles médicaux du membre : pilotent le filtrage d'affichage du menu.
+    if (data?.id) {
+      const { data: rolesData } = await supabase
+        .from('medical_user_roles')
+        .select('role')
+        .eq('membership_id', data.id);
+      setMedicalRoles((rolesData || []).map(r => r.role as RoleMedical));
+    } else {
+      setMedicalRoles([]);
+    }
     // Charger l'entreprise comptable liée pour que les menus compta du même environnement fonctionnent.
     if (structure?.entreprise_id) {
       try {
@@ -412,6 +429,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setJournal([]);
     setPlan([]);
     setCurrentPage('dashboard');
+    setMedicalStructure(null);
+    setMedicalRoles([]);
     await supabase.auth.signOut();
   }, []);
 
@@ -760,7 +779,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       workspace, env, demo, launched, loading, currentPage, entreprise, exercice, exercices,
-      balance, balanceN1, journal, plan, entreprises, medicalStructure,
+      balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles,
       setPage: setCurrentPage, launchDemo, launchUser, logout, addJournalEntry,
       launchHealth, completeHealthOnboarding, setWorkspace,
       deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte,
