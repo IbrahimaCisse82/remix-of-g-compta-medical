@@ -80,7 +80,7 @@ async function preparer(): Promise<Ctx> {
     });
     if (p.error) throw p.error;
     const f = await admin.from('sante_factures').insert({
-      structure_id: structures[type], numero: `FF-${type}-${run}`, patient_id: p.data as string, total: 8000, part_patient: 8000,
+      structure_id: structures[type], numero: `FF-${type}-${run}`, patient_id: p.data as string, total: 8000, part_organisme: 2000, part_patient: 6000,
     }).select('id').single();
     if (f.error) throw f.error;
     factures[type] = f.data.id;
