@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DEMO_ENTREPRISE, DEMO_EXERCICE, DEMO_LBH_BALANCE, DEMO_LBH_JOURNAL, buildPlan } from '@/lib/demo-data';
 import { creerEcriture, contrepasserEcriture, enregistrerLignesJournal, getBalanceDerivee } from '@/lib/ecritures';
 import { toast } from 'sonner';
+import type { RoleMedical } from '@/lib/navigation-sante';
 
 
 export type EnvMode = 'entreprise' | 'cabinet';
@@ -33,6 +34,7 @@ interface AppState {
   plan: PlanCompte[];
   entreprises: Entreprise[];
   medicalStructure: MedicalStructure | null;
+  medicalRoles: RoleMedical[];
   setPage: (page: PageId) => void;
   launchDemo: (env: EnvMode) => void;
   launchUser: (env: EnvMode) => void;
@@ -127,6 +129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<PlanCompte[]>([]);
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [medicalStructure, setMedicalStructure] = useState<MedicalStructure | null>(null);
+  const [medicalRoles, setMedicalRoles] = useState<RoleMedical[]>([]);
 
   const isExerciceCloture = useCallback(() => {
     return exercice?.statut === 'cloture';
