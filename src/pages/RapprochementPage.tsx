@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Upload, Link2, Undo2, CheckCheck, RefreshCw, Download, Landmark } from 'lucide-react';
 import { useApp } from '@/stores/app-store';
-import { fmt } from '@/lib/accounting';
 import { bankAmount, bankCandidates, mapBankRows, readBankCsv, type BankMapping } from '@/lib/banque';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -43,14 +42,23 @@ export default function RapprochementPage() {
     setSelected(''); setError(''); setLoading(true); setCanWrite(false); setStatements([]); setOperations([]);
     if (!entreprise || !exercice || !account || demo) { setLoading(false); return; }
     try {
+      const fetchOperations = async () => {
+        const rows: Operation[] = [];
+        for (let offset = 0; ; offset += 500) {
+          const page = await supabase.from('operations_bancaires').select('*').eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id).eq('compte', account).order('date_operation').order('id').range(offset, offset + 499);
+          if (page.error) throw new Error(page.error.message);
+          rows.push(...(page.data ?? []));
+          if ((page.data?.length ?? 0) < 500) return rows;
+        }
+      };
       const [r, o, p] = await Promise.all([
         supabase.from('releves_bancaires').select('*').eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id).eq('compte', account).order('created_at', { ascending: false }),
-        supabase.from('operations_bancaires').select('*').eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id).eq('compte', account).order('date_operation'),
+        fetchOperations(),
         supabase.rpc('banque_peut_ecrire', { _entreprise_id: entreprise.id }),
       ]);
-      if (r.error || o.error || p.error) throw r.error || o.error || p.error;
+      if (r.error || p.error) throw r.error || p.error;
       if (seq !== generation.current) return;
-      setStatements(r.data ?? []); setOperations(o.data ?? []); setCanWrite(Boolean(p.data));
+      setStatements(r.data ?? []); setOperations(o); setCanWrite(Boolean(p.data));
       setStatementId(current => r.data?.some(s => s.id === current) ? current : r.data?.[0]?.id ?? '');
     } catch (e) { if (seq === generation.current) setError(e instanceof Error ? e.message : 'Chargement impossible'); }
     finally { if (seq === generation.current) setLoading(false); }

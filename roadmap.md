@@ -32,7 +32,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Impressions A4 avec NINEA/RCCM (27/10) : ordonnances, certificats, comptes rendus (QR de vérification), étiquettes code-barres, relances organismes déjà en place ; facture réécrite en vrai document A4 (en-tête structure, lignes détaillées, totaux, règlements, pied NINEA/RCCM) et rapport de clôture de caisse complété — testée à l'écran
 
 ## Sprint 3 — Préparer la livraison (2 jours)
-- [ ] Import de relevés CSV/TSV et rapprochement bancaire persistant : contrôles de fichier, suggestions, rapprochement manuel, annulation, droits comptables et recette.
+- [x] Import de relevés CSV/TSV et rapprochement bancaire persistant (27/10) : sélection des colonnes, contrôle dates/montants, doublons bloqués, propositions non ambiguës, rapprochement manuel, annulation et audit. Parcours connecté testé à l'écran avec une écriture de 10 000 FCFA, persistance après réouverture ; 146 tests métier et 70 tests base réussis.
 - [x] Inventaire de préparation (27/10, 22:34 UTC) : 65 structures dont 63 portant un marqueur test/essai/recette/parcours/P0 ; 64 comptes @gsante.test ; 3 adhésions actives avec plus de deux rôles. Les marqueurs ne prouvent pas que les données sont supprimables.
 - [ ] Retirer « tous les rôles » et attribuer les rôles réels — attend la confirmation des fonctions de chaque personne ; aucune permission retirée automatiquement
 - [ ] Isoler les données de test sans effacer les dossiers, audits ni écritures ; créer la structure du client — attend l'identification de la structure à livrer et une stratégie de conservation validée
