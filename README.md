@@ -10,7 +10,7 @@ ERP dédié aux structures de santé du Sénégal (cabinets médicaux, cliniques
 
 ## État de livraison — 27 octobre 2026
 
-Sprint 3 en cours, pas encore de validation de mise en production. Dernière recette : **140 tests métier et 65 tests base réussis**. L'analyse approfondie de sécurité est en cours et le contrôle des dépendances signale des bibliothèques à corriger. Les rôles réels, la structure cliente, la conservation des données de test et les formalités CDP restent à confirmer ; voir la checklist pour les critères de décision.
+Sprint 3 en cours, pas encore de validation de mise en production. Dernière recette : **140 tests métier et 65 tests base réussis**. L'analyse approfondie de sécurité a relevé **10 avertissements** sur les impressions, exports et liens de fichiers après révocation ; le contrôle des dépendances signale également des bibliothèques à corriger. Les rôles réels, la structure cliente, la conservation des données de test et les formalités CDP restent à confirmer ; voir la checklist pour les critères de décision.
 
 ## Modules
 

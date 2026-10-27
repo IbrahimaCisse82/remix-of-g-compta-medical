@@ -38,7 +38,8 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [ ] Publier sur g-sante.app, vérifier le domaine — attend une demande explicite de publication et la levée des points bloquants
 - [x] Recette automatique relancée le 27/10 : 140 tests métier + 65 tests base réussis
 - [x] Contrôle rapide de sécurité le 27/10 : une information sur la lecture publique des plans d'abonnement (catalogue commercial), aucune alerte critique de ce contrôle ; ne constitue pas une validation de sécurité complète
-- [ ] Analyse approfondie de sécurité finale — lancée le 27/10, résultat attendu
+- [x] Analyse approfondie terminée le 27/10 : 10 avertissements (5 injections dans les impressions/rapports, 2 injections de formules dans les exports, 3 liens de fichiers restant utilisables après révocation)
+- [ ] Examiner et corriger ces 10 avertissements, tester chaque protection et refaire le contrôle avant validation de livraison
 - [ ] Corriger les bibliothèques signalées par le contrôle des dépendances (ws, DOMPurify/fflate, routeur, lodash, Zod), puis relancer tests et contrôle ; aucune mise à jour appliquée dans cette étape
 - [x] Guide de prise en main et procédure de livraison rédigés : `docs/livraison/guide-utilisateur.md`, `docs/livraison/checklist.md`
 - [ ] Formation réalisée, guide remis et procès-verbal de recette signé par le client
