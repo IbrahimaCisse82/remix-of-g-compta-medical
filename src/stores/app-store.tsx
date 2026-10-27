@@ -360,22 +360,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const { data, error } = await supabase
       .from('structure_memberships')
-      .select('structure_id, structures(id, nom, type, theme_medical)')
+      .select('structure_id, structures(id, nom, type, theme_medical, entreprise_id)')
       .eq('user_id', user.id)
       .eq('statut', 'actif')
       .limit(1)
       .maybeSingle();
     if (error) toast.error("Impossible de charger l’espace Santé.");
-    const structure = data?.structures;
+    const structure = data?.structures as any;
     setMedicalStructure(structure ? {
       id: structure.id,
       nom: structure.nom,
       type: structure.type,
       theme_medical: structure.theme_medical,
     } : null);
+    // Charger l'entreprise comptable liée pour que les menus compta du même environnement fonctionnent.
+    if (structure?.entreprise_id) {
+      try {
+        const { data: entRow } = await supabase.from('entreprises').select('*').eq('id', structure.entreprise_id).maybeSingle();
+        if (entRow) {
+          const ent = mapEntreprise(entRow);
+          setEntreprise(ent);
+          setEntreprises([ent]);
+          const { data: excsData } = await supabase.from('exercices').select('*').eq('entreprise_id', ent.id).order('annee', { ascending: false });
+          const allExcs = (excsData || []).map(mapExercice);
+          const currentExc = allExcs.find(e => e.statut === 'en_cours') || allExcs[0];
+          if (currentExc) {
+            setExercice(currentExc);
+            setExercices(allExcs);
+            await loadExerciceData(currentExc.id, allExcs, currentExc);
+          }
+          const { data: planData } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
+          setPlan(planData ? mapPlan(planData) : []);
+        }
+      } catch { /* l'espace santé reste utilisable sans la comptabilité */ }
+    }
     setLaunched(true);
     setLoading(false);
-  }, []);
+  }, [loadExerciceData]);
 
   const completeHealthOnboarding = useCallback((structure: MedicalStructure) => {
     setMedicalStructure(structure);

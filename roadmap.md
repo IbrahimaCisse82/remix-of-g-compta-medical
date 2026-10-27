@@ -18,7 +18,8 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 
 ## Sprint 2 — Recette par parcours (3 à 4 jours)
 - [x] Cabinet : accueil → consultation → ordonnance → facture → caisse → compta (test automatique ; anomalie corrigée : exercice comptable créé automatiquement)
-- [~] Laboratoire : étapes couvertes par les tests sécurité ; essai écran à faire
+- [x] Laboratoire : essai écran le 27/10 (compte biologiste) — écrans Laboratoire et Qualité s'ouvrent sans erreur ; anomalie corrigée : entreprise et exercice non chargés dans l'espace santé
+- [ ] Laboratoire : saisie complète d'une demande à l'écran (prélèvement → validation → remise)
 - [~] Tiers payant : étapes couvertes par les tests ; essai écran à faire
 - [ ] Stocks, plannings, rétrocessions, clôture de caisse
 - [ ] Chaque rôle testé (médecin, secrétaire, biologiste, caissier, comptable, admin)
