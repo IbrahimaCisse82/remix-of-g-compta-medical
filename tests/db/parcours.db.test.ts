@@ -59,6 +59,8 @@ describe.skipIf(!enabled)('Parcours cabinet de bout en bout', () => {
     consultation = c.data as string;
     const o = await medecin.rpc('sante_emettre_ordonnance', { _consultation_id: consultation, _lignes: [{ medicament: 'Paracétamol 500mg', posologie: '1 cp x 3/j' }], _recommandations: null });
     expect(o.error).toBeNull();
+    const d = await medecin.from('sante_consultations').update({ diagnostic: 'Paludisme simple', examen: 'T 38,5 °C' }).eq('id', consultation);
+    expect(d.error).toBeNull();
     const cl = await medecin.rpc('sante_cloturer_consultation', { _consultation_id: consultation });
     expect(cl.error).toBeNull();
   });
