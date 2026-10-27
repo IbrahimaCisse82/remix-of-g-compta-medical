@@ -344,6 +344,13 @@
       "when": 1792587250361,
       "tag": "0048_sante_onboarding_atomic",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1793125069942,
+      "tag": "0049_sante_exercice_auto",
+      "breakpoints": true
     }
   ]
 }
