@@ -1,57 +1,41 @@
-# Plan de développement G-Santé ERP — objectif 100 % fonctionnel
-Mise à jour : 22 octobre 2026
+# Plan de livraison G-Santé ERP
+Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 
-## Objectif demandé
-- [ ] Rendre tous les modules du périmètre fonctionnels, avec validation de chaque étape avant la suivante ; ne pas déclarer 100 % tant que les parcours et dépendances externes ne sont pas validés.
+## Déjà fait (vérifié dans le code)
+- [x] Comptabilité SYSCOHADA complète, environnement unique Santé + compta
+- [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire)
+- [x] P4 : allergies, doses pédiatriques, portail lien unique, résultats sensibles masqués, fusion deux temps, consentement signé
+- [x] P5 : stocks pharmacie/réactifs, plannings/gardes/paie, rétrocessions, supervision, sauvegarde
+- [x] Tablette/ordinateur, accès serveur restreint à g-sante.app, guide utilisateur
+- [x] Création atomique structure + patient (22/10)
 
-## Déjà livré
-- [x] Comptabilité SYSCOHADA complète (G-Compta) conservée et testée
-- [x] Environnement unique Santé + compta, thèmes médicaux sombre/clair, 3 palettes
-- [x] Phases 0 à 5 Santé : structures, dossier patient, clinique, laboratoire, facturation, portail, tableaux de bord
-- [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire) — 60/60 tests base au 22 octobre, dont 7 tests de création ; 9 tests patient/prescription également validés
-- [x] P4 partiel : allergies, doses pédiatriques, portail lien unique, résultats sensibles masqués, remise en main propre, fusion en deux temps, date estimée, téléphone international
-- [x] E-mails d'authentification déployés (notify.g-sante.app)
+## Sprint 1 — Stabiliser (2 à 3 jours)
+- [ ] Relier la structure orpheline et rejouer les 7 factures bloquées en comptabilité
+- [ ] Alerte visible quand une facture ne passe pas en comptabilité
+- [ ] Messages « Accès refusé » explicites dans tous les écrans
+- [ ] Connexion Google testée avec un vrai compte
+- [ ] Relancer tous les tests (base + métier) et corriger
 
-## Étape 1 — Corriger les blocages vus en test (priorité)
-- [x] Activer automatiquement les modules à la création d'une structure (selon son type) — création atomique reliée à l'écran ; types cabinet/laboratoire/mixte testés par l'API réelle
-- [x] Rôle par défaut du créateur : administrateur + rôle métier choisi à l'onboarding — administration seule conservée sans accès clinique
-- [x] Création et ouverture d'un patient testées à l'écran, avec un compte dédié, sans erreur d'exécution
-- [ ] Messages « Accès refusé » explicites dans tous les parcours — création patient corrigée côté serveur ; autres parcours à vérifier
-- [ ] Connexion Google : écran corrigé pour utiliser la connexion gérée Lovable Cloud ; fournisseur activé, connexion complète avec un compte Google encore à vérifier
+## Sprint 2 — Recette par parcours (3 à 4 jours)
+- [ ] Cabinet : accueil → consultation → ordonnance → facture → caisse → compta
+- [ ] Laboratoire : demande → prélèvement → résultats → validation → portail
+- [ ] Tiers payant : prise en charge → facture organisme → règlement → lettrage
+- [ ] Stocks, plannings, rétrocessions, clôture de caisse
+- [ ] Chaque rôle testé (médecin, secrétaire, biologiste, caissier, comptable, admin)
+- [ ] Impressions A4 (factures, ordonnances, comptes rendus) avec NINEA/RCCM
 
-## Étape 2 — Terminer P4 (patient, clinique, portail)
-- [ ] Tests automatiques de la fusion en deux temps + essai à l'écran
-- [ ] Vérifier la liste des analyses sensibles avec le biologiste
-- [ ] Signature du consentement complet à l'écran
-- [ ] Tests du lien unique du portail
+## Sprint 3 — Préparer la livraison (2 jours)
+- [ ] Retirer « tous les rôles » du compte de test, attribuer les rôles réels
+- [ ] Nettoyer les données de test, créer la structure du client
+- [ ] Publier sur g-sante.app, vérifier le domaine
+- [ ] Analyse de sécurité finale
+- [ ] Formation + guide utilisateur remis au client
 
-## Étape 3 — P5 Exploitation
-- [ ] Stocks pharmacie/réactifs reliés aux consultations et au labo
-- [ ] Personnel : plannings, gardes, lien paie
-- [ ] Rétrocessions aux praticiens
-- [ ] Sauvegardes, supervision, journal d'exploitation
-
-## Étape 4 — Phase 6 Conformité et qualité
-- [ ] Portail : code à usage unique par e-mail
-- [ ] CORS restreint aux domaines g-sante.app
-- [ ] Workflows (P2) et nettoyage du code (P3)
-- [ ] Audit du document « Module Santé (Cabinet + Laboratoire) »
-- [ ] Parcours complet testé sur ordinateur et tablette, tous rôles
-- [ ] Réattribution des rôles réels (retirer « tous les rôles » du compte de test)
-
-## Étape 5 — Mise en service
-- [ ] Environnement de préproduction séparé
-- [ ] Publication, domaine g-sante.app vérifié
-- [ ] Formation et documentation utilisateur
-
-## En attente d'une action externe
-- [ ] Vérification DNS du domaine d'envoi d'e-mails (e-mails praticien/patient)
-- [ ] Twilio : compte payant, Sender ID G-SANTE, autorisation Sénégal (EN PAUSE)
-- [ ] Juriste / CDP : autorisation de traitement, durée de conservation médicale
-- [ ] Expert-comptable / fiscaliste : comptes santé et TVA
-- [ ] Accès DGID officiels (e-facturation réelle)
-- [ ] Biologiste : durée de conservation des échantillons (7 jours par défaut)
+## Après livraison (selon tiers externes)
+- [ ] SMS Twilio (compte payant + Sender ID G-SANTE)
+- [ ] E-mails praticien/patient (domaine d'envoi)
+- [ ] DGID e-facturation réelle
+- [ ] Validations juriste/CDP, expert-comptable, biologiste
 
 ## Écartés
-- Hospitalisation & lits (décision du 05/10/2026)
-- Liaison directe automates ASTM/HL7 (hors v1, import fichier seulement)
+- Hospitalisation & lits ; liaison directe automates ASTM/HL7 (import fichier seulement)
