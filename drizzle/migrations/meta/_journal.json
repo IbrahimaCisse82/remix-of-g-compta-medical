@@ -365,6 +365,13 @@
       "when": 1793133880012,
       "tag": "0051_sante_compta_lecture_membres",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1793141262746,
+      "tag": "0052_rapprochement_bancaire_persistant",
+      "breakpoints": true
     }
   ]
 }
