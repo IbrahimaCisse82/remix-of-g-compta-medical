@@ -145,9 +145,10 @@ describe.skipIf(!actif)('Accès direct aux modules — la base refuse ce que le 
   });
 
   describe('Module Clinique & consultations (cabinet et mixte uniquement)', () => {
-    // Contenu clinique limité à la relation de soin : seul le médecin qui consulte le patient voit la consultation.
+    // Contenu clinique limité à la relation de soin : le médecin qui consulte, et le biologiste
+    // en mixte (la demande d'analyse qu'il traite établit une relation de soin avec le patient).
     const AUTORISES: Role[] = ['medecin'];
-    const REFUSES: Role[] = ['admin_structure', 'biologiste', 'technicien', 'preleveur', 'secretaire', 'caissier', 'comptable', 'lecteur', 'tiers_payant'];
+    const REFUSES: Role[] = ['admin_structure', 'technicien', 'preleveur', 'secretaire', 'caissier', 'comptable', 'lecteur', 'tiers_payant'];
     for (const type of ['cabinet', 'mixte'] as const) {
       for (const role of AUTORISES) {
         it(`${type} / ${role} : voit les consultations`, async () => {
@@ -162,6 +163,12 @@ describe.skipIf(!actif)('Accès direct aux modules — la base refuse ce que le 
     }
     it('laboratoire : module clinique inactif, aucune consultation visible même pour le médecin', async () => {
       expect(await lignes(S.users.medecin, 'sante_consultations', 'structure_id', S.structures.laboratoire)).toBe(0);
+    });
+    it('cabinet / biologiste sans relation de soin : accès direct aux consultations refusé', async () => {
+      expect(await lignes(S.users.biologiste, 'sante_consultations', 'structure_id', S.structures.cabinet)).toBe(0);
+    });
+    it('mixte / biologiste en relation de soin (demande d\'analyse) : voit la consultation du patient', async () => {
+      expect(await lignes(S.users.biologiste, 'sante_consultations', 'structure_id', S.structures.mixte)).toBeGreaterThan(0);
     });
     it('laboratoire / médecin : démarrer une consultation est refusé par le serveur', async () => {
       const r = await S.users.medecin.rpc('sante_demarrer_consultation', { _patient_id: S.patients.laboratoire, _praticien_id: S.praticiens.laboratoire, _rdv_id: null, _motif: 'intrusion' });
@@ -204,7 +211,9 @@ describe.skipIf(!actif)('Accès direct aux modules — la base refuse ce que le 
       const r = await S.users.biologiste.rpc('sante_creer_demande_labo', { _patient_id: S.patients.cabinet, _analyses: [S.analyses.cabinet] });
       refus(r.error);
     });
-    for (const role of [...REFUSES, 'preleveur'] as Role[]) {
+    // Création de demande : autorisée pour admin/biologiste/secrétaire/médecin/technicien,
+    // refusée pour les rôles sans vocation labo.
+    for (const role of ['caissier', 'comptable', 'lecteur', 'tiers_payant', 'preleveur'] as Role[]) {
       it(`mixte / ${role} : créer une demande d'analyse est refusé par le serveur`, async () => {
         const r = await S.users[role].rpc('sante_creer_demande_labo', { _patient_id: S.patients.mixte, _analyses: [S.analyses.mixte] });
         refus(r.error);
