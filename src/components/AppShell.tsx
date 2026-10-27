@@ -56,6 +56,8 @@ const NAV: NavSection[] = [
     { id: 'sante_patients', icon: '🩺', label: 'Patients', shortcut: 'Alt+N' },
     { id: 'sante_agenda', icon: '📅', label: 'Agenda & consultations' },
     { id: 'stocks', icon: '💊', label: 'Pharmacie & consommables' },
+    { id: 'sante_plannings', icon: '🗓️', label: 'Plannings & gardes' },
+    { id: 'sante_retrocessions', icon: '🤝', label: 'Rétrocessions' },
   ]}]},
   { key: 'labo', section: 'Laboratoire & qualité', icon: '🧪', groups: [{ items: [
     { id: 'sante_laboratoire', icon: '🧪', label: 'Laboratoire' },
