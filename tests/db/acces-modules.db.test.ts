@@ -57,7 +57,7 @@ async function preparer(): Promise<Ctx> {
   const analyses = {} as Record<TypeStructure, string>;
 
   for (const type of TYPES) {
-    const st = await owner.rpc('sante_creer_structure', { _type: type, _nom: `TEST modules ${type} ${run}`, _role_metier: 'medecin' });
+    const st = await owner.rpc('sante_creer_structure', { _type: type, _nom: `TEST modules ${type} ${run}`, _role_metier: type === 'laboratoire' ? 'biologiste' : 'medecin' });
     if (st.error) throw st.error;
     structures[type] = st.data as string;
     entreprises[type] = (await admin.from('structures').select('entreprise_id').eq('id', structures[type]).single()).data!.entreprise_id;
