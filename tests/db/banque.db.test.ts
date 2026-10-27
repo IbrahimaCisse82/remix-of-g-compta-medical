@@ -32,6 +32,7 @@ describe.skipIf(!url || !service || !key)('Banque : API réelle et droits', () =
       if (role === 'comptable') accountant = m.client; else reader = m.client;
     }
     outsider = (await user('autre')).client;
+    const pc = await admin.from('plan_comptable').insert({ entreprise_id: entreprise, numero: '521100', intitule: 'Banque recette', classe: '5', sens: 'D', type_compte: 'bilan', actif: true }); if (pc.error) throw pc.error;
     const ec = await owner.rpc('fn_creer_ecriture', { _entreprise_id: entreprise, _exercice_id: exercice, _journal_code: 'BQ', _date: '2026-10-27', _libelle: 'Recette bancaire', _piece: 'BQ-RECETTE', _statut: 'validee', _origine: 'saisie', _lignes: [{ compte: '521100', intitule: 'Banque', debit: 10000, credit: 0 }, { compte: '411100', intitule: 'Clients', debit: 0, credit: 10000 }] }); if (ec.error) throw ec.error;
     const j = await admin.from('journal').select('id, compte').eq('ecriture_id', ec.data); journal = j.data?.find(x => x.compte === '521100')?.id ?? ''; otherJournal = j.data?.find(x => x.compte === '411100')?.id ?? ''; if (!journal) throw new Error('Ligne bancaire absente');
   }, 120000);
