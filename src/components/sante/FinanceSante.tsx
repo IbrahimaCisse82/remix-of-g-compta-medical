@@ -33,7 +33,7 @@ export function OutboxCard({ structureId }: { structureId: string }) {
         {attente > 0 && <Button size="sm" variant="outline" onClick={rejouer}>Recomptabiliser</Button>}
       </div>
       <p className="text-xs text-fg3">Les soins et factures ne sont jamais bloqués par la comptabilité. Nouvel essai automatique toutes les heures ; la clôture d'exercice est bloquée tant qu'il reste des écritures en attente.</p>
-      {erreurs.map(e => <div key={e.id} className="text-xs border border-border rounded p-2">{e.libelle} · {e.tentatives} essai(s) · <span className="text-destructive">{e.derniere_erreur}</span></div>)}
+      {erreurs.map(e => <div key={e.id} className="text-xs border border-border rounded p-2">{e.libelle} · {e.tentatives} essai(s) · <span className="text-destructive">{e.derniere_erreur ? messageErreur(e.derniere_erreur) : 'en attente'}</span></div>)}
     </section>
   );
 }
