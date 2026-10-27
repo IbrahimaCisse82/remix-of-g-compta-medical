@@ -10,3 +10,4 @@
 - New health structures are created through sante_creer_structure with an explicit business role and atomic company/module linking; why: partial client-side setup leaves patients blocked while preserving separate administrative and clinical permissions.
 - Google sign-in uses the generated Lovable managed-auth helper with a public same-origin redirect; why: the helper supports editor popups and managed credentials without app-level OAuth workarounds.
 - New health companies get the current-year fiscal year via a trigger on entreprises; why: health accounting fails without an open exercice.
+- Bank statements and matches are persisted through accounting-scoped RPCs with MFA, exercise/account/amount validation, unique journal-line matching and append-only audit; why: reconciliation must not change accounting entries or rely on browser state.
