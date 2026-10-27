@@ -14,6 +14,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [pr, setPr] = useState({ nom: '', specialite: '', numero_ordre: '', email: '', moi: false });
   const [an, setAn] = useState({ code: '', libelle: '', section: 'biochimie', tube: '', echantillon: 'Sang veineux', delai: '24', tarif: '', param: '', unite: '', type: 'numerique' });
+  const [derog, setDerog] = useState(false);
   const [ac, setAc] = useState({ code: '', libelle: '', tarif: '' });
 
   const load = useCallback(async () => {
@@ -22,6 +23,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
       supabase.from('sante_actes').select('*').eq('structure_id', structureId).order('code'),
       supabase.from('sante_analyses').select('id, code, libelle, section, tarif, delai_heures, actif').eq('structure_id', structureId).order('section'),
     ]);
+    const st = await supabase.from('structures').select('derogation_validation_unique').eq('id', structureId).maybeSingle(); setDerog(!!st.data?.derogation_validation_unique);
     setPraticiens(a.data ?? []); setActes(b.data ?? []); setAnalyses(c.data ?? []);
   }, [structureId]);
   useEffect(() => { void load(); }, [load]);
@@ -49,6 +51,10 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   return (
     <div className="max-w-6xl space-y-8">
       <div><p className="text-xs font-mono uppercase text-primary mb-1">Paramétrage</p><h1 className="font-serif text-3xl">Praticiens, actes et analyses</h1><p className="text-sm text-fg2">Les tarifs sont propres à votre structure : aucun prix n’est imposé par le logiciel.</p></div>
+      <section className="border border-border bg-bg2 rounded-md p-4">
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={derog} onChange={async e => { const v = e.target.checked; if (ok((await supabase.from('structures').update({ derogation_validation_unique: v } as any).eq('id', structureId)).error, v ? 'Biologiste seul autorisé' : 'Double validation rétablie')) setDerog(v); }} />
+          <span><strong>Laboratoire avec un seul biologiste</strong><br /><span className="text-fg3">Autorise le biologiste à saisir et valider seul (technique puis biologique). Chaque utilisation est tracée. Laissez décoché si une autre personne peut faire la validation technique.</span></span></label>
+      </section>
       <div className="grid lg:grid-cols-2 gap-6">
         <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
           <h2 className="font-semibold">Praticiens</h2>
