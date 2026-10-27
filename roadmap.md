@@ -33,6 +33,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 
 ## Sprint 3 — Préparer la livraison (2 jours)
 - [x] Import de relevés CSV/TSV et rapprochement bancaire persistant (27/10) : sélection des colonnes, contrôle dates/montants, doublons bloqués, propositions non ambiguës, rapprochement manuel, annulation et audit. Parcours connecté testé à l'écran avec une écriture de 10 000 FCFA, persistance après réouverture ; 146 tests métier et 70 tests base réussis.
+- [x] Menu latéral filtré par type de structure (cabinet/laboratoire/mixte) et par rôle (27/10) : matrice de visibilité centralisée, rôles lus depuis la base à l'entrée dans l'espace santé, protections serveur inchangées ; 19 tests couvrant les 30 combinaisons type × rôle ; vérifié à l'écran avec un caissier (pas de Patients ni saisie comptable) et une secrétaire (pas de caisse ni comptabilité)
 - [x] Inventaire de préparation (27/10, 22:34 UTC) : 65 structures dont 63 portant un marqueur test/essai/recette/parcours/P0 ; 64 comptes @gsante.test ; 3 adhésions actives avec plus de deux rôles. Les marqueurs ne prouvent pas que les données sont supprimables.
 - [ ] Retirer « tous les rôles » et attribuer les rôles réels — attend la confirmation des fonctions de chaque personne ; aucune permission retirée automatiquement
 - [ ] Isoler les données de test sans effacer les dossiers, audits ni écritures ; créer la structure du client — attend l'identification de la structure à livrer et une stratégie de conservation validée
