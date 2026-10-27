@@ -10,11 +10,11 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Création atomique structure + patient (22/10)
 
 ## Sprint 1 — Stabiliser (2 à 3 jours)
-- [ ] Relier la structure orpheline et rejouer les 7 factures bloquées en comptabilité
-- [ ] Alerte visible quand une facture ne passe pas en comptabilité
-- [ ] Messages « Accès refusé » explicites dans tous les écrans
-- [ ] Connexion Google testée avec un vrai compte
-- [ ] Relancer tous les tests (base + métier) et corriger
+- [x] 7 factures bloquées : viennent de la structure de test sécurité « TEST P0 A », volontairement sans entreprise (aucune structure réelle concernée)
+- [x] Alerte visible quand une facture ne passe pas en comptabilité (déjà présente, message clarifié)
+- [x] Messages « Accès refusé » explicites dans tous les écrans (traduction centrale + test)
+- [ ] Connexion Google testée avec un vrai compte (à faire par Ibou : Continuer avec Google)
+- [x] Tous les tests relancés le 27/10 : 140 métier + 60 sécurité, tous verts
 
 ## Sprint 2 — Recette par parcours (3 à 4 jours)
 - [ ] Cabinet : accueil → consultation → ordonnance → facture → caisse → compta
