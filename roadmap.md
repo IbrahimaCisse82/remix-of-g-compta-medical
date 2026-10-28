@@ -20,6 +20,7 @@ Twilio/SMS et l’option commerciale abonnement sont exclus de la livraison. Les
 - [ ] 10. Comptabilité SYSCOHADA : poursuivre les corrections ci-dessous ; certification suspendue aux références officielles et au visa professionnel.
 - [ ] 11. Banque, stocks/pharmacie, paie, immobilisations, provisions, lettrage, budget et analytique : recette complète de chaque module successivement.
 - [ ] 12. Livraison : structure réelle, rôles réels, sauvegarde/restauration, recette client et autorisation de publication.
+- [ ] Créer SOLABSEN SARL (laboratoire) et LE MEDICAL KAMAANO SUARL (cabinet), comptes administrateurs désignés et tous rôles compatibles, sans données démo ; vérifier connexion et isolation.
 Un module n’est clos qu’après correction et vérification de ses parcours ; les validations externes restent explicitement bloquantes.
 
 ## Déjà fait (vérifié dans le code)
