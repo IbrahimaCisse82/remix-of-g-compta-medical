@@ -400,6 +400,13 @@
       "when": 1793206304330,
       "tag": "0056_syscohada_validation_et_tva_atomique",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793206317635,
+      "tag": "0057_syscohada_tva_contexte_validation",
+      "breakpoints": true
     }
   ]
 }
