@@ -491,6 +491,13 @@
       "when": 1793210250840,
       "tag": "0069_sante_cq_absence_bloquante",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1793210751588,
+      "tag": "0070_sante_caisse_mouvements_verrouilles",
+      "breakpoints": true
     }
   ]
 }
