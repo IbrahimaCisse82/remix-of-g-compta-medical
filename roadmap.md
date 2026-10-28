@@ -2,7 +2,7 @@
 Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 
 ## Déjà fait (vérifié dans le code)
-- [x] Comptabilité SYSCOHADA complète, environnement unique Santé + compta
+- [x] Environnement unique Santé + compta ; conformité SYSCOHADA complète non démontrée (audit du 28/10)
 - [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire)
 - [x] P4 : allergies, doses pédiatriques, portail lien unique, résultats sensibles masqués, fusion deux temps, consentement signé
 - [x] P5 : stocks pharmacie/réactifs, plannings/gardes/paie, rétrocessions, supervision, sauvegarde
@@ -52,6 +52,14 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [ ] Autorisation CDP et revue juridique avant toute mise en service avec de vrais patients — statut actuel à confirmer avec la structure (la note de conformité ne prouve pas l'obtention)
 
 - [ ] Passage d'année : ouvrir l'exercice suivant au 1er janvier (sinon la compta santé se met en attente)
+
+## Après livraison (selon tiers externes)
+## Remise en conformité SYSCOHADA — demande du 28 octobre 2026
+- [ ] Corriger et tester les erreurs chiffrées du résultat, du bilan et du TFT sans altérer les écritures historiques.
+- [ ] Intégrer les référentiels fournis et signaler les ambiguïtés et contrôles bloquants.
+- [ ] Vérifier les protections serveur et les parcours états/exports, publier un rapport de contrôle technique.
+- [ ] Recette officielle Application 127 — attend les balances du Guide pages 343–350 et les imprimés officiels.
+- [ ] Validation normative — attend la revue des mappings « à valider » et le visa d’un expert-comptable.
 
 ## Après livraison (selon tiers externes)
 - [ ] SMS Twilio (compte payant + Sender ID G-SANTE)
