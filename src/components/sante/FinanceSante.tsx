@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { escapeHtml } from '@/lib/impression';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { MODES_PAIEMENT } from '@/domain/sante/tiers-payant';
+import { imputationsValides } from '@/lib/tiers-payant-saisie';
 const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
@@ -92,29 +93,57 @@ export function RemboursementsCard({ structureId, refresh = 0, onChanged }: { st
 type FactOrg = { id: string; numero: string; part_organisme: number; organisme: string; reste: number };
 
 /** Règlement d'organisme : un règlement couvre plusieurs factures, partiellement ; ventilation obligatoire. */
-export function ReglementOrganismeCard({ structureId }: { structureId: string }) {
+export function ReglementOrganismeCard({ structureId, refresh = 0, onChanged }: { structureId: string; refresh?: number; onChanged?: () => void }) {
   const [organismes, setOrganismes] = useState<string[]>([]);
   const [org, setOrg] = useState('');
   const [factures, setFactures] = useState<FactOrg[]>([]);
   const [imput, setImput] = useState<Record<string, string>>({});
   const [mode, setMode] = useState('virement');
   const [ref, setRef] = useState('');
+  const [busy, setBusy] = useState(false), [loading, setLoading] = useState(false), [error, setError] = useState('');
+  const [history, setHistory] = useState<any[]>([]);
+  const request = useRef(0);
 
   useEffect(() => {
-    db.from('sante_organismes').select('nom').eq('structure_id', structureId).eq('actif', true).order('nom').then(({ data }: any) => setOrganismes((data ?? []).map((o: any) => o.nom)));
-  }, [structureId]);
+    db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data, error }: any) => { if (error) setError(error.message); setOrganismes((data ?? []).map((o: any) => o.nom)); });
+    if (org) void charger(org);
+  }, [structureId, refresh]);
+  useEffect(() => { request.current++; setOrg(''); setFactures([]); setHistory([]); setImput({}); setError(''); }, [structureId]);
   const charger = async (o: string) => {
-    setOrg(o); setImput({});
-    const { data } = await db.from('sante_factures').select('id, numero, part_organisme, organisme').eq('structure_id', structureId).eq('organisme', o)
-      .eq('type', 'facture').eq('annulee', false).neq('statut_tiers', 'paye').gt('part_organisme', 0).order('created_at').limit(100);
-    const avecReste = await Promise.all((data ?? []).map(async (f: any) => ({ ...f, reste: Number((await db.rpc('sante_reste_organisme', { _facture_id: f.id })).data ?? 0) })));
-    setFactures(avecReste.filter(f => f.reste > 0));
+    const ticket = ++request.current;
+    setOrg(o); setImput({}); setFactures([]); setHistory([]); setError('');
+    if (!o) return;
+    setLoading(true);
+    try {
+      const [f, h] = await Promise.all([
+        db.from('sante_factures').select('id, numero, part_organisme, organisme, statut_tiers, created_at').eq('structure_id', structureId).eq('organisme', o).eq('type', 'facture').eq('annulee', false).gt('part_organisme', 0).order('created_at').limit(1000),
+        db.from('sante_reglements_organisme').select('id,montant,mode,reference,created_at').eq('structure_id', structureId).eq('organisme', o).order('created_at', { ascending: false }).limit(20),
+      ]);
+      if (f.error || h.error) throw f.error ?? h.error;
+      const ids = (f.data ?? []).map((x: any) => x.id);
+      const [im, re] = ids.length ? await Promise.all([
+        db.from('sante_reglement_imputations').select('facture_id,montant').eq('structure_id', structureId).in('facture_id', ids),
+        db.from('sante_tiers_rejets').select('facture_id,montant,type').eq('structure_id', structureId).in('facture_id', ids),
+      ]) : [{ data: [], error: null }, { data: [], error: null }];
+      if (im.error || re.error) throw im.error ?? re.error;
+      if (ticket !== request.current) return;
+      const avecReste = (f.data ?? []).map((x: any) => ({ ...x, reste: Number(x.part_organisme) - (im.data ?? []).filter((i: any) => i.facture_id === x.id).reduce((s: number, i: any) => s + Number(i.montant), 0) - (re.data ?? []).filter((i: any) => i.facture_id === x.id && ['perte','non_prise_en_charge'].includes(i.type)).reduce((s: number, i: any) => s + Number(i.montant), 0) }));
+      setFactures(avecReste.filter((x: any) => x.reste > 0)); setHistory(h.data ?? []);
+      if ((f.data ?? []).length === 1000) setError('Affichage limité aux 1 000 premières factures.');
+    } catch (e) { if (ticket === request.current) setError((e as Error).message); }
+    finally { if (ticket === request.current) setLoading(false); }
   };
   const total = Object.values(imput).reduce((s, v) => s + (Number(v) || 0), 0);
   const valider = async () => {
-    const lignes = Object.entries(imput).filter(([, v]) => Number(v) > 0).map(([facture_id, v]) => ({ facture_id, montant: Number(v) }));
-    const { error } = await db.rpc('sante_imputer_reglement', { _structure_id: structureId, _organisme: org, _montant: total, _mode: mode, _reference: ref || null, _imputations: lignes });
-    if (error) toast.error(error.message); else { toast.success('Règlement imputé et comptabilisé'); setRef(''); void charger(org); }
+    if (busy) return;
+    let lignes;
+    try { lignes = imputationsValides(imput, factures); } catch (e) { return toast.error((e as Error).message); }
+    if (!lignes.length) return;
+    setBusy(true);
+    try {
+      const { error } = await db.rpc('sante_imputer_reglement', { _structure_id: structureId, _organisme: org, _montant: lignes.reduce((s, l) => s + l.montant, 0), _mode: mode, _reference: ref.trim() || null, _imputations: lignes });
+      if (error) toast.error(error.message); else { toast.success('Règlement enregistré'); setRef(''); await charger(org); onChanged?.(); }
+    } finally { setBusy(false); }
   };
   const rejeter = async (f: FactOrg) => {
     const type = prompt('Type de rejet : administratif (à corriger et renvoyer), non_prise_en_charge (bascule au patient si la convention l’autorise), perte (passée en charge)', 'administratif'); if (!type) return;
@@ -127,24 +156,28 @@ export function ReglementOrganismeCard({ structureId }: { structureId: string })
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
       <h3 className="font-semibold">Règlements des organismes</h3>
+      {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
       <div className="flex flex-wrap gap-2">
-        <select aria-label="Organisme" className="bg-bg3 border border-border rounded-md px-2 py-1.5 text-sm" value={org} onChange={e => charger(e.target.value)}>
+        <select aria-label="Organisme à régler" disabled={busy} className="bg-bg3 border border-border rounded-md px-2 py-1.5 text-sm" value={org} onChange={e => charger(e.target.value)}>
           <option value="">— Organisme —</option>{organismes.map(o => <option key={o}>{o}</option>)}
         </select>
         <select aria-label="Mode" className="bg-bg3 border border-border rounded-md px-2 py-1.5 text-sm" value={mode} onChange={e => setMode(e.target.value)}>
           {['virement', 'cheque', 'especes', 'wave', 'orange_money'].map(m => <option key={m}>{m}</option>)}
         </select>
-        <Input className="w-48" placeholder="Référence du règlement" value={ref} onChange={e => setRef(e.target.value)} />
+        <Input aria-label="Référence du règlement" className="w-48" placeholder="Référence du règlement" value={ref} onChange={e => setRef(e.target.value)} />
       </div>
-      {org && (factures.length === 0 ? <p className="text-xs text-fg3">Aucune créance ouverte.</p> : <>
+      {loading && <p role="status" className="text-sm text-fg3">Chargement des règlements…</p>}
+      {org && !loading && !error && (factures.length === 0 ? <p className="text-xs text-fg3">Aucune créance ouverte.</p> : <>
+        <p className="text-sm">{factures.length} facture(s) en attente · <b>Reste dû : {fcfa(factures.reduce((s,f) => s + f.reste,0))}</b></p>
         <table className="w-full text-sm"><thead className="text-xs text-fg3 text-left"><tr><th>Facture</th><th>Part organisme</th><th>Reste dû</th><th>Imputer</th><th /></tr></thead>
           <tbody>{factures.map(f => <tr key={f.id} className="border-t border-border">
             <td className="py-1 font-mono">{f.numero}</td><td>{fcfa(f.part_organisme)}</td><td>{fcfa(f.reste)}</td>
-            <td><Input className="h-8 w-28" type="number" min={0} max={f.reste} value={imput[f.id] ?? ''} onChange={e => setImput({ ...imput, [f.id]: e.target.value })} /></td>
+            <td><Input aria-label={`Imputer ${f.numero}`} disabled={busy} className="h-8 w-28" type="number" step={1} min={0} max={f.reste} value={imput[f.id] ?? ''} onChange={e => setImput({ ...imput, [f.id]: e.target.value })} /></td>
             <td><Button size="sm" variant="ghost" onClick={() => rejeter(f)}>Rejet</Button></td>
           </tr>)}</tbody></table>
-        <div className="flex items-center justify-between text-sm"><span>Total du règlement : <b>{fcfa(total)}</b></span><Button disabled={total <= 0} onClick={valider}>Imputer le règlement</Button></div>
+        <div className="flex items-center justify-between text-sm"><span>Total du règlement : <b>{fcfa(total)}</b></span><Button disabled={busy || total <= 0 || !!error} onClick={valider}>Imputer le règlement</Button></div>
       </>)}
+      {history.length > 0 && <div className="border-t border-border pt-3"><h4 className="text-sm font-semibold mb-2">Derniers règlements reçus</h4>{history.map(h => <div key={h.id} className="flex flex-wrap justify-between gap-2 text-sm py-2 border-t border-border"><span>{new Date(h.created_at).toLocaleDateString('fr-FR')} · {h.mode} · {h.reference || 'Sans référence'}</span><b>{fcfa(Number(h.montant))}</b></div>)}</div>}
     </section>
   );
 }
@@ -315,10 +348,10 @@ export function BonsPecCard({ structureId, patientId, organismes }: { structureI
 }
 
 /** Créances par organisme (âge), relances imprimables, provision des créances douteuses. */
-export function CreancesOrganismesCard({ structureId }: { structureId: string }) {
+export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structureId: string; refresh?: number }) {
   const [rows, setRows] = useState<any[]>([]);
   const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { if (!error) setRows(data ?? []); });
-  useEffect(() => { load(); }, [structureId]);
+  useEffect(() => { load(); }, [structureId, refresh]);
   if (!rows.length) return null;
   const relancer = async (o: string) => {
     const { data, error } = await db.rpc('sante_relancer', { _structure_id: structureId, _organisme: o });
