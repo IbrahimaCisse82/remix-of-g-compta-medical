@@ -5,7 +5,7 @@ Mise à jour : 28 octobre 2026
 Twilio/SMS et l’option commerciale abonnement sont exclus de la livraison. Les écritures récurrentes comptables restent dans le périmètre. Aucun historique financier ni droit d’accès ne doit être supprimé pour masquer ces options.
 - [x] Retirer les options abonnement et SMS de l’expérience livrée, sans affaiblir les contrôles serveur : offres commerciales masquées, route tarifs retirée, rappels et codes SMS refusés côté serveur (410), lien patient conservé ; historique et protections inchangés.
 - [x] 1. Structure, sites et équipe : création, ajout de site, invitation avec lien et acceptation par le destinataire testés à l’écran ; gestion des rôles/suspension/réactivation et révocation des invitations via RPC admin/MFA avec audit et protection du dernier administrateur. 216 tests métier + 15 tests API ciblés réussis. Aucun rôle réel modifié.
-- [ ] 2. Patients : identification, doublons, fusion, consentement et documents.
+- [x] 2. Patients : coordonnées modifiables selon les droits existants, recueil signé du consentement (texte de la structure, accord/refus et empreintes), nettoyage des fichiers sans fiche, fusion/restauration des documents sans déplacement physique. Création → modification → signature → recherche testé à l’écran ; 4 tests API doublons/consentement/fusion/restauration réussis. Texte légal définitif toujours à fournir/valider par la structure.
 - [ ] 3. Agenda et consultations : rendez-vous, soin, prescriptions et certificats.
 - [ ] 4. Laboratoire/catalogue : demandes, résultats, validations et remise ; catalogue réel attendu du client.
 - [ ] 5. Qualité et réactifs : réceptions, consommation, péremptions et non-conformités.
