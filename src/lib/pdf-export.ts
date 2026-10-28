@@ -73,17 +73,17 @@ export function exportBilanPdf(
   
   let actifHtml = `<table><thead><tr><th style="width:40px">Réf</th><th>ACTIF</th><th class="right" style="width:90px">Brut</th><th class="right" style="width:90px">Amort/Dép.</th><th class="right" style="width:90px">Net N</th>${hasN1 ? '<th class="right" style="width:90px">Net N-1</th>' : ''}</tr></thead><tbody>`;
   for (const l of actifDef) {
-    if (l.type === 'sect') { actifHtml += `<tr class="sect"><td colspan="${hasN1 ? 6 : 5}">${l.label}</td></tr>`; continue; }
+    if (l.type === 'sect') { actifHtml += `<tr class="sect"><td colspan="${hasN1 ? 6 : 5}">${escapeHtml(l.label)}</td></tr>`; continue; }
     const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
-    actifHtml += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="right">${fmtSigned(vABrut[l.id] || 0)}</td><td class="right ${(vAAmort[l.id] || 0) > 0 ? 'neg' : ''}">${vAAmort[l.id] ? fmtSigned(-(vAAmort[l.id] || 0)) : '—'}</td><td class="right">${fmtSigned(vA[l.id] || 0)}</td>${hasN1 ? `<td class="right">${fmtSigned(vAN1[l.id] || 0)}</td>` : ''}</tr>`;
+    actifHtml += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right">${fmtSigned(vABrut[l.id] || 0)}</td><td class="right ${(vAAmort[l.id] || 0) > 0 ? 'neg' : ''}">${vAAmort[l.id] ? fmtSigned(-(vAAmort[l.id] || 0)) : '—'}</td><td class="right">${fmtSigned(vA[l.id] || 0)}</td>${hasN1 ? `<td class="right">${fmtSigned(vAN1[l.id] || 0)}</td>` : ''}</tr>`;
   }
   actifHtml += '</tbody></table>';
 
   let passifHtml = `<table><thead><tr><th style="width:40px">Réf</th><th>PASSIF</th><th class="right" style="width:100px">Net N</th>${hasN1 ? '<th class="right" style="width:100px">Net N-1</th>' : ''}</tr></thead><tbody>`;
   for (const l of passifDef) {
-    if (l.type === 'sect') { passifHtml += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${l.label}</td></tr>`; continue; }
+    if (l.type === 'sect') { passifHtml += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${escapeHtml(l.label)}</td></tr>`; continue; }
     const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
-    passifHtml += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="right">${fmtSigned(vP[l.id] || 0)}</td>${hasN1 ? `<td class="right">${fmtSigned(vPN1[l.id] || 0)}</td>` : ''}</tr>`;
+    passifHtml += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right">${fmtSigned(vP[l.id] || 0)}</td>${hasN1 ? `<td class="right">${fmtSigned(vPN1[l.id] || 0)}</td>` : ''}</tr>`;
   }
   passifHtml += '</tbody></table>';
 
@@ -104,10 +104,10 @@ export function exportCRPdf(
 ) {
   let html = `<table><thead><tr><th style="width:50px">Réf</th><th>Libellé</th><th class="right" style="width:110px">Exercice N</th>${hasN1 ? '<th class="right" style="width:110px">N-1</th>' : ''}</tr></thead><tbody>`;
   for (const l of crDef) {
-    if (l.type === 'sect') { html += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${l.label}</td></tr>`; continue; }
+    if (l.type === 'sect') { html += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${escapeHtml(l.label)}</td></tr>`; continue; }
     const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
     const v = vCR[l.id] || 0;
-    html += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="right ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="right">${fmt(vCRN1[l.id] || 0)}</td>` : ''}</tr>`;
+    html += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="right">${fmt(vCRN1[l.id] || 0)}</td>` : ''}</tr>`;
   }
   html += '</tbody></table>';
 
@@ -128,10 +128,10 @@ export function exportTFTPdf(
 ) {
   let html = `<table><thead><tr><th style="width:50px">Réf</th><th>Libellé</th><th class="right" style="width:110px">N</th>${hasN1 ? '<th class="right" style="width:110px">N-1</th>' : ''}</tr></thead><tbody>`;
   for (const l of tftDef.filter(x => !x.id.startsWith('_'))) {
-    if (l.type === 'sect') { html += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${l.label}</td></tr>`; continue; }
+    if (l.type === 'sect') { html += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${escapeHtml(l.label)}</td></tr>`; continue; }
     const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
     const v = vT[l.id] || 0;
-    html += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="right ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="right">${fmt(vTN1[l.id] || 0)}</td>` : ''}</tr>`;
+    html += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="right">${fmt(vTN1[l.id] || 0)}</td>` : ''}</tr>`;
   }
   html += '</tbody></table>';
 
