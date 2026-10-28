@@ -3,6 +3,7 @@ import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
 import ConsentementPatient from './ConsentementPatient';
 import IdentitePatient from './IdentitePatient';
+import { statutCouverture } from '@/lib/organismes-import';
 import { useApp } from '@/stores/app-store';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
@@ -214,7 +215,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
           )}
           {items.length === 0 ? <p className="text-sm text-fg3">Aucun élément.</p> : items.map(it => (
             <div key={it.id} className="border border-border rounded-md p-3 text-sm">
-              {onglet === 'Assurances' && <>{it.organisme} · {it.numero_adherent ?? '—'} · {it.taux_couverture ?? '—'} %</>}
+              {onglet === 'Assurances' && <><div className="flex flex-wrap justify-between gap-2"><span>{it.organisme} · {it.numero_adherent ?? '—'} · {it.taux_couverture ?? '—'} %</span><span className={statutCouverture(it, new Date().toISOString().slice(0, 10)) === 'Valide' ? 'text-primary font-semibold' : 'text-destructive font-semibold'}>{statutCouverture(it, new Date().toISOString().slice(0, 10))}</span></div><p className="text-xs text-fg3 mt-1">{it.date_debut ? `Du ${new Date(it.date_debut).toLocaleDateString('fr-FR')}` : 'Sans date de début'} · {it.date_fin ? `jusqu’au ${new Date(it.date_fin).toLocaleDateString('fr-FR')}` : 'Sans date de fin'}{it.plafond != null ? ` · Plafond ${Number(it.plafond).toLocaleString('fr-FR')} FCFA` : ''}</p></>}
               {onglet === 'Antécédents' && <><span className="text-xs uppercase text-primary mr-2">{it.type}</span>{it.libelle} {it.details && <span className="text-fg3">— {it.details}</span>}</>}
               {onglet === 'Consentements' && <><p>{it.type} ({it.version_texte}) : <strong>{it.accorde ? 'accordé' : 'refusé'}</strong> · {new Date(it.created_at).toLocaleDateString('fr-FR')}</p>{it.signataire_nom && <p className="text-xs text-fg2">{it.signataire_nom} · {it.signataire_qualite}</p>}{it.texte && <details className="mt-2"><summary>Texte signé</summary><p className="whitespace-pre-wrap mt-2">{it.texte}</p></details>}</>}
             </div>
