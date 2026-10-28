@@ -26,7 +26,6 @@ describe.skipIf(!url||!key||!service)('Livraison des parcours santé restants',(
   const o=await c.from('sante_organismes').insert({structure_id:sid,nom:org,type:'ipm',bascule_patient_autorisee:true});if(o.error)throw o.error;
   const a=await c.from('sante_patient_assurances').insert({patient_id:pid,organisme:org,taux_couverture:80}).select('id').single();if(a.error)throw a.error;
   const f=await c.rpc('sante_creer_facture',{_patient_id:pid,_assurance_id:a.data.id,_lignes:[{libelle:'Acte fictif',prix_unitaire:10000}]});if(f.error)throw f.error;fid=f.data;
-  await admin.from('sante_factures').update({praticien_id:prid}).eq('id',fid);
   const rule=await c.from('sante_retrocession_regles').insert({structure_id:sid,praticien_id:prid,categorie:'toutes',taux:30});if(rule.error)throw rule.error;
   // Configuration validée fictive uniquement pour la recette écran.
   const config=await c.rpc('sante_configuration_sauver',{_structure_id:sid,_donnees:{nom:`TEST santé fin ${run}`},_etape:2,_revision:0,_terminer:true});if(config.error)throw config.error;
@@ -51,6 +50,8 @@ describe.skipIf(!url||!key||!service)('Livraison des parcours santé restants',(
   expect((await c.from('sante_personnel_parametres').upsert({structure_id:sid,forfait_garde:5000,forfait_astreinte:2000})).error).toBeNull();
  });
  it('simule, valide, paie et refuse un deuxième paiement et une annulation après paiement',async()=>{
+  const consult=await c.rpc('sante_demarrer_consultation',{_patient_id:pid,_praticien_id:prid,_motif:'Consultation fictive'});expect(consult.error).toBeNull();
+  const f=await c.rpc('sante_creer_facture',{_patient_id:pid,_consultation_id:consult.data,_lignes:[{libelle:'Consultation fictive',categorie:'consultation',prix_unitaire:10000}]});expect(f.error).toBeNull();
   const sim=await c.rpc('sante_calcul_retrocession',{_praticien_id:prid,_debut:today,_fin:today});expect(sim.error).toBeNull();expect((sim.data as any).montant_brut).toBe(3000);
   const r=await c.rpc('sante_valider_retrocession',{_praticien_id:prid,_debut:today,_fin:today});expect(r.error).toBeNull();
   expect((await c.rpc('sante_payer_retrocession',{_id:r.data,_mode:'virement'})).error).toBeTruthy();
