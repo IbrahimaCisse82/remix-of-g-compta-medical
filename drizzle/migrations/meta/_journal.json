@@ -407,6 +407,13 @@
       "when": 1793206317635,
       "tag": "0057_syscohada_tva_contexte_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793206387504,
+      "tag": "0058_syscohada_equilibre_trigger_typage",
+      "breakpoints": true
     }
   ]
 }
