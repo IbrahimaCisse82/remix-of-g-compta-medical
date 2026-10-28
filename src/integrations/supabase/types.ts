@@ -2464,6 +2464,7 @@ export type Database = {
           id: string
           intitule: string
           numero: string
+          poste_cible: string | null
           sens: string
           type_compte: string
         }
@@ -2475,6 +2476,7 @@ export type Database = {
           id?: string
           intitule: string
           numero: string
+          poste_cible?: string | null
           sens: string
           type_compte: string
         }
@@ -2486,6 +2488,7 @@ export type Database = {
           id?: string
           intitule?: string
           numero?: string
+          poste_cible?: string | null
           sens?: string
           type_compte?: string
         }
@@ -7039,6 +7042,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      syscohada_references: {
+        Row: {
+          comptes: Json
+          created_at: string
+          mapping: Json
+          source: string
+          valide_officiellement: boolean
+          version: string
+        }
+        Insert: {
+          comptes?: Json
+          created_at?: string
+          mapping?: Json
+          source: string
+          valide_officiellement?: boolean
+          version: string
+        }
+        Update: {
+          comptes?: Json
+          created_at?: string
+          mapping?: Json
+          source?: string
+          valide_officiellement?: boolean
+          version?: string
+        }
+        Relationships: []
       }
       transactions_mm: {
         Row: {
