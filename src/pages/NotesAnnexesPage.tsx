@@ -303,12 +303,6 @@ export default function NotesAnnexesPage() {
      { key: 'net', getter: b => (b.sfd || 0) - (b.sfc || 0) }],
     r => (r.brut as number) > 0 || (r.depreciation as number) > 0), [balance]);
 
-  // Note 8A — Étalement charges immobilisées (compte 20 — frais d'établissement, charges à répartir, primes obligations)
-  const note8AEtalement = useMemo(() => buildNote(balance, /^20/,
-    [{ key: 'montant_brut', getter: b => b.sfd || 0 },
-     { key: 'amort_cumule', getter: b => b.sfc || 0 },
-     { key: 'net', getter: b => (b.sfd || 0) - (b.sfc || 0) }]), [balance]);
-
   // Note 9 — Titres de placement (50)
   const note9Titres = useMemo(() => buildNote(balance, /^50/,
     [{ key: 'brut', getter: b => b.sfd || 0 },
@@ -697,7 +691,6 @@ export default function NotesAnnexesPage() {
           {/* Notes officielles 7 à 15A — alignées plaquettes SYSCOHADA */}
           <TabsContent value="creances"><NoteTable noteNum={7} title="Clients (411, 412, 413, 414, 416, 418, 419, 491)" headers={['Compte', 'Intitulé', 'Brut', 'Dépréciation', 'Net']} rows={note7Clients} colKeys={['brut', 'depreciation', 'net']} colStyles={{ brut: 'text-primary', depreciation: 'text-destructive' }} /></TabsContent>
           <TabsContent value="tresorerie"><NoteTable noteNum={8} title="Autres créances (Personnel, Organismes sociaux, État, Débiteurs divers — 42, 43, 44, 45, 46)" headers={['Compte', 'Intitulé', 'Brut', 'Dépréciation', 'Net']} rows={note8Autres} colKeys={['brut', 'depreciation', 'net']} /></TabsContent>
-          <TabsContent value="etalement"><NoteTable noteNum="8A" title="Tableau d'étalement des charges immobilisées (frais d'établissement, charges à répartir, primes obligations — compte 20)" headers={['Compte', 'Intitulé', 'Montant brut', 'Amort. cumulé', 'Net']} rows={note8AEtalement} colKeys={['montant_brut', 'amort_cumule', 'net']} /></TabsContent>
           <TabsContent value="capitaux"><NoteTable noteNum={9} title="Titres de placement (actions, obligations, bons — compte 50)" headers={['Compte', 'Intitulé', 'Brut', 'Dépréciation', 'Net']} rows={note9Titres} colKeys={['brut', 'depreciation', 'net']} /></TabsContent>
           <TabsContent value="subventions"><NoteTable noteNum={10} title="Valeurs à encaisser (effets, chèques, cartes de crédit — compte 51)" headers={['Compte', 'Intitulé', 'Brut', 'Dépréciation', 'Net']} rows={note10Valeurs} colKeys={['brut', 'depreciation', 'net']} /></TabsContent>
           <TabsContent value="prov"><NoteTable noteNum={11} title="Banques, chèques postaux et caisses (52, 53, 54, 57, 58)" headers={['Compte', 'Intitulé', 'Débit', 'Crédit', 'Solde']} rows={note11Banques} colKeys={['debit', 'credit', 'solde']} colStyles={{ solde: 'text-success' }} /></TabsContent>

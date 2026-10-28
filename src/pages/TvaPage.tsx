@@ -1,7 +1,6 @@
 import { calculTvaPeriode } from '@/lib/tva-periode';
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
-import { enregistrerLignesJournal, round2 } from '@/lib/ecritures';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,7 +9,7 @@ interface TvaParam { id: string; code: string; libelle: string; taux: number; co
 interface Declaration { id: string; periode: string; date_debut: string; date_fin: string; tva_collectee: number; tva_deductible: number; tva_nette: number; credit_precedent: number; tva_a_payer: number; statut: string; }
 
 export default function TvaPage() {
-  const { entreprise, exercice, journal, balance } = useApp();
+  const { entreprise, exercice, journal } = useApp();
   const [params, setParams] = useState<TvaParam[]>([]);
   const [declarations, setDeclarations] = useState<Declaration[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,9 +73,10 @@ export default function TvaPage() {
   const validerDecl = async (id: string) => {
     const d = declarations.find(x => x.id === id);
     if (!d || !entreprise || !exercice) return;
-    toast.error('Validation suspendue : liquidation TVA transactionnelle et paramétrée à finaliser avant dépôt');
-    return;
-
+    const result = await supabase.rpc('sante_valider_tva', { _declaration_id: id });
+    if (result.error) { toast.error(result.error.message); return; }
+    toast.success('Déclaration validée et liquidation comptabilisée');
+    await loadData();
 
   };
 
