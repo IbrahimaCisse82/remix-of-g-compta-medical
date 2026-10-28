@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { nombreQualite } from '@/lib/qualite-valeurs';
 
 const msg = (e: { message: string }) => e.message.includes('row-level') ? 'Action réservée au biologiste ou à l’administrateur' : e.message;
 const TYPES_NC: Record<string, string> = { preanalytique: 'Pré-analytique', analytique: 'Analytique', postanalytique: 'Post-analytique', eeq: 'Évaluation externe', equipement: 'Équipement', reclamation: 'Réclamation', autre: 'Autre' };
@@ -14,27 +15,37 @@ export function NonConformites({ structureId }: { structureId: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [f, setF] = useState({ type: 'analytique', gravite: 'mineure', description: '' });
   const [actions, setActions] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
-    const { data } = await supabase.from('sante_non_conformites').select('*').eq('structure_id', structureId).order('cree_le', { ascending: false }).limit(100);
+    const { data, error } = await supabase.from('sante_non_conformites').select('*').eq('structure_id', structureId).order('cree_le', { ascending: false }).limit(100);
+    if (error) return toast.error(msg(error));
     setRows(data ?? []);
   }, [structureId]);
   useEffect(() => { void load(); }, [load]);
   const declarer = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
     const { error } = await supabase.rpc('sante_declarer_non_conformite', { _structure_id: structureId, _demande_id: null as unknown as string, _type: f.type, _gravite: f.gravite, _description: f.description });
     if (error) return toast.error(msg(error));
     setF({ ...f, description: '' }); toast.success('Non-conformité déclarée'); void load();
+    } finally { setBusy(false); }
   };
   const traiter = async (id: string, cloturer: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    try {
     const { error } = await supabase.rpc('sante_traiter_non_conformite', { _id: id, _action: actions[id] ?? '', _cloturer: cloturer });
     if (error) return toast.error(msg(error));
     void load();
+    } finally { setBusy(false); }
   };
   return <section className="space-y-3">
     <div className="border border-border bg-bg2 rounded-md p-3 grid sm:grid-cols-[auto_auto_1fr_auto] gap-2">
       <select aria-label="Type" className={sel} value={f.type} onChange={e => setF({ ...f, type: e.target.value })}>{Object.entries(TYPES_NC).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       <select aria-label="Gravité" className={sel} value={f.gravite} onChange={e => setF({ ...f, gravite: e.target.value })}><option value="mineure">Mineure</option><option value="majeure">Majeure</option><option value="critique">Critique</option></select>
       <Input aria-label="Description" placeholder="Description (10 caractères minimum)" value={f.description} onChange={e => setF({ ...f, description: e.target.value })} />
-      <Button size="sm" disabled={f.description.trim().length < 10} onClick={declarer}><Plus />Déclarer</Button>
+      <Button size="sm" disabled={busy || f.description.trim().length < 10} onClick={declarer}><Plus />Déclarer</Button>
     </div>
     <div className="border border-border bg-bg2 rounded-md divide-y divide-border">
       {rows.length === 0 ? <p className="p-4 text-sm text-fg3">Aucune non-conformité.</p> : rows.map(n => <div key={n.id} className="p-3 text-sm space-y-1">
@@ -42,7 +53,7 @@ export function NonConformites({ structureId }: { structureId: string }) {
           <span className={`text-xs ${n.statut === 'cloturee' ? 'text-primary' : 'text-destructive'}`}>{n.statut === 'cloturee' ? `Clôturée le ${new Date(n.cloture_le).toLocaleDateString('fr-FR')}` : n.statut === 'en_cours' ? 'En cours' : 'Ouverte'}</span></div>
         {n.action_corrective && <p className="text-xs text-fg2">Action : {n.action_corrective}</p>}
         {n.statut !== 'cloturee' && <div className="flex flex-wrap gap-2"><Input aria-label="Action corrective" className="h-8 max-w-md" placeholder="Action corrective" value={actions[n.id] ?? ''} onChange={e => setActions(a => ({ ...a, [n.id]: e.target.value }))} />
-          <Button size="sm" variant="outline" className="h-8" onClick={() => traiter(n.id, false)}>Enregistrer</Button><Button size="sm" className="h-8" onClick={() => traiter(n.id, true)}>Clôturer</Button></div>}
+          <Button size="sm" variant="outline" className="h-8" disabled={busy} onClick={() => traiter(n.id, false)}>Enregistrer</Button><Button size="sm" className="h-8" disabled={busy || (actions[n.id]?.trim() || n.action_corrective || '').length < 10} onClick={() => traiter(n.id, true)}>Clôturer</Button></div>}
       </div>)}
     </div>
   </section>;
@@ -52,17 +63,23 @@ export function NonConformites({ structureId }: { structureId: string }) {
 export function Eeq({ structureId }: { structureId: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [f, setF] = useState({ organisme: '', campagne: '', analyse: '', obtenue: '', cible: '', ecart: '' });
+  const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
-    const { data } = await supabase.from('sante_eeq').select('*').eq('structure_id', structureId).order('date_campagne', { ascending: false }).limit(100);
+    const { data, error } = await supabase.from('sante_eeq').select('*').eq('structure_id', structureId).order('date_campagne', { ascending: false }).limit(100);
+    if (error) return toast.error(msg(error));
     setRows(data ?? []);
   }, [structureId]);
   useEffect(() => { void load(); }, [load]);
   const n = (s: string) => Number(s.replace(',', '.'));
-  const ok = f.organisme && f.campagne && f.analyse && [f.obtenue, f.cible, f.ecart].every(x => x.trim() && !Number.isNaN(n(x))) && n(f.ecart) > 0;
+  const ok = f.organisme.trim() && f.campagne.trim() && f.analyse.trim() && [f.obtenue, f.cible, f.ecart].every(x => x.trim() && Number.isFinite(n(x))) && n(f.ecart) > 0;
   const saisir = async () => {
-    const { error } = await supabase.rpc('sante_saisir_eeq', { _structure_id: structureId, _organisme: f.organisme, _campagne: f.campagne, _analyse: f.analyse, _date: null as unknown as string, _obtenue: n(f.obtenue), _cible: n(f.cible), _ecart: n(f.ecart) });
+    if (busy || !ok) return;
+    setBusy(true);
+    try {
+    const { error } = await supabase.rpc('sante_saisir_eeq', { _structure_id: structureId, _organisme: f.organisme, _campagne: f.campagne, _analyse: f.analyse, _date: null as unknown as string, _obtenue: nombreQualite(f.obtenue), _cible: nombreQualite(f.cible), _ecart: nombreQualite(f.ecart, true) });
     if (error) return toast.error(msg(error));
     setF({ ...f, analyse: '', obtenue: '', cible: '', ecart: '' }); void load();
+    } finally { setBusy(false); }
   };
   return <section className="space-y-3">
     <div className="border border-border bg-bg2 rounded-md p-3 grid sm:grid-cols-3 lg:grid-cols-7 gap-2">
@@ -72,7 +89,7 @@ export function Eeq({ structureId }: { structureId: string }) {
       <Input aria-label="Valeur obtenue" placeholder="Obtenue" inputMode="decimal" value={f.obtenue} onChange={e => setF({ ...f, obtenue: e.target.value })} />
       <Input aria-label="Valeur cible" placeholder="Cible" inputMode="decimal" value={f.cible} onChange={e => setF({ ...f, cible: e.target.value })} />
       <Input aria-label="Écart-type" placeholder="Écart-type" inputMode="decimal" value={f.ecart} onChange={e => setF({ ...f, ecart: e.target.value })} />
-      <Button size="sm" disabled={!ok} onClick={saisir}><Plus />Enregistrer</Button>
+      <Button size="sm" disabled={busy || !ok} onClick={saisir}><Plus />Enregistrer</Button>
     </div>
     <div className="border border-border bg-bg2 rounded-md overflow-x-auto"><table className="w-full text-sm"><thead className="text-xs text-fg3 text-left"><tr><th className="p-2">Date</th><th className="p-2">Organisme / campagne</th><th className="p-2">Analyse</th><th className="p-2">Obtenu</th><th className="p-2">Cible</th><th className="p-2">z</th><th className="p-2">Résultat</th></tr></thead>
       <tbody className="divide-y divide-border">{rows.map(r => { const z = Number(r.zscore); return <tr key={r.id}><td className="p-2 text-xs">{new Date(r.date_campagne).toLocaleDateString('fr-FR')}</td><td className="p-2">{r.organisme} · {r.campagne}</td><td className="p-2">{r.analyse_libelle}</td><td className="p-2 font-mono">{r.valeur_obtenue}</td><td className="p-2 font-mono">{r.valeur_cible}</td><td className="p-2 font-mono">{z}</td><td className={`p-2 text-xs ${Math.abs(z) > 2 ? 'text-destructive font-semibold' : 'text-primary'}`}>{Math.abs(z) <= 2 ? 'Satisfaisant' : Math.abs(z) <= 3 ? 'Discutable — non-conformité ouverte' : 'Insatisfaisant — non-conformité ouverte'}</td></tr>; })}</tbody></table>

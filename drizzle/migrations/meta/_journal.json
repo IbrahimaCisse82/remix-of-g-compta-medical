@@ -477,6 +477,20 @@
       "when": 1793210042692,
       "tag": "0067_sante_catalogue_creation_atomique",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793210237775,
+      "tag": "0068_sante_reactifs_concurrence_securisee",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793210250840,
+      "tag": "0069_sante_cq_absence_bloquante",
+      "breakpoints": true
     }
   ]
 }
