@@ -6228,6 +6228,56 @@ export type Database = {
           },
         ]
       }
+      sante_repertoire_organismes: {
+        Row: {
+          cle: string
+          created_at: string
+          groupe_id: string
+          id: string
+          nom: string
+          type: string
+        }
+        Insert: {
+          cle: string
+          created_at?: string
+          groupe_id: string
+          id?: string
+          nom: string
+          type: string
+        }
+        Update: {
+          cle?: string
+          created_at?: string
+          groupe_id?: string
+          id?: string
+          nom?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      sante_repertoire_partages: {
+        Row: {
+          groupe_id: string
+          structure_id: string
+        }
+        Insert: {
+          groupe_id: string
+          structure_id: string
+        }
+        Update: {
+          groupe_id?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_repertoire_partages_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: true
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_resultats: {
         Row: {
           a_refaire: boolean
@@ -7539,6 +7589,7 @@ export type Database = {
         Args: { _code: string; _structure_id: string }
         Returns: string
       }
+      sante_cle_repertoire: { Args: { _nom: string }; Returns: string }
       sante_cloturer_consultation: {
         Args: { _consultation_id: string }
         Returns: undefined

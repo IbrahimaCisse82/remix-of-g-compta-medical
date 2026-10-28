@@ -512,6 +512,13 @@
       "when": 1793213433213,
       "tag": "0072_tiers_reglements_import_valides",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793215262927,
+      "tag": "0073_repertoire_organismes_partage",
+      "breakpoints": true
     }
   ]
 }

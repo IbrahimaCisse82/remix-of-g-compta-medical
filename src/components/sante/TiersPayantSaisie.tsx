@@ -15,7 +15,11 @@ export function OrganismesPayeurs({ structureId, onChanged }: { structureId: str
   const writable = medicalRoles.some(r => r === 'admin_structure' || r === 'tiers_payant');
   const [rows, setRows] = useState<{ id: string; nom: string; type: string; actif: boolean }[]>([]);
   const [nom, setNom] = useState(''), [type, setType] = useState('ipm'), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [partage, setPartage] = useState(false);
   const load = useCallback(async () => {
+    setPartage(false);
+    const groupe = await supabase.from('sante_repertoire_partages').select('structure_id').eq('structure_id', structureId).maybeSingle();
+    setPartage(Boolean(groupe.data));
     setRows([]); const r = await supabase.from('sante_organismes').select('id,nom,type,actif').eq('structure_id', structureId).order('nom');
     setError(r.error?.message ?? ''); if (!r.error) setRows(r.data ?? []);
   }, [structureId]);
@@ -31,6 +35,7 @@ export function OrganismesPayeurs({ structureId, onChanged }: { structureId: str
   };
   return <section className="space-y-4 border-b border-border pb-6" aria-label="Organismes payeurs">
     <h2 className="font-semibold flex gap-2 items-center"><Building2 className="h-5 w-5 text-primary" />Organismes payeurs</h2>
+    {partage && <p className="text-sm text-fg3">Répertoire partagé</p>}
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {writable && <ImportOrganismes key={structureId} structureId={structureId} onImported={() => { void load(); onChanged(); }} />}
     {writable && <form onSubmit={ajouter} className="flex flex-wrap gap-3 items-end"><div className="flex-1 min-w-48"><Label htmlFor="org-name">Nom de l’organisme</Label><Input id="org-name" required value={nom} onChange={e => setNom(e.target.value)} /></div><div className="w-44"><Label htmlFor="org-type">Type d’organisme</Label><Select value={type} onValueChange={setType}><SelectTrigger id="org-type"><SelectValue /></SelectTrigger><SelectContent>{['ipm','assurance','mutuelle','entreprise','autre'].map(t => <SelectItem value={t} key={t}>{t}</SelectItem>)}</SelectContent></Select></div><Button disabled={busy || !nom.trim()}><Plus className="h-4 w-4" />Enregistrer l’organisme</Button></form>}
