@@ -255,7 +255,6 @@ export default function AppShell() {
   }, []);
 
   const { medicalStructure, medicalRoles, workspace } = useApp();
-  useEffect(() => { if (workspace === 'sante') setPage('sante_accueil'); }, [workspace]); // eslint-disable-line react-hooks/exhaustive-deps
   const healthView = currentPage.startsWith('sante_') ? currentPage.slice(6) as HealthView : null;
   const PageComponent = currentPage === 'clients' ? ClientsPage : (PAGES[currentPage] || Dashboard);
 
@@ -364,7 +363,7 @@ export default function AppShell() {
         </aside>
 
         <main className="flex-1 overflow-y-auto">
-          {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent />}
+          {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell key={medicalStructure.id} embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent key={entreprise?.id ?? 'none'} />}
         </main>
       </div>
     </div>
