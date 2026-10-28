@@ -47,4 +47,12 @@ describe.skipIf(!url || !service || !key)('SYSCOHADA : protections API réelles'
     expect((await owner.rpc('fn_cloturer_exercice',{_exercice_id:ex})).error?.message).toContain('non validés');
     expect((await owner.from('exercices').select('statut').eq('id',ex).single()).data?.statut).toBe('en_cours');
   });
+  it('liquide la TVA paramétrée et refuse le double traitement',async()=>{
+    const config=await admin.from('tva_parametrage').insert({entreprise_id:ent,code:'TEST18',libelle:'TVA test',taux:18,compte_tva_collectee:'4431',compte_tva_deductible:'4452',actif:true}); if(config.error) throw config.error;
+    const entry=await owner.rpc('fn_creer_ecriture',{...input(),_piece:'TVA-TEST',_lignes:[{compte:'411100',debit:118000,credit:0},{compte:'701100',debit:0,credit:100000},{compte:'4431',debit:0,credit:18000}]}); if(entry.error) throw entry.error;
+    const d=await owner.from('declarations_tva').insert({entreprise_id:ent,exercice_id:ex,periode:'Octobre test',date_debut:'2026-10-01',date_fin:'2026-10-31',tva_collectee:0,tva_deductible:0,tva_nette:0,credit_precedent:0,tva_a_payer:0}).select('id').single(); if(d.error) throw d.error;
+    const result=await owner.rpc('sante_valider_tva',{_declaration_id:d.data.id}); expect(result.error).toBeNull();expect(result.data).toBeTruthy();
+    const read=await owner.from('declarations_tva').select('*').eq('id',d.data.id).single();expect(Number(read.data?.tva_collectee)).toBe(18000);expect(Number(read.data?.tva_a_payer)).toBe(18000);expect(read.data?.statut).toBe('validee');
+    expect((await owner.rpc('sante_valider_tva',{_declaration_id:d.data.id})).error).toBeTruthy();
+  });
 });
