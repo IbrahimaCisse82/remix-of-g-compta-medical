@@ -350,9 +350,10 @@ export function BonsPecCard({ structureId, patientId, organismes }: { structureI
 /** Créances par organisme (âge), relances imprimables, provision des créances douteuses. */
 export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structureId: string; refresh?: number }) {
   const [rows, setRows] = useState<any[]>([]);
-  const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { if (!error) setRows(data ?? []); });
-  useEffect(() => { load(); }, [structureId, refresh]);
-  if (!rows.length) return null;
+  const [recherche, setRecherche] = useState(''), [error, setError] = useState(''), [loading, setLoading] = useState(false);
+  const load = () => { setLoading(true); return db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { setRows(error ? [] : data ?? []); setError(error?.message ?? ''); }).finally(() => setLoading(false)); };
+  useEffect(() => { setRows([]); setError(''); void load(); }, [structureId, refresh]);
+  const visibles = rows.filter(r => String(r.organisme).toLocaleLowerCase('fr-FR').includes(recherche.toLocaleLowerCase('fr-FR')));
   const relancer = async (o: string) => {
     const { data, error } = await db.rpc('sante_relancer', { _structure_id: structureId, _organisme: o });
     if (error) { toast.error(error.message); return; }
@@ -371,8 +372,12 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 overflow-x-auto">
       <h3 className="font-semibold mb-2">Créances par organisme</h3>
+      <Input aria-label="Rechercher un organisme débiteur" placeholder="Rechercher un organisme" className="mb-3" value={recherche} onChange={e => setRecherche(e.target.value)} />
+      {loading && <p role="status" className="text-sm text-fg3">Chargement des créances…</p>}
+      {error && <div role="alert" className="text-destructive text-sm">{error}<Button variant="outline" size="sm" onClick={() => void load()}>Réessayer</Button></div>}
+      {!loading && !error && !visibles.length && <p className="text-sm text-fg3">Aucune créance trouvée.</p>}
       <table className="w-full text-sm"><thead className="text-xs text-fg3 text-left"><tr><th>Organisme</th><th>0-30 j</th><th>31-60 j</th><th>61-90 j</th><th>&gt; 90 j</th><th>Total</th><th>Relance</th><th /></tr></thead>
-        <tbody>{rows.map(r => <tr key={r.organisme} className="border-t border-border">
+        <tbody>{visibles.map(r => <tr key={r.organisme} className="border-t border-border">
           <td className="py-1">{r.organisme}</td>{[r.j0_30, r.j31_60, r.j61_90, r.plus_90, r.total].map((v, i) => <td key={i}>{v ? fcfa(Number(v)) : '—'}</td>)}
           <td className="text-xs">{r.niveau ? `n° ${r.niveau} le ${new Date(r.derniere_relance).toLocaleDateString('fr-FR')}` : '—'}</td>
           <td className="space-x-1 whitespace-nowrap"><Button size="sm" variant="outline" onClick={() => relancer(r.organisme)}>Relancer</Button><Button size="sm" variant="ghost" onClick={() => provisionner(r.organisme, Number(r.total))}>Provisionner</Button></td>

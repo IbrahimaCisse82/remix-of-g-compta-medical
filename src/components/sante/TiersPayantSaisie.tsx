@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { couvertureValide } from '@/lib/tiers-payant-saisie';
 import { useApp } from '@/stores/app-store';
+import ImportOrganismes from './ImportOrganismes';
 
 export function OrganismesPayeurs({ structureId, onChanged }: { structureId: string; onChanged: () => void }) {
   const { medicalRoles } = useApp();
@@ -31,6 +32,7 @@ export function OrganismesPayeurs({ structureId, onChanged }: { structureId: str
   return <section className="space-y-4 border-b border-border pb-6" aria-label="Organismes payeurs">
     <h2 className="font-semibold flex gap-2 items-center"><Building2 className="h-5 w-5 text-primary" />Organismes payeurs</h2>
     {error && <p role="alert" className="text-destructive">{error}</p>}
+    {writable && <ImportOrganismes key={structureId} structureId={structureId} onImported={() => { void load(); onChanged(); }} />}
     {writable && <form onSubmit={ajouter} className="flex flex-wrap gap-3 items-end"><div className="flex-1 min-w-48"><Label htmlFor="org-name">Nom de l’organisme</Label><Input id="org-name" required value={nom} onChange={e => setNom(e.target.value)} /></div><div className="w-44"><Label htmlFor="org-type">Type d’organisme</Label><Select value={type} onValueChange={setType}><SelectTrigger id="org-type"><SelectValue /></SelectTrigger><SelectContent>{['ipm','assurance','mutuelle','entreprise','autre'].map(t => <SelectItem value={t} key={t}>{t}</SelectItem>)}</SelectContent></Select></div><Button disabled={busy || !nom.trim()}><Plus className="h-4 w-4" />Enregistrer l’organisme</Button></form>}
     <div className="divide-y divide-border">{rows.map(o => <div key={o.id} className="flex justify-between py-2 text-sm"><span>{o.nom}</span><span className="text-fg3">{o.type} · {o.actif ? 'Actif' : 'Inactif'}</span></div>)}{!rows.length && !error && <p className="text-fg3 text-sm">Aucun organisme enregistré.</p>}</div>
   </section>;
