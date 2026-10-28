@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import BordereauCompta from './BordereauCompta';
 import { OutboxCard, RemboursementsCard, ReglementOrganismeCard, ConventionsCard, BonsPecCard, CreancesOrganismesCard, AnalytiqueSanteCard, SaisieSecoursCard } from './FinanceSante';
 import { MODES_PAIEMENT, fcfa, resteDu, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
+import { montantCaisse } from '@/lib/caisse-montant';
+import { escapeHtml } from '@/lib/impression';
 
 type Item = { code: string; libelle: string; tarif: number };
 type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; envoye_tiers_le: string | null; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
@@ -30,14 +32,22 @@ export default function FacturationPage({ structureId }: { structureId: string }
   const [remise, setRemise] = useState('0');
   const [motifRemise, setMotifRemise] = useState('');
   const [paiement, setPaiement] = useState<Record<string, { mode: string; montant: string }>>({});
+  const [busy, setBusy] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const pending = useRef(false);
+  const [loadError, setLoadError] = useState('');
 
   const load = async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) { setLoadError('Connectez-vous pour consulter votre caisse'); return; }
     const [s, f, a, an] = await Promise.all([
-      db.from('sante_sessions_caisse').select('id, fond_initial, ouverte_le').eq('structure_id', structureId).is('fermee_le', null).maybeSingle(),
+      db.from('sante_sessions_caisse').select('id, fond_initial, ouverte_le').eq('structure_id', structureId).eq('caissier', auth.user.id).is('fermee_le', null).maybeSingle(),
       db.from('sante_factures').select('id, numero, type, total, part_patient, part_organisme, organisme, statut_tiers, envoye_tiers_le, annulee, created_at, patient:sante_patients(nom, prenoms, numero_dossier), enc:sante_encaissements(montant, mode)').eq('structure_id', structureId).order('created_at', { ascending: false }).limit(50),
       db.from('sante_actes').select('code, libelle, tarif').eq('structure_id', structureId).eq('actif', true),
       db.from('sante_analyses').select('code, libelle, tarif').eq('structure_id', structureId).eq('actif', true),
     ]);
+    if (s.error || f.error || a.error || an.error) { setLoadError((s.error ?? f.error ?? a.error ?? an.error).message); return; }
+    setLoadError('');
     setSession(s.data);
     setFactures((f.data || []).map((x: any) => ({ ...x, encaisse: (x.enc || []).filter((e: any) => e.mode !== 'organisme').reduce((t: number, e: any) => t + Number(e.montant), 0) })));
     setCatalogue([...(a.data || []), ...(an.data || [])].map((i: any) => ({ ...i, tarif: Number(i.tarif) })));
@@ -55,9 +65,13 @@ export default function FacturationPage({ structureId }: { structureId: string }
   };
 
   const run = async (fn: string, args: object, ok: string) => {
+    if (pending.current || loadError) return false;
+    pending.current = true; setBusy(true);
+    try {
     const { error } = await db.rpc(fn, args);
     if (error) { toast.error(error.message); return false; }
-    toast.success(ok); await load(); return true;
+    toast.success(ok); await load(); setRefresh(v => v + 1); return true;
+    } finally { pending.current = false; setBusy(false); }
   };
 
   const total = totalLignes(panier.map(p => ({ prix_unitaire: p.tarif })));
@@ -67,7 +81,9 @@ export default function FacturationPage({ structureId }: { structureId: string }
 
   const creer = async () => {
     if (!patient || panier.length === 0) return;
-    const ok = await run('sante_creer_facture', { _patient_id: patient.id, _lignes: panier.map(p => ({ code: p.code, libelle: p.libelle, prix_unitaire: p.tarif, quantite: 1 })), _assurance_id: ass?.id ?? null, _remise: Number(remise) || 0, _motif_remise: motifRemise || null }, 'Facture émise.');
+    let reduction;
+    try { reduction = montantCaisse(remise); } catch (e) { return toast.error((e as Error).message); }
+    const ok = await run('sante_creer_facture', { _patient_id: patient.id, _lignes: panier.map(p => ({ code: p.code, libelle: p.libelle, prix_unitaire: p.tarif, quantite: 1 })), _assurance_id: ass?.id ?? null, _remise: reduction, _motif_remise: motifRemise || null }, 'Facture émise.');
     if (ok) { setPanier([]); setRemise('0'); setMotifRemise(''); setPatient(null); }
   };
 
@@ -75,7 +91,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
     const { data, error } = await db.rpc('sante_rapport_caisse', { _session_id: id });
     if (error) { toast.error(error.message); return; }
     const { data: st } = await db.from('structures').select('nom, adresse, telephone, ninea, rccm').eq('id', structureId).maybeSingle();
-    const esc = (x: unknown) => String(x ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const esc = escapeHtml;
     const s = data.session; const modes = Object.entries(data.par_mode as Record<string, number>).map(([m, v]) => `<tr><td>${m}</td><td style="text-align:right">${fcfa(Number(v))}</td></tr>`).join('');
     const w = window.open('', '_blank'); if (!w) return;
     w.document.write(`<html><head><title>Rapport de caisse</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%;margin:10px 0}footer{position:fixed;bottom:0;left:0;right:0;font-size:8pt;color:#555;text-align:center;border-top:1px solid #ccc;padding-top:4px}</style></head><body><h2>${esc(st?.nom)} — Rapport de fin de journée · caisse</h2><p><small>${esc(st?.adresse)} · Tél. ${esc(st?.telephone)}</small><br>Ouverte le ${new Date(s.ouverte_le).toLocaleString('fr-FR')} · clôturée le ${new Date(s.fermee_le).toLocaleString('fr-FR')}</p><table><tr><th>Mode</th><th>Encaissé</th></tr>${modes}</table><table><tr><td>Fond initial</td><td style="text-align:right">${fcfa(Number(s.fond_initial))}</td></tr><tr><td>Remboursements espèces</td><td style="text-align:right">${fcfa(Number(data.remboursements_especes))}</td></tr><tr><td>Espèces attendues</td><td style="text-align:right">${fcfa(Number(s.montant_attendu))}</td></tr><tr><td>Espèces comptées</td><td style="text-align:right">${fcfa(Number(s.montant_compte))}</td></tr><tr><td><b>Écart</b></td><td style="text-align:right"><b>${fcfa(Number(s.ecart))}</b></td></tr></table><p>${data.nb_encaissements} encaissement(s). Session verrouillée.</p><p style="margin-top:40px">Signature caissier : ____________ &nbsp; Visa responsable : ____________</p><footer>NINEA ${esc(st?.ninea)} · RCCM ${esc(st?.rccm)} · Document émis électroniquement</footer><script>print()</script></body></html>`);
@@ -83,7 +99,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
   };
 
   const imprimer = async (f: Facture) => {
-    const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const esc = escapeHtml;
     const [{ data: s }, { data: lignes }, { data: encs }] = await Promise.all([
       db.from('structures').select('nom, adresse, telephone, ninea, rccm, autorisation_exercice').eq('id', structureId).maybeSingle(),
       db.from('sante_facture_lignes').select('libelle, code, quantite, prix_unitaire, montant').eq('facture_id', f.id),
@@ -117,20 +133,42 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
     w.document.close();
   };
 
+  const fermer = async () => {
+    if (!session || pending.current || loadError) return;
+    let compte;
+    try { compte = montantCaisse(fond); } catch (e) { return toast.error((e as Error).message); }
+    pending.current = true; setBusy(true);
+    try {
+      const { data, error } = await db.rpc('sante_fermer_caisse', { _session_id: session.id, _compte: compte });
+      if (error) return toast.error(error.message);
+      toast.success(`Caisse fermée. Écart : ${fcfa(Number(data))}`);
+      await load(); setRefresh(v => v + 1);
+      await imprimerRapport(session.id);
+    } finally { pending.current = false; setBusy(false); }
+  };
+  const ouvrir = async () => {
+    try { await run('sante_ouvrir_caisse', { _structure_id: structureId, _fond: montantCaisse(fond) }, 'Caisse ouverte.'); }
+    catch (e) { toast.error((e as Error).message); }
+  };
+  const encaisser = async (f: Facture, p: { mode: string; montant: string }) => {
+    try { await run('sante_encaisser', { _facture_id: f.id, _mode: p.mode, _montant: montantCaisse(p.montant, true) }, 'Encaissé.'); }
+    catch (e) { toast.error((e as Error).message); }
+  };
   return (
     <div className="max-w-6xl space-y-8">
       <div><p className="text-xs font-mono uppercase text-primary mb-2">Facturation</p><h1 className="font-serif text-3xl">Factures & caisse</h1></div>
+      {loadError && <div role="alert" className="text-destructive"><p>{loadError}</p><Button variant="outline" onClick={() => void load()}>Réessayer</Button></div>}
 
       <section className="border border-border bg-bg2 rounded-md p-5 flex flex-wrap items-end gap-3">
         {session ? (<>
           <p className="text-sm flex-1">Caisse ouverte depuis {new Date(session.ouverte_le).toLocaleTimeString('fr-FR')} · fond {fcfa(Number(session.fond_initial))}</p>
-          <div><Label>Espèces comptées</Label><Input type="number" value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
-          <Button variant="outline" onClick={async () => { const { data, error } = await db.rpc('sante_fermer_caisse', { _session_id: session.id, _compte: Number(fond) }); if (error) toast.error(error.message); else { toast.success(`Caisse fermée. Écart : ${fcfa(Number(data))}`); await imprimerRapport(session.id); await load(); } }}>Clôturer et imprimer le rapport</Button>
+          <div><Label htmlFor="caisse-compte">Espèces comptées</Label><Input id="caisse-compte" type="number" min={0} step={1} value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
+          <Button variant="outline" disabled={busy || !!loadError} onClick={fermer}>Clôturer et imprimer le rapport</Button>
           <Button variant="ghost" onClick={() => run('sante_remettre_cheques', { _structure_id: structureId }, 'Remise de chèques enregistrée.')}>Remise de chèques en banque</Button>
         </>) : (<>
           <p className="text-sm flex-1">Votre caisse est fermée.</p>
-          <div><Label>Fond de caisse</Label><Input type="number" value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
-          <Button onClick={() => run('sante_ouvrir_caisse', { _structure_id: structureId, _fond: Number(fond) }, 'Caisse ouverte.')}>Ouvrir la caisse</Button>
+          <div><Label htmlFor="caisse-fond">Fond de caisse</Label><Input id="caisse-fond" type="number" min={0} step={1} value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
+          <Button disabled={busy || !!loadError} onClick={ouvrir}>Ouvrir la caisse</Button>
         </>)}
       </section>
 
@@ -150,7 +188,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <span>Total {fcfa(total)} · Organisme {fcfa(apercu.organisme)} · <b>Patient {fcfa(apercu.patient)}</b></span>
-          <Button disabled={!patient || panier.length === 0} onClick={creer}>Émettre la facture</Button>
+          <Button disabled={busy || !!loadError || !patient || panier.length === 0} onClick={creer}>Émettre la facture</Button>
         </div>
       </section>
 
@@ -170,8 +208,8 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
               <td className="p-3 space-y-1">
                 {f.type === 'facture' && !f.annulee && reste > 0 && <div className="flex gap-1">
                   <Select value={p.mode} onValueChange={v => setPaiement({ ...paiement, [f.id]: { ...p, mode: v } })}><SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger><SelectContent>{MODES_PAIEMENT.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select>
-                  <Input className="h-8 w-24" type="number" value={p.montant} onChange={e => setPaiement({ ...paiement, [f.id]: { ...p, montant: e.target.value } })} />
-                  <Button size="sm" onClick={() => run('sante_encaisser', { _facture_id: f.id, _mode: p.mode, _montant: Number(p.montant) }, 'Encaissé.')}>Encaisser</Button>
+                  <Input aria-label={`Montant ${f.numero}`} className="h-8 w-24" type="number" value={p.montant} onChange={e => setPaiement({ ...paiement, [f.id]: { ...p, montant: e.target.value } })} />
+                  <Button size="sm" disabled={busy || !!loadError} onClick={() => encaisser(f, p)}>Encaisser</Button>
                 </div>}
                 <div className="flex gap-1"><Button size="sm" variant="outline" onClick={() => imprimer(f)}>Reçu</Button>
                   {f.type === 'facture' && !f.annulee && <Button size="sm" variant="ghost" onClick={() => { const m = prompt("Motif d'annulation (un avoir sera émis)"); if (m) void run('sante_annuler_facture', { _facture_id: f.id, _motif: m }, 'Avoir émis.'); }}>Annuler</Button>}</div>
@@ -179,13 +217,13 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
             </tr>;
           })}</tbody></table>
       </section>
-      <RemboursementsCard structureId={structureId} />
+      <RemboursementsCard structureId={structureId} refresh={refresh} onChanged={() => { void load(); setRefresh(v => v + 1); }} />
       <ReglementOrganismeCard structureId={structureId} />
       <CreancesOrganismesCard structureId={structureId} />
       <ConventionsCard structureId={structureId} />
       <SaisieSecoursCard structureId={structureId} />
       <AnalytiqueSanteCard structureId={structureId} />
-      <OutboxCard structureId={structureId} />
+      <OutboxCard key={refresh} structureId={structureId} />
       <BordereauCompta structureId={structureId} />
     </div>
   );
