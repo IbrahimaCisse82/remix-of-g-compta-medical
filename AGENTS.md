@@ -5,6 +5,7 @@
 - Patient-document fusion transfers metadata with a rollback snapshot and storage checks the effective patient; why: retain immutable file paths while preserving current clinical permissions after merge or reversal.
 - Appointment writes lock the practitioner and reject overlaps, while consultation insertion verifies the linked appointment; why: concurrent requests and mismatched practitioner IDs must not corrupt the care workflow.
 - Laboratory result entry/import/correction share type-aware value parsing and corrections use the v2 RPC; why: textual values must retain their type and corrections must preserve history and treatment alerts.
+- Catalogue analysis and first parameter are created in one authenticated MFA RPC; why: partial creation leaves unmeasurable analyses available for ordering.
 - Team role/status changes and invitation revocation use admin/MFA RPCs with structure locking and audit; why: cross-tenant changes and removal of the last active administrator must be refused.
 - Medical visual identity is token-based, with three structure-selectable palettes and dark/light modes, so all screens stay consistent.
 - G-Santé uses dedicated structure, membership, role, invitation, and audit objects while sharing only account identity with G-Compta, preventing health-data scope from weakening accounting tenancy.
