@@ -463,6 +463,13 @@
       "when": 1793209469511,
       "tag": "0065_sante_document_orphelin_nettoyage",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793209840356,
+      "tag": "0066_sante_rectificatif_empreinte_atomique",
+      "breakpoints": true
     }
   ]
 }
