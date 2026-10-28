@@ -7,6 +7,9 @@ import { fcfa } from '@/domain/sante/tiers-payant';
 
 import { messageErreur } from '@/lib/erreurs';
 import { escapeHtml } from '@/lib/impression';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { MODES_PAIEMENT } from '@/domain/sante/tiers-payant';
 const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
@@ -42,21 +45,27 @@ export function OutboxCard({ structureId }: { structureId: string }) {
 
 type Remb = { id: string; montant: number; motif: string; statut: string; created_at: string; facture: { numero: string } | null };
 
-export function RemboursementsCard({ structureId }: { structureId: string }) {
+export function RemboursementsCard({ structureId, refresh = 0, onChanged }: { structureId: string; refresh?: number; onChanged?: () => void }) {
   const [list, setList] = useState<Remb[]>([]);
+  const [action, setAction] = useState<{ id: string; type: 'approuver' | 'refuser' | 'payer' } | null>(null);
+  const [motif, setMotif] = useState('');
+  const [mode, setMode] = useState('especes');
+  const [busy, setBusy] = useState(false);
   const load = () => db.from('sante_remboursements').select('id, montant, motif, statut, created_at, facture:sante_factures!sante_remboursements_facture_id_fkey(numero)')
-    .eq('structure_id', structureId).in('statut', ['demande', 'approuve']).order('created_at', { ascending: false }).then(({ data }: any) => setList(data ?? []));
-  useEffect(() => { load(); }, [structureId]);
+    .eq('structure_id', structureId).in('statut', ['demande', 'approuve']).order('created_at', { ascending: false }).then(({ data, error }: any) => { if (error) toast.error(error.message); else setList(data ?? []); });
+  useEffect(() => { load(); }, [structureId, refresh]);
   if (!list.length) return null;
-  const decider = async (id: string, ok: boolean) => {
-    const m = prompt(ok ? 'Motif de l’approbation :' : 'Motif du refus :'); if (!m) return;
-    const { error } = await db.rpc('sante_decider_remboursement', { _id: id, _approuver: ok, _motif: m });
-    if (error) toast.error(error.message); else load();
-  };
-  const payer = async (id: string) => {
-    const mode = prompt('Mode (especes, wave, orange_money, cheque, virement) :', 'especes'); if (!mode) return;
-    const { error } = await db.rpc('sante_payer_remboursement', { _id: id, _mode: mode.trim() });
-    if (error) toast.error(error.message); else { toast.success('Remboursement payé'); load(); }
+  const confirmer = async () => {
+    if (!action || busy) return;
+    setBusy(true);
+    try {
+      const { error } = action.type === 'payer'
+        ? await db.rpc('sante_payer_remboursement', { _id: action.id, _mode: mode })
+        : await db.rpc('sante_decider_remboursement', { _id: action.id, _approuver: action.type === 'approuver', _motif: motif.trim() });
+      if (error) return toast.error(error.message);
+      toast.success(action.type === 'payer' ? 'Remboursement payé' : 'Décision enregistrée');
+      setAction(null); setMotif(''); await load(); onChanged?.();
+    } finally { setBusy(false); }
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
@@ -65,10 +74,17 @@ export function RemboursementsCard({ structureId }: { structureId: string }) {
         <div key={r.id} className="flex flex-wrap justify-between gap-2 text-sm border border-border rounded p-2">
           <span>{r.facture?.numero} · {fcfa(Number(r.montant))} · {r.motif} · <b>{r.statut === 'demande' ? 'À approuver' : 'Approuvé'}</b></span>
           <span className="flex gap-1">{r.statut === 'demande'
-            ? <><Button size="sm" variant="outline" onClick={() => decider(r.id, true)}>Approuver</Button><Button size="sm" variant="ghost" onClick={() => decider(r.id, false)}>Refuser</Button></>
-            : <Button size="sm" onClick={() => payer(r.id)}>Payer</Button>}</span>
+            ? <><Button size="sm" variant="outline" onClick={() => { setMotif(''); setAction({ id: r.id, type: 'approuver' }); }}>Approuver</Button><Button size="sm" variant="ghost" onClick={() => { setMotif(''); setAction({ id: r.id, type: 'refuser' }); }}>Refuser</Button></>
+            : <Button size="sm" onClick={() => { setMode('especes'); setAction({ id: r.id, type: 'payer' }); }}>Payer</Button>}</span>
         </div>
       ))}
+      <Dialog open={!!action} onOpenChange={v => { if (!v && !busy) setAction(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{action?.type === 'payer' ? 'Payer le remboursement' : action?.type === 'approuver' ? 'Approuver le remboursement' : 'Refuser le remboursement'}</DialogTitle><DialogDescription>{fcfa(Number(list.find(r => r.id === action?.id)?.montant ?? 0))}</DialogDescription></DialogHeader>
+          {action?.type === 'payer' ? <div><Label htmlFor="remb-mode">Mode de remboursement</Label><select id="remb-mode" className="h-10 w-full border border-input rounded-md bg-background px-3" value={mode} disabled={busy} onChange={e => setMode(e.target.value)}>{MODES_PAIEMENT.filter(([v]) => v !== 'carte').map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select></div> : <div><Label htmlFor="remb-motif">Motif de la décision</Label><Input id="remb-motif" value={motif} disabled={busy} onChange={e => setMotif(e.target.value)} /></div>}
+          <DialogFooter><Button variant="ghost" disabled={busy} onClick={() => setAction(null)}>Annuler</Button><Button disabled={busy || (action?.type !== 'payer' && motif.trim().length < 5)} onClick={confirmer}>Confirmer</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
