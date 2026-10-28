@@ -1,5 +1,8 @@
+import ControleComptable from '@/components/ControleComptable';
+import { assertExportable } from '@/lib/conformite-syscohada';
+import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
-import { calc, CR, ACTIF, PASSIF, TFT, fmt, fmtSigned, type MapLine } from '@/lib/accounting';
+import { calc, calculateActif, CR, ACTIF, PASSIF, TFT, fmt, fmtSigned, type MapLine } from '@/lib/accounting';
 import { useNotesData } from '@/hooks/use-notes-data';
 import { buildAnnexesHtml } from '@/lib/dsf-annexes-export';
 import { escapeHtml } from '@/lib/impression';
@@ -39,7 +42,7 @@ function buildTable(title: string, def: MapLine[], vals: Record<string, number>,
     const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
     const v = vals[l.id] || 0;
     if (isActif) {
-      rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r">${fmtSigned(extra!.brut![l.id] || 0)}</td><td class="r">${extra!.amort![l.id] ? fmtSigned(-(extra!.amort![l.id] || 0)) : '—'}</td><td class="r">${fmtSigned(v)}</td>${hasN1 ? `<td class="r">${fmtSigned(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
+      rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r">${fmtSigned(extra?.brut?.[l.id] || 0)}</td><td class="r">${extra?.amort?.[l.id] ? fmtSigned(-(extra?.amort?.[l.id] || 0)) : '—'}</td><td class="r">${fmtSigned(v)}</td>${hasN1 ? `<td class="r">${fmtSigned(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     } else {
       rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="r">${fmt(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     }
@@ -63,16 +66,13 @@ export default function LiasseFiscalePage() {
   const vT = calc(balance, TFT, { XI: vCR['XI'] || 0 });
   const vTN1 = hasN1 ? calc(balanceN1, TFT, { XI: vCRN1['XI'] || 0 }) : {};
 
-  // Brut / Amort for actif
-  const brutBalance = balance.filter(b => !/^(28|29|39)/.test(b.compte));
-  const amortBalance = balance.filter(b => /^(28|29|39)/.test(b.compte));
-  const vABrut = calc(brutBalance, ACTIF);
-  const vAAmort = calc(amortBalance, ACTIF);
+  const { brut: vABrut, amort: vAAmort } = calculateActif(balance);
 
   const rn = vCR['XI'] || 0;
 
   const handleExportDSF = () => {
     if (!entreprise || !exercice) return;
+    try { assertExportable(balance, balanceN1); } catch (error) { toast.error(error instanceof Error ? error.message : 'États non validés'); return; }
 
     const html = `
       ${buildHeader(entreprise, exercice)}
@@ -148,6 +148,7 @@ export default function LiasseFiscalePage() {
 
   const handleExportDSFComplete = () => {
     if (!entreprise || !exercice) return;
+    try { assertExportable(balance, balanceN1); } catch (error) { toast.error(error instanceof Error ? error.message : 'États non validés'); return; }
 
     const annexesHtml = buildAnnexesHtml(balance, notesData);
 
