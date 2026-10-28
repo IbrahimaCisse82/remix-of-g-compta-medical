@@ -18,7 +18,8 @@
 - New health structures are created through sante_creer_structure with an explicit business role and atomic company/module linking; why: partial client-side setup leaves patients blocked while preserving separate administrative and clinical permissions.
 - Google sign-in uses the generated Lovable managed-auth helper with a public same-origin redirect; why: the helper supports editor popups and managed credentials without app-level OAuth workarounds.
 - New health companies get the current-year fiscal year via a trigger on entreprises; why: health accounting fails without an open exercice.
-- Bank statements and matches are persisted through accounting-scoped RPCs with MFA, exercise/account/amount validation, unique journal-line matching and append-only audit; why: reconciliation must not change accounting entries or rely on browser state.
+- Bank reconciliation uses accounting-scoped MFA RPCs, validation, unique matches and append-only audit; why: matching must not alter entries.
+- Cash receipts/refunds lock their open personal session against closure and require whole FCFA amounts; why: concurrent movements must not escape the closing balance.
 - Sidebar filtering is display-only, centralized in src/lib/navigation-sante.ts (structure type x medical roles, roles loaded into app-store at launchHealth); why: RLS and server checks remain the only security barrier, so the matrix must never be treated as access control.
 - Demo population uses the dedicated demo identity with authenticated lifecycle RPCs and structure-scoped get-or-create markers; why: retries must not overwrite customer data, permissions, or immutable financial activity.
 - Accounting reference CSVs are preserved as versioned data and financial statements use the shared reference-driven evaluator; why: account mappings, signs and exclusions must not diverge between screens and exports.
