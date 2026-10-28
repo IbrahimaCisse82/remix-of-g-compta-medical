@@ -484,6 +484,13 @@
       "when": 1793210237775,
       "tag": "0068_sante_reactifs_concurrence_securisee",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793210250840,
+      "tag": "0069_sante_cq_absence_bloquante",
+      "breakpoints": true
     }
   ]
 }
