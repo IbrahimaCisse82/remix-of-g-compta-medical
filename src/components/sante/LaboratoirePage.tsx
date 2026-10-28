@@ -10,6 +10,7 @@ import { LIBELLE_DRAPEAU, STATUTS_DEMANDE, estCritique, type Drapeau, type Statu
 import { imprimerCompteRendu, imprimerEtiquettes } from './print-sante';
 import { deltaCheck } from '@/domain/sante/reference';
 import { parseAutomate } from '@/domain/sante/automate';
+import { valeurResultat } from '@/lib/laboratoire-resultat';
 
 const PAGE = 25;
 type Demande = { id: string; numero: string; statut: StatutDemande; urgence: boolean; created_at: string; patient: { nom: string; prenoms: string; numero_dossier: string } | null };
@@ -67,6 +68,7 @@ export function NouvelleDemande({ structureId, patientId, consultationId, prescr
   const [presc, setPresc] = useState(prescripteur ?? '');
   const [urgence, setUrgence] = useState(false);
   const [rc, setRc] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => { void supabase.from('sante_analyses').select('id, code, libelle, section, tarif').eq('structure_id', structureId).eq('actif', true).order('section').then(({ data }) => setAnalyses(data ?? [])); }, [structureId]);
   const chercher = async () => {
@@ -76,11 +78,16 @@ export function NouvelleDemande({ structureId, patientId, consultationId, prescr
   };
   const total = analyses.filter(a => choix.includes(a.id)).reduce((s, a) => s + Number(a.tarif), 0);
   const creer = async () => {
+    if (busy) return;
     if (!patient) return toast.error('Choisissez un patient');
+    if (!choix.length) return toast.error('Choisissez au moins une analyse');
+    setBusy(true);
+    try {
     const { data, error } = await supabase.rpc('sante_creer_demande_labo', { _patient_id: patient, _analyses: choix, _prescripteur: presc, _urgence: urgence, _renseignements: rc, _consultation_id: consultationId });
     if (error) return toast.error(error.message);
     toast.success('Demande enregistrée');
     onDone(data as string);
+    } finally { setBusy(false); }
   };
 
   return (
@@ -108,7 +115,7 @@ export function NouvelleDemande({ structureId, patientId, consultationId, prescr
         <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={urgence} onChange={e => setUrgence(e.target.checked)} />Urgent</label>
         <div className="sm:col-span-2"><Label htmlFor="rc">Renseignements cliniques</Label><Textarea id="rc" value={rc} onChange={e => setRc(e.target.value)} /></div>
       </section>
-      <div className="flex gap-2">{patientId && <Button variant="ghost" onClick={() => onDone(null)}>Annuler</Button>}<Button onClick={creer} disabled={!choix.length}><FlaskConical />Enregistrer la demande</Button></div>
+      <div className="flex gap-2">{patientId && <Button variant="ghost" disabled={busy} onClick={() => onDone(null)}>Annuler</Button>}<Button onClick={creer} disabled={busy || !choix.length}><FlaskConical />Enregistrer la demande</Button></div>
     </div>
   );
 }
@@ -122,7 +129,8 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [anterieurs, setAnterieurs] = useState<Map<string, number>>(new Map());
   const [rectifs, setRectifs] = useState<any[]>([]);
   const [lesAnalyses, setLesAnalyses] = useState<{ id: string; libelle: string }[]>([]);
-  const [rect, setRect] = useState<{ parametre: string; valeur: string; motif: string } | null>(null);
+  const [rect, setRect] = useState<{ parametre: string; valeur: string; motif: string; traitement: boolean } | null>(null);
+  const [rectBusy, setRectBusy] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('sante_demandes_labo').select('*, patient:sante_patients(nom, prenoms, sexe, date_naissance, numero_dossier)').eq('id', id).maybeSingle();
@@ -163,9 +171,9 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const enregistrer = async (p: (typeof params)[number]) => {
     const raw = (saisie[p.id] ?? '').trim();
     if (!raw) return;
-    const num = p.type === 'numerique' ? Number(raw.replace(',', '.')) : null;
-    if (p.type === 'numerique' && Number.isNaN(num)) return toast.error('Valeur numérique invalide');
-    const { data, error } = await supabase.rpc('sante_saisir_resultat', { _demande_id: id, _parametre_id: p.id, _valeur_num: num as number, _valeur_texte: p.type === 'numerique' ? undefined : raw });
+    let valeur;
+    try { valeur = valeurResultat(p.type, raw); } catch (error) { return toast.error((error as Error).message); }
+    const { data, error } = await supabase.rpc('sante_saisir_resultat', { _demande_id: id, _parametre_id: p.id, ...valeur });
     if (error) return toast.error(error.message);
     if (estCritique(data as Drapeau)) toast.error(`Valeur critique sur ${p.libelle} : prévenir le prescripteur puis acquitter`);
     setSaisie(s => ({ ...s, [p.id]: '' })); await load();
@@ -176,12 +184,18 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
     await load();
   };
   const rectifier = async () => {
-    if (!rect) return;
-    const num = Number(rect.valeur.replace(',', '.'));
-    const { data, error } = await supabase.rpc('sante_rectifier_resultat', { _demande_id: id, _parametre_id: rect.parametre, _valeur_num: Number.isNaN(num) ? (null as unknown as number) : num, _valeur_texte: Number.isNaN(num) ? rect.valeur : (null as unknown as string), _motif: rect.motif });
+    if (!rect || rectBusy) return;
+    const parametre = params.find(p => p.id === rect.parametre);
+    if (!parametre) return toast.error('Paramètre introuvable');
+    let valeur;
+    try { valeur = valeurResultat(parametre.type, rect.valeur); } catch (error) { return toast.error((error as Error).message); }
+    setRectBusy(true);
+    try {
+    const { data, error } = await supabase.rpc('sante_rectifier_resultat_v2', { _demande_id: id, _parametre_id: rect.parametre, ...valeur, _motif: rect.motif, _traitement_deja_prescrit: rect.traitement });
     if (error) return toast.error(error.message);
     toast.success(`Compte rendu rectificatif version ${data} — prévenir le prescripteur et le patient`);
     setRect(null); await load();
+    } finally { setRectBusy(false); }
   };
   const st = d.statut as StatutDemande;
   const p = d.patient;
@@ -220,7 +234,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
               <td className="p-2 text-xs">{r && (r.ref_bas != null || r.ref_haut != null) ? `${r.ref_bas ?? ''} – ${r.ref_haut ?? ''}` : ''}</td>
               <td className="p-2 text-xs">{LIBELLE_DRAPEAU[f]}{r && estCritique(f) && (r.critique_acquitte_le ? <span className="block text-fg3">acquitté</span> : <Button size="sm" variant="destructive" className="ml-2 h-7" onClick={() => acquitter(r.id)}><AlertTriangle />Acquitter</Button>)}</td>
               <td className="p-2 text-xs">{(() => { const a = anterieurs.get(pa.id); if (a === undefined) return '—'; const dc = r?.valeur_num != null ? deltaCheck(Number(r.valeur_num), a) : null; return <span className={dc?.alerte ? 'text-destructive font-semibold' : ''}>{a}{dc ? ` (${dc.variation > 0 ? '+' : ''}${dc.variation} %)` : ''}{dc?.alerte ? ' Δ' : ''}</span>; })()}</td>
-              {st === 'validee' && <td className="p-2">{r && <Button size="sm" variant="ghost" onClick={() => setRect({ parametre: pa.id, valeur: '', motif: '' })}>Rectifier</Button>}</td>}
+              {st === 'validee' && <td className="p-2">{r && <Button size="sm" variant="ghost" onClick={() => setRect({ parametre: pa.id, valeur: '', motif: '', traitement: false })}>Rectifier</Button>}</td>}
               {st === 'en_analyse' && <td className="p-2"><Input aria-label={`Saisie ${pa.libelle}`} className="h-8 w-28" inputMode={pa.type === 'numerique' ? 'decimal' : 'text'} value={saisie[pa.id] ?? ''} onChange={e => setSaisie(s => ({ ...s, [pa.id]: e.target.value }))} onBlur={() => enregistrer(pa)} onKeyDown={e => e.key === 'Enter' && enregistrer(pa)} /></td>}
             </tr>;
           })}</tbody>
@@ -229,7 +243,8 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       {rect && <section className="border border-destructive rounded-md p-4 space-y-2">
         <h2 className="font-semibold">Compte rendu rectificatif — {params.find(x => x.id === rect.parametre)?.libelle}</h2>
         <p className="text-xs text-fg2">L’original est conservé ; une nouvelle version est émise. Réservé au biologiste.</p>
-        <div className="grid sm:grid-cols-[1fr_3fr_auto_auto] gap-2"><Input aria-label="Nouvelle valeur" placeholder="Nouvelle valeur" value={rect.valeur} onChange={e => setRect({ ...rect, valeur: e.target.value })} /><Input aria-label="Motif" placeholder="Motif obligatoire" value={rect.motif} onChange={e => setRect({ ...rect, motif: e.target.value })} /><Button variant="ghost" onClick={() => setRect(null)}>Annuler</Button><Button variant="destructive" disabled={!rect.valeur.trim() || rect.motif.trim().length < 5} onClick={rectifier}>Émettre</Button></div>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rect.traitement} disabled={rectBusy} onChange={e => setRect({ ...rect, traitement: e.target.checked })} />Un traitement a déjà été prescrit</label>
+        <div className="grid sm:grid-cols-[1fr_3fr_auto_auto] gap-2"><Input aria-label="Nouvelle valeur" placeholder="Nouvelle valeur" disabled={rectBusy} value={rect.valeur} onChange={e => setRect({ ...rect, valeur: e.target.value })} /><Input aria-label="Motif" placeholder="Motif obligatoire" disabled={rectBusy} value={rect.motif} onChange={e => setRect({ ...rect, motif: e.target.value })} /><Button variant="ghost" disabled={rectBusy} onClick={() => setRect(null)}>Annuler</Button><Button variant="destructive" disabled={rectBusy || !rect.valeur.trim() || rect.motif.trim().length < 5} onClick={rectifier}>Émettre</Button></div>
       </section>}
       {rectifs.length > 0 && <section className="border border-border bg-bg2 rounded-md p-4 text-sm"><h2 className="font-semibold mb-2">Historique des rectifications</h2>{rectifs.map(x => <p key={x.id} className="text-xs border-t border-border py-1">v{x.version} · {new Date(x.le).toLocaleString('fr-FR')} · {params.find(p => p.id === x.parametre_id)?.libelle} : {x.ancienne_valeur_num ?? x.ancienne_valeur_texte} → {x.nouvelle_valeur_num ?? x.nouvelle_valeur_texte} · {x.motif}</p>)}</section>}
       <p className="text-xs text-fg3">La validation technique doit être faite par une autre personne que celle qui a saisi les résultats ; la validation biologique est réservée au biologiste. Un résultat validé ne peut plus être modifié.</p>
@@ -358,26 +373,40 @@ export function RemiseMainPropre({ demande }: { demande: any }) {
 export function SousTraitance({ id, analyses }: { id: string; analyses: { id: string; libelle: string }[] }) {
   const [envois, setEnvois] = useState<{ id: string; analyse_id: string; laboratoire: string; statut: string }[]>([]);
   const [f, setF] = useState({ analyse: '', labo: '', ref: '' });
+  const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
     const { data } = await supabase.from('sante_sous_traitance').select('id, analyse_id, laboratoire, statut').eq('demande_id', id);
     setEnvois(data ?? []);
   }, [id]);
   useEffect(() => { void load(); }, [load]);
   const envoyer = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
     const { error } = await supabase.rpc('sante_envoyer_sous_traitance', { _demande_id: id, _analyse_id: f.analyse, _laboratoire: f.labo, _reference: f.ref });
     if (error) return toast.error(error.message);
     setF({ analyse: '', labo: '', ref: '' }); toast.success('Envoi en sous-traitance enregistré'); void load();
+    } finally { setBusy(false); }
+  };
+  const recevoir = async (envoiId: string) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc('sante_recevoir_sous_traitance', { _id: envoiId, _reference: '' });
+      if (error) return toast.error(error.message);
+      toast.success('Retour du laboratoire enregistré'); await load();
+    } finally { setBusy(false); }
   };
   return <section className="border border-border bg-bg2 rounded-md p-3 space-y-2 text-sm">
     <h2 className="font-semibold text-sm">Sous-traitance</h2>
-    {envois.map(e => <p key={e.id} className="text-xs">{analyses.find(a => a.id === e.analyse_id)?.libelle} → {e.laboratoire} · {e.statut === 'recu' ? 'reçu' : 'envoyé'}</p>)}
+    {envois.map(e => <div key={e.id} className="flex flex-wrap items-center gap-2 text-xs"><span>{analyses.find(a => a.id === e.analyse_id)?.libelle} → {e.laboratoire} · {e.statut === 'recu' ? 'reçu' : e.statut === 'annule' ? 'annulé' : 'envoyé'}</span>{e.statut === 'envoye' && <Button size="sm" variant="outline" disabled={busy} onClick={() => recevoir(e.id)}><CheckCircle2 />Retour reçu</Button>}</div>)}
     <div className="flex flex-wrap gap-2">
       <select aria-label="Analyse à envoyer" className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={f.analyse} onChange={e => setF({ ...f, analyse: e.target.value })}>
         <option value="">Analyse…</option>{analyses.filter(a => !envois.some(e => e.analyse_id === a.id)).map(a => <option key={a.id} value={a.id}>{a.libelle}</option>)}
       </select>
       <Input className="h-9 max-w-xs" placeholder="Laboratoire destinataire" value={f.labo} onChange={e => setF({ ...f, labo: e.target.value })} />
       <Input className="h-9 max-w-[10rem]" placeholder="Référence" value={f.ref} onChange={e => setF({ ...f, ref: e.target.value })} />
-      <Button size="sm" variant="outline" disabled={!f.analyse || !f.labo.trim()} onClick={envoyer}>Envoyer</Button>
+      <Button size="sm" variant="outline" disabled={busy || !f.analyse || !f.labo.trim()} onClick={envoyer}>Envoyer</Button>
     </div>
   </section>;
 }
@@ -393,9 +422,9 @@ function ImportAutomate({ id, params, onDone }: { id: string; params: { id: stri
     for (const l of lignes) {
       const p = params.find(x => (x.code ?? '').toUpperCase() === l.code);
       if (!p) { erreurs.push(`${l.code} : paramètre absent de la demande`); continue; }
-      const num = p.type === 'numerique' ? Number(l.valeur.replace(',', '.')) : null;
-      if (p.type === 'numerique' && Number.isNaN(num)) { erreurs.push(`${l.code} : valeur non numérique`); continue; }
-      const { error } = await supabase.rpc('sante_saisir_resultat', { _demande_id: id, _parametre_id: p.id, _valeur_num: num as number, _valeur_texte: p.type === 'numerique' ? undefined : l.valeur });
+      let valeur;
+      try { valeur = valeurResultat(p.type, l.valeur); } catch (error) { erreurs.push(`${l.code} : ${(error as Error).message}`); continue; }
+      const { error } = await supabase.rpc('sante_saisir_resultat', { _demande_id: id, _parametre_id: p.id, ...valeur });
       if (error) erreurs.push(`${l.code} : ${error.message}`); else ok++;
     }
     toast[erreurs.length ? 'warning' : 'success'](`${ok} résultat(s) importé(s)${erreurs.length ? ` · ${erreurs.length} refusé(s) : ${erreurs.join(' ; ')}` : ''}`);
