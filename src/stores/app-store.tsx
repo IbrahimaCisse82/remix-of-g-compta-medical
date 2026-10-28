@@ -1,3 +1,4 @@
+import { controlesSyscohada } from '@/lib/conformite-syscohada';
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { BalanceLine, JournalLine, PlanCompte, Entreprise, Exercice } from '@/lib/accounting';
 import { supabase } from '@/integrations/supabase/client';
@@ -139,7 +140,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Repli sur la table `balance` stockée (mode démo / anon, RPC non autorisée).
   const chargerBalance = useCallback(async (entrepriseId: string, exerciceId: string): Promise<BalanceLine[]> => {
     try {
-      const derivee = await getBalanceDerivee(entrepriseId, exerciceId);
+      const [derivee, ouverture, accountTargets] = await Promise.all([
+        getBalanceDerivee(entrepriseId, exerciceId),
+        supabase.from('journal').select('compte,debit,credit').eq('entreprise_id', entrepriseId).eq('exercice_id', exerciceId).eq('journal_code','AN').eq('statut_validation','valide'),
+        supabase.from('plan_comptable').select('numero,poste_cible').eq('entreprise_id',entrepriseId),
+      ]);
+      const opening = new Map<string, number>();
+      for (const line of ouverture.data ?? []) opening.set(line.compte, (opening.get(line.compte) ?? 0) + Number(line.debit) - Number(line.credit));
       if (derivee.length > 0) {
         return derivee.map(d => ({
           id: `${exerciceId}-${d.compte}`,
@@ -147,7 +154,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           entreprise_id: entrepriseId,
           compte: d.compte,
           intitule: d.intitule,
-          sd: 0, sc: 0,
+          sd: Math.max(opening.get(d.compte) ?? 0,0), sc: Math.max(-(opening.get(d.compte) ?? 0),0),
+          poste_cible: accountTargets.data?.find(p => p.numero === d.compte)?.poste_cible,
           md: d.md, mc: d.mc,
           sfd: d.sfd, sfc: d.sfc,
         }));
@@ -674,6 +682,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ─── CLÔTURE D'EXERCICE ──────────────────────────────
   const clotureExercice = useCallback(async () => {
     if (!exercice || !entreprise) { toast.error('Aucun exercice ou entreprise sélectionné.'); return; }
+    const failed = controlesSyscohada(balance, balanceN1).filter(c => c.bloquant && !c.ok);
+    if (failed.length) { toast.error('Clôture bloquée : ' + failed.map(c => c.code).join(', ')); return; }
     setLoading(true);
     try {
       const { error: clErr } = await supabase.rpc('fn_cloturer_exercice', { _exercice_id: exercice.id });
@@ -774,7 +784,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toast.error('Erreur clôture: ' + (err?.message || 'Erreur inconnue'));
     }
     setLoading(false);
-  }, [exercice, entreprise, balance]);
+  }, [exercice, entreprise, balance, balanceN1]);
 
   return (
     <AppContext.Provider value={{
