@@ -7702,6 +7702,7 @@ export type Database = {
         Args: { _path: string }
         Returns: string
       }
+      sante_document_sans_fiche: { Args: { _path: string }; Returns: boolean }
       sante_doublons_patient: {
         Args: {
           _date_naissance: string
