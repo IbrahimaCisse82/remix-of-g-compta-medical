@@ -46,21 +46,30 @@ for (const role of ROLES) {
       test.use({ storageState: stateFile(role, type) });
       test.skip(!existsSync(stateFile(role, type)), 'préparation absente (variables SUPABASE_*)');
 
-      test('le menu ne propose que les modules autorisés', async ({ page }) => {
+      test('les modules non autorisés sont absents du menu', async ({ page }) => {
         await ouvrirEspaceSante(page);
         const menu = page.locator('aside');
-        // Les modules sont rangés dans des groupes repliables : tout déplier avant de vérifier.
-        // La liste est relue à chaque tour car le menu se re-rend après chaque clic.
-        for (let i = 0; i < 15; i++) {
-          const ferme = menu.locator('button[aria-expanded="false"]').first();
-          if ((await ferme.count()) === 0) break;
-          await ferme.click();
-        }
+        // Les groupes repliables ne rendent pas leurs éléments tant qu'ils sont fermés :
+        // un module interdit doit être absent du menu, groupes ouverts ou non.
         for (const [label, parRole] of LABELS) {
-          const attendu = visible(parRole[role], type);
-          const item = menu.getByText(label, { exact: true });
-          if (attendu) await expect(item.first(), `${label} doit être visible`).toBeVisible();
-          else await expect(item, `${label} doit être absent`).toHaveCount(0);
+          if (visible(parRole[role], type)) continue;
+          await expect(menu.getByText(label, { exact: true }), `${label} doit être absent`).toHaveCount(0);
+        }
+        // Même vérification après ouverture de tous les groupes.
+        await deplierGroupes(menu);
+        for (const [label, parRole] of LABELS) {
+          if (visible(parRole[role], type)) continue;
+          await expect(menu.getByText(label, { exact: true }), `${label} doit être absent même groupes ouverts`).toHaveCount(0);
+        }
+      });
+
+      test('les modules autorisés deviennent visibles après ouverture de leur groupe', async ({ page }) => {
+        await ouvrirEspaceSante(page);
+        const menu = page.locator('aside');
+        await deplierGroupes(menu);
+        for (const [label, parRole] of LABELS) {
+          if (!visible(parRole[role], type)) continue;
+          await expect(menu.getByText(label, { exact: true }).first(), `${label} doit être visible`).toBeVisible();
         }
       });
     });
