@@ -2,22 +2,24 @@ import { useApp } from '@/stores/app-store';
 import { calc, CR, ACTIF, PASSIF, TFT, fmt, fmtSigned, type MapLine } from '@/lib/accounting';
 import { useNotesData } from '@/hooks/use-notes-data';
 import { buildAnnexesHtml } from '@/lib/dsf-annexes-export';
+import { escapeHtml } from '@/lib/impression';
 
 function buildHeader(entreprise: any, exercice: any): string {
+  // Toutes les données issues de la base sont échappées avant insertion dans le HTML.
   return `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;border-bottom:2px solid #0B1F3A;padding-bottom:10px;">
       <div>
-        <div style="font-size:18px;font-weight:bold;color:#0B1F3A;">${entreprise.nom}</div>
+        <div style="font-size:18px;font-weight:bold;color:#0B1F3A;">${escapeHtml(entreprise.nom)}</div>
         <div style="font-size:9px;color:#555;margin-top:3px;">
-          ${entreprise.forme_juridique || ''} ${entreprise.sigle ? `(${entreprise.sigle})` : ''}
-          ${entreprise.ninea ? ` · NINEA: ${entreprise.ninea}` : ''}
-          ${entreprise.rccm ? ` · RCCM: ${entreprise.rccm}` : ''}
+          ${escapeHtml(entreprise.forme_juridique || '')} ${entreprise.sigle ? `(${escapeHtml(entreprise.sigle)})` : ''}
+          ${entreprise.ninea ? ` · NINEA: ${escapeHtml(entreprise.ninea)}` : ''}
+          ${entreprise.rccm ? ` · RCCM: ${escapeHtml(entreprise.rccm)}` : ''}
         </div>
-        <div style="font-size:9px;color:#555;">${entreprise.adresse || ''} ${entreprise.tel ? `· Tél: ${entreprise.tel}` : ''}</div>
+        <div style="font-size:9px;color:#555;">${escapeHtml(entreprise.adresse || '')} ${entreprise.tel ? `· Tél: ${escapeHtml(entreprise.tel)}` : ''}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:9px;color:#888;">Monnaie: ${entreprise.monnaie || 'FCFA'}</div>
-        <div style="font-size:9px;color:#888;">Exercice: ${exercice.date_debut} au ${exercice.date_fin}</div>
+        <div style="font-size:9px;color:#888;">Monnaie: ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
+        <div style="font-size:9px;color:#888;">Exercice: ${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</div>
       </div>
     </div>`;
 }
@@ -31,13 +33,13 @@ function buildTable(title: string, def: MapLine[], vals: Record<string, number>,
   let rows = '';
   for (const l of def) {
     if (l.type === 'sect') {
-      rows += `<tr class="sect"><td colspan="${isActif ? (hasN1 ? 6 : 5) : (hasN1 ? 4 : 3)}">${l.label}</td></tr>`;
+      rows += `<tr class="sect"><td colspan="${isActif ? (hasN1 ? 6 : 5) : (hasN1 ? 4 : 3)}">${escapeHtml(l.label)}</td></tr>`;
       continue;
     }
     const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
     const v = vals[l.id] || 0;
     if (isActif) {
-      rows += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="r">${fmtSigned(extra!.brut![l.id] || 0)}</td><td class="r">${extra!.amort![l.id] ? fmtSigned(-(extra!.amort![l.id] || 0)) : '—'}</td><td class="r">${fmtSigned(v)}</td>${hasN1 ? `<td class="r">${fmtSigned(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
+      rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r">${fmtSigned(extra!.brut![l.id] || 0)}</td><td class="r">${extra!.amort![l.id] ? fmtSigned(-(extra!.amort![l.id] || 0)) : '—'}</td><td class="r">${fmtSigned(v)}</td>${hasN1 ? `<td class="r">${fmtSigned(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     } else {
       rows += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="r ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="r">${fmt(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     }
