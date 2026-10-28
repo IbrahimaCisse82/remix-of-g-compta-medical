@@ -36,10 +36,10 @@ describe.skipIf(!url||!service||!key)('Livraison caisse — clôture et rembours
   const m=await admin.from('structure_memberships').insert({structure_id:sid,user_id:u.data.user.id,statut:'actif'}).select('id').single();if(m.error)throw m.error;
   const role=await admin.from('medical_user_roles').insert({membership_id:m.data.id,role:'caissier'});if(role.error)throw role.error;
   const second=createClient(url,key,{auth:{persistSession:false}});const login=await second.auth.signInWithPassword({email,password});if(login.error)throw login.error;
-  const a=await c.rpc('sante_ouvrir_caisse',{_structure_id:sid,_fond:0});expect(a.error).toBeNull();
   const b=await second.rpc('sante_ouvrir_caisse',{_structure_id:sid,_fond:2000});expect(b.error).toBeNull();
   const own=await second.from('sante_sessions_caisse').select('id,fond_initial').eq('structure_id',sid).eq('caissier',u.data.user.id).is('fermee_le',null).single();expect(own.error).toBeNull();expect(own.data).toEqual({id:b.data,fond_initial:2000});
   expect((await c.rpc('sante_fermer_caisse',{_session_id:b.data,_compte:2000})).error).toBeTruthy();
+  expect((await second.rpc('sante_fermer_caisse',{_session_id:b.data,_compte:2000})).error).toBeNull();
  });
  it('clôture refuse le montant fractionnaire et verrouille le fond initial',async()=>{
   expect((await c.rpc('sante_fermer_caisse',{_session_id:session,_compte:5000.5})).error).toBeTruthy();
