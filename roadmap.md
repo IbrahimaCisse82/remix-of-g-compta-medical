@@ -53,11 +53,13 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 
 - [ ] Passage d'année : ouvrir l'exercice suivant au 1er janvier (sinon la compta santé se met en attente)
 
-## Après livraison (selon tiers externes)
 ## Remise en conformité SYSCOHADA — demande du 28 octobre 2026
-- [ ] Corriger et tester les erreurs chiffrées du résultat, du bilan et du TFT sans altérer les écritures historiques.
-- [ ] Intégrer les référentiels fournis et signaler les ambiguïtés et contrôles bloquants.
-- [ ] Vérifier les protections serveur et les parcours états/exports, publier un rapport de contrôle technique.
+- [x] Corrections chiffrées résultat et bilan, rabais, signes, amortissements, 6812 ; premiers correctifs TFT sans réécriture historique. Tests de non-régression ajoutés.
+- [x] Référentiel fourni conservé et chargé en Cloud : 1 422 comptes, 119 mappings ; 84 lignes à valider, états provisoires et clôture serveur bloquée avant visa.
+- [x] Comptabilisation TVA transactionnelle paramétrée ; dates, pièces, montants entiers, équilibre différé et MFA protégés en base. Rapport technique : `docs/syscohada/controle-2026-10-28.md`.
+- [ ] TFT complet et retraitements non monétaires — attend les affectations par nature et les pièces justificatives nécessaires aux flux complexes ; aucune ventilation inventée.
+- [ ] Clôture complète atomique avec résultat en 131/139, reports et réouverture cohérente — attend les règles d'affectation validées ; ancien report client supprimé, clôture suspendue.
+- [ ] Notes, maquettes SN/SMT, Excel et contrôles C09–C14 — attend les imprimés normalisés et règles officielles manquantes ; notes vides et 8A obsolète exclues de l'export.
 - [ ] Recette officielle Application 127 — attend les balances du Guide pages 343–350 et les imprimés officiels.
 - [ ] Validation normative — attend la revue des mappings « à valider » et le visa d’un expert-comptable.
 
