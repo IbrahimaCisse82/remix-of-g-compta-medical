@@ -1,6 +1,7 @@
 import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
+import ConsentementPatient from './ConsentementPatient';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -76,9 +77,11 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
   const set = (k: keyof typeof f, v: string | boolean) => setF(p => ({ ...p, [k]: v }));
 
   const submit = async (ignorer = false) => {
+    if (busy) return;
     const errs = validerPatient(f);
     if (errs.length) return toast.error(errs[0]);
     setBusy(true);
+    try {
     const { data, error } = await supabase.rpc('sante_creer_patient', {
       _structure_id: structureId, _nom: f.nom, _prenoms: f.prenoms, _sexe: f.sexe,
       _date_naissance: f.date_naissance || undefined, _date_naissance_estimee: f.date_naissance_estimee, _telephone: f.telephone ? normaliserTelephone(f.telephone) : undefined,
@@ -94,6 +97,8 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
     if (error) return toast.error(error.message);
     toast.success('Patient créé');
     onDone(data as string);
+    } catch { toast.error('Création non enregistrée. Vérifiez votre connexion.'); }
+    finally { setBusy(false); }
   };
 
   const champ = (id: keyof typeof f, label: string, type = 'text') => (
@@ -121,7 +126,7 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
           <div className="border border-destructive/40 rounded-md p-3 bg-destructive/5">
             <p className="text-sm font-semibold text-destructive mb-2">Patient(s) similaire(s) déjà enregistré(s) :</p>
             <ul className="text-sm space-y-1 mb-3">{doublons.map(d => <li key={d.id}><button type="button" className="underline" onClick={() => onDone(d.id)}>{d.numero_dossier} — {d.nom} {d.prenoms} {d.date_naissance ?? ''}</button></li>)}</ul>
-            <Button type="button" variant="outline" size="sm" onClick={() => submit(true)}>Créer quand même</Button>
+            <Button type="button" disabled={busy} variant="outline" size="sm" onClick={() => submit(true)}>Créer quand même</Button>
           </div>
         )}
         <Button type="submit" disabled={busy} className="w-full">{busy ? 'Enregistrement…' : 'Créer le dossier'}</Button>
@@ -191,6 +196,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         </dl>
       ) : (
         <div className="space-y-3">
+          {onglet === 'Consentements' && <ConsentementPatient patientId={id} onSaved={loadItems} />}
           {onglet !== 'Consentements' && (
             <div className="flex flex-wrap gap-2 border border-border rounded-md p-3">
               <Input className="flex-1 min-w-40" placeholder={onglet === 'Assurances' ? 'Organisme' : 'Libellé'} value={ajout.a} onChange={e => setAjout(s => ({ ...s, a: e.target.value }))} />
@@ -207,7 +213,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
             <div key={it.id} className="border border-border rounded-md p-3 text-sm">
               {onglet === 'Assurances' && <>{it.organisme} · {it.numero_adherent ?? '—'} · {it.taux_couverture ?? '—'} %</>}
               {onglet === 'Antécédents' && <><span className="text-xs uppercase text-primary mr-2">{it.type}</span>{it.libelle} {it.details && <span className="text-fg3">— {it.details}</span>}</>}
-              {onglet === 'Consentements' && <>{it.type} ({it.version_texte}) : <strong>{it.accorde ? 'accordé' : 'refusé'}</strong> · {new Date(it.created_at).toLocaleDateString('fr-FR')}</>}
+              {onglet === 'Consentements' && <><p>{it.type} ({it.version_texte}) : <strong>{it.accorde ? 'accordé' : 'refusé'}</strong> · {new Date(it.created_at).toLocaleDateString('fr-FR')}</p>{it.signataire_nom && <p className="text-xs text-fg2">{it.signataire_nom} · {it.signataire_qualite}</p>}{it.texte && <details className="mt-2"><summary>Texte signé</summary><p className="whitespace-pre-wrap mt-2">{it.texte}</p></details>}</>}
             </div>
           ))}
         </div>
@@ -281,15 +287,23 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
 function DocumentsPatient({ patientId, structureId, items, onChange }: { patientId: string; structureId: string; items: Record<string, any>[]; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const envoyer = async (file: File) => {
+    if (busy) return;
     if (file.size > 20 * 1024 * 1024) return toast.error('Fichier trop volumineux (20 Mo max)');
     setBusy(true);
     const path = `${structureId}/${patientId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`;
+    try {
     const up = await supabase.storage.from('sante-documents').upload(path, file);
-    if (up.error) { setBusy(false); return toast.error('Envoi refusé'); }
+    if (up.error) throw up.error;
     const { error } = await supabase.from('sante_documents_patient').insert({ patient_id: patientId, structure_id: structureId, nom: file.name, storage_path: path, mime_type: file.type, taille_octets: file.size });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      await supabase.storage.from('sante-documents').remove([path]);
+      throw error;
+    }
     onChange();
+    toast.success('Document enregistré.');
+    } catch { toast.error('Document non enregistré. Vérifiez votre accès et réessayez.'); }
+    finally { setBusy(false); }
   };
   const ouvrir = async (path: string) => {
     const { data } = await supabase.storage.from('sante-documents').createSignedUrl(path, 60);
