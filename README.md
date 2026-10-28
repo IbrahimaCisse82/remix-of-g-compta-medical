@@ -39,3 +39,7 @@ bun run test:db    # tests sécurité base (comptes p0-*@gsante.test)
 ```
 
 **Attention aux tests base :** ils écrivent des comptes, structures, dossiers, factures et écritures persistants. Cette instance sert la prévisualisation et la version publiée. Ne pas les relancer après livraison sur des données réelles sans environnement de recette isolé et procédure validée. Ne pas supprimer les écritures, les dossiers ou leurs audits pour « nettoyer » les tests : la conservation comptable est de 10 ans et les contraintes d'audit doivent être préservées.
+
+## Contrôle comptable du 28 octobre 2026
+
+Conformité complète non démontrée. Référentiel fourni versionné : 1 422 comptes et 119 mappings, dont 84 lignes à valider. États provisoires et clôture bloquée côté serveur avant visa officiel. Corrections et limites : `docs/syscohada/controle-2026-10-28.md`. Ne pas présenter les tests techniques comme une certification normative.

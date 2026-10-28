@@ -689,102 +689,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const { error: clErr } = await supabase.rpc('fn_cloturer_exercice', { _exercice_id: exercice.id });
       if (clErr) throw clErr;
 
-      const newAnnee = exercice.annee + 1;
-      const newDebut = `${newAnnee}-01-01`;
-      const newFin = `${newAnnee}-12-31`;
-      const { data: newExcData, error: excErr } = await supabase.from('exercices').insert({
-        entreprise_id: entreprise.id, annee: newAnnee,
-        date_debut: newDebut, date_fin: newFin, statut: 'en_cours',
-      }).select().single();
-      if (excErr || !newExcData) throw excErr || new Error('Erreur création exercice');
-
-      const newExercice = mapExercice(newExcData);
-
-      const bilanAccounts = balance.filter(b => /^[1-5]/.test(b.compte));
-      const resultatNet = balance
-        .filter(b => /^[6-8]/.test(b.compte))
-        .reduce((sum, b) => sum + ((b.sfc || 0) - (b.sfd || 0)), 0);
-
-      const aNouveaux: any[] = [];
-      for (const b of bilanAccounts) {
-        const soldeNet = (b.sfd || 0) - (b.sfc || 0);
-        if (Math.abs(soldeNet) < 0.01) continue;
-        aNouveaux.push({
-          exercice_id: newExercice.id, entreprise_id: entreprise.id,
-          compte: b.compte, intitule: b.intitule,
-          sd: soldeNet > 0 ? soldeNet : 0, sc: soldeNet < 0 ? -soldeNet : 0,
-          md: 0, mc: 0,
-          sfd: soldeNet > 0 ? soldeNet : 0, sfc: soldeNet < 0 ? -soldeNet : 0,
-        });
-      }
-
-      if (Math.abs(resultatNet) > 0.01) {
-      // SYSCOHADA: RAN = compte 121 (créditeur) ou 129 (débiteur)
-      const ranCompte = resultatNet >= 0 ? '121000' : '129000';
-      const existingRAN = aNouveaux.find(a => a.compte === ranCompte);
-      if (existingRAN) {
-        const newSolde = (existingRAN.sc - existingRAN.sd) + resultatNet;
-        existingRAN.sd = newSolde < 0 ? -newSolde : 0;
-        existingRAN.sc = newSolde > 0 ? newSolde : 0;
-        existingRAN.sfd = existingRAN.sd;
-        existingRAN.sfc = existingRAN.sc;
-      } else {
-        aNouveaux.push({
-          exercice_id: newExercice.id, entreprise_id: entreprise.id,
-          compte: ranCompte, intitule: 'Report à nouveau',
-          sd: resultatNet < 0 ? -resultatNet : 0, sc: resultatNet > 0 ? resultatNet : 0,
-          md: 0, mc: 0,
-          sfd: resultatNet < 0 ? -resultatNet : 0, sfc: resultatNet > 0 ? resultatNet : 0,
-        });
-      }
-      }
-
-      if (aNouveaux.length > 0) {
-        const { error: balErr } = await supabase.from('balance').insert(aNouveaux);
-        if (balErr) throw balErr;
-      }
-
-      const aNouveauxJournal: any[] = [];
-      for (const an of aNouveaux) {
-        if (an.sd > 0) {
-          aNouveauxJournal.push({
-            exercice_id: newExercice.id, entreprise_id: entreprise.id,
-            date_ecriture: newDebut, piece: 'AN', journal_code: 'AN',
-            libelle: 'À-nouveau', compte: an.compte, intitule: an.intitule,
-            debit: an.sd, credit: 0,
-          });
-        }
-        if (an.sc > 0) {
-          aNouveauxJournal.push({
-            exercice_id: newExercice.id, entreprise_id: entreprise.id,
-            date_ecriture: newDebut, piece: 'AN', journal_code: 'AN',
-            libelle: 'À-nouveau', compte: an.compte, intitule: an.intitule,
-            debit: 0, credit: an.sc,
-          });
-        }
-      }
-      if (aNouveauxJournal.length > 0) {
-        // Les à-nouveaux passent par le moteur serveur : équilibre et droits contrôlés en base.
-        await enregistrerLignesJournal(aNouveauxJournal, { statut: 'validee', origine: 'a_nouveau' });
-      }
-
-      const updatedCurrent = { ...exercice, statut: 'cloture' as const };
-      setExercices(prev => {
-        const updated = prev.map(e => e.id === exercice.id ? updatedCurrent : e);
-        return [...updated, newExercice];
-      });
-
-      setBalanceN1(balance);
-      setExercice(newExercice);
-      setBalance(mapBalance(aNouveaux.map((a, i) => ({ ...a, id: `an-${i}` }))));
-      setJournal(mapJournal(aNouveauxJournal.map((j, i) => ({ ...j, id: `anj-${i}` }))));
-
-      toast.success(`Exercice ${exercice.annee} clôturé. Exercice ${newAnnee} créé.`);
+      await loadExerciceData(exercice);
+      toast.success(`Exercice ${exercice.annee} clôturé.`);
     } catch (err: any) {
       toast.error('Erreur clôture: ' + (err?.message || 'Erreur inconnue'));
     }
     setLoading(false);
-  }, [exercice, entreprise, balance, balanceN1]);
+  }, [exercice, entreprise, balance, balanceN1, loadExerciceData]);
 
   return (
     <AppContext.Provider value={{
