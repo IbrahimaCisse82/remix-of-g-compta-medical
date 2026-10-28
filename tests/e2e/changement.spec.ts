@@ -17,6 +17,18 @@ async function ouvrirEspaceSante(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
   await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+  await deplierGroupes(page);
+}
+
+// Les modules sont rangés dans des groupes repliables : tout déplier avant de vérifier.
+// La liste est relue à chaque tour car le menu se re-rend après chaque clic.
+async function deplierGroupes(page: Page) {
+  const menu = page.locator('aside');
+  for (let i = 0; i < 15; i++) {
+    const ferme = menu.locator('button[aria-expanded="false"]').first();
+    if ((await ferme.count()) === 0) break;
+    await ferme.click();
+  }
 }
 
 test.describe('Actualisation après changement de rôle', () => {
@@ -41,6 +53,7 @@ test.describe('Actualisation après changement de rôle', () => {
     await page.reload();
     await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
     await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await deplierGroupes(page);
     await expect(menu.getByText('Patients', { exact: true })).toHaveCount(0);
     await expect(menu.getByText('Journal', { exact: true }).first()).toBeVisible();
     await expect(menu.getByText('Factures & caisse', { exact: true }).first()).toBeVisible();
@@ -64,6 +77,7 @@ test.describe('Actualisation après changement de type de structure', () => {
     await page.reload();
     await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
     await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await deplierGroupes(page);
     await expect(menu.getByText('Laboratoire', { exact: true }).first()).toBeVisible();
     await expect(menu.getByText('Qualité & réactifs', { exact: true }).first()).toBeVisible();
     await expect(menu.getByText('Agenda & consultations', { exact: true })).toHaveCount(0);
