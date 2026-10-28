@@ -435,6 +435,13 @@
       "when": 1793208614758,
       "tag": "0061_sante_equipe_gestion_securisee",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793209163109,
+      "tag": "0062_sante_documents_fusion_continuite",
+      "breakpoints": true
     }
   ]
 }
