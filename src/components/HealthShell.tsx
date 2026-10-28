@@ -19,7 +19,6 @@ import FacturationPage from '@/components/sante/FacturationPage';
 import PlanningsPage from '@/components/sante/PlanningsPage';
 import RetrocessionsPage from '@/components/sante/RetrocessionsPage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
-import RappelsSmsCard from '@/components/sante/RappelsSmsCard';
 import EmailJournal from '@/components/sante/EmailJournal';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
@@ -60,6 +59,15 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
   const [siteName, setSiteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'medecin' | 'biologiste' | 'technicien' | 'preleveur' | 'secretaire' | 'caissier' | 'tiers_payant' | 'comptable' | 'lecteur'>('medecin');
+  const [settingsError, setSettingsError] = useState('');
+  const [siteBusy, setSiteBusy] = useState(false);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const copyInvitation = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/invitation/${id}`);
+      toast.success('Lien copié.');
+    } catch { toast.error('Impossible de copier le lien.'); }
+  };
 
   const refreshSettings = async () => {
     if (!medicalStructure) return;
@@ -67,6 +75,11 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
       supabase.from('sites').select('id, nom, principal').eq('structure_id', medicalStructure.id).order('principal', { ascending: false }),
       supabase.from('medical_invitations').select('id, email, role, statut').eq('structure_id', medicalStructure.id).order('created_at', { ascending: false }),
     ]);
+    if (sitesResult.error || invitationsResult.error) {
+      setSettingsError('Impossible de charger les sites et invitations. Vérifiez votre accès et réessayez.');
+      return;
+    }
+    setSettingsError('');
     setSites(sitesResult.data || []);
     setInvitations(invitationsResult.data || []);
   };
@@ -82,18 +95,26 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
 
   const addSite = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!medicalStructure) return;
-    const { error } = await supabase.rpc('create_medical_site', { _structure_id: medicalStructure.id, _nom: siteName, _principal: sites.length === 0 });
-    if (error) toast.error(error.message);
-    else { setSiteName(''); toast.success('Site ajouté.'); await refreshSettings(); }
+    if (!medicalStructure || siteBusy) return;
+    setSiteBusy(true);
+    try {
+      const { error } = await supabase.rpc('create_medical_site', { _structure_id: medicalStructure.id, _nom: siteName.trim(), _principal: sites.length === 0 });
+      if (error) throw error;
+      setSiteName(''); toast.success('Site ajouté.'); await refreshSettings();
+    } catch { toast.error('Site non enregistré. Vérifiez votre accès puis réessayez.'); }
+    finally { setSiteBusy(false); }
   };
 
   const invite = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!medicalStructure) return;
-    const { error } = await supabase.rpc('create_medical_invitation', { _structure_id: medicalStructure.id, _email: inviteEmail, _role: inviteRole });
-    if (error) toast.error(error.message);
-    else { setInviteEmail(''); toast.success('Invitation enregistrée.'); await refreshSettings(); }
+    if (!medicalStructure || inviteBusy) return;
+    setInviteBusy(true);
+    try {
+      const { error } = await supabase.rpc('create_medical_invitation', { _structure_id: medicalStructure.id, _email: inviteEmail.trim(), _role: inviteRole });
+      if (error) throw error;
+      setInviteEmail(''); toast.success('Invitation enregistrée.'); await refreshSettings();
+    } catch { toast.error('Invitation non enregistrée. Vérifiez votre accès puis réessayez.'); }
+    finally { setInviteBusy(false); }
   };
 
   const content = (
@@ -118,11 +139,12 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
             <div className="max-w-5xl">
               <p className="text-xs font-mono uppercase text-primary mb-2">Configuration</p>
               <h1 className="font-serif text-3xl mb-2">Sites et équipe</h1>
+              {settingsError && <div role="alert" className="mb-5 text-destructive"><p>{settingsError}</p><Button variant="outline" onClick={() => void refreshSettings()}>Réessayer</Button></div>}
               <p className="text-sm text-fg2 mb-8">Ajoutez vos lieux d’exercice et préparez les accès de chaque collaborateur.</p>
               <div className="grid gap-8 lg:grid-cols-2">
                 <section className="border border-border bg-bg2 rounded-md p-5">
                   <div className="flex items-center gap-2 mb-5"><MapPin className="text-primary" /><h2 className="font-semibold">Sites</h2></div>
-                  <form onSubmit={addSite} className="flex gap-2 mb-5"><div className="flex-1"><Label htmlFor="site-name" className="sr-only">Nom du site</Label><Input id="site-name" required minLength={2} value={siteName} onChange={event => setSiteName(event.target.value)} placeholder="Nom du site" /></div><Button type="submit" size="icon" aria-label="Ajouter le site"><Plus /></Button></form>
+                  <form onSubmit={addSite} className="flex gap-2 mb-5"><div className="flex-1"><Label htmlFor="site-name" className="sr-only">Nom du site</Label><Input id="site-name" required minLength={2} value={siteName} onChange={event => setSiteName(event.target.value)} placeholder="Nom du site" /></div><Button type="submit" disabled={siteBusy} size="icon" aria-label="Ajouter le site"><Plus /></Button></form>
                   <div className="space-y-2">{sites.length === 0 ? <p className="text-xs text-fg3">Aucun site enregistré.</p> : sites.map(site => <div key={site.id} className="flex justify-between border border-border rounded-md p-3 text-sm"><span>{site.nom}</span>{site.principal && <span className="text-xs text-primary">Principal</span>}</div>)}</div>
                 </section>
                 <section className="border border-border bg-bg2 rounded-md p-5">
@@ -130,13 +152,12 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
                   <form onSubmit={invite} className="space-y-3 mb-5">
                     <div><Label htmlFor="invite-email" className="sr-only">Email</Label><Input id="invite-email" type="email" required value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="collaborateur@structure.sn" /></div>
                     <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['medecin','biologiste','technicien','preleveur','secretaire','caissier','tiers_payant','comptable','lecteur'].map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
-                    <Button type="submit" className="w-full"><Send />Enregistrer l’invitation</Button>
+                    <Button type="submit" disabled={inviteBusy} className="w-full"><Send />Enregistrer l’invitation</Button>
                   </form>
-                  <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p></div>)}</div>
+                  <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p>{item.statut === 'en_attente' && <Button size="sm" variant="outline" className="mt-2" onClick={() => void copyInvitation(item.id)}>Copier le lien d’invitation</Button>}</div>)}</div>
                 </section>
               </div>
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
-              {medicalStructure && <div className="mt-8"><RappelsSmsCard structureId={medicalStructure.id} /></div>}
               {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={medicalStructure.id} structureId={medicalStructure.id} />}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
