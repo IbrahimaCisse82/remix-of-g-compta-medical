@@ -12,3 +12,4 @@
 - New health companies get the current-year fiscal year via a trigger on entreprises; why: health accounting fails without an open exercice.
 - Bank statements and matches are persisted through accounting-scoped RPCs with MFA, exercise/account/amount validation, unique journal-line matching and append-only audit; why: reconciliation must not change accounting entries or rely on browser state.
 - Sidebar filtering is display-only, centralized in src/lib/navigation-sante.ts (structure type x medical roles, roles loaded into app-store at launchHealth); why: RLS and server checks remain the only security barrier, so the matrix must never be treated as access control.
+- Demo population uses the dedicated demo identity with authenticated lifecycle RPCs and structure-scoped get-or-create markers; why: retries must not overwrite customer data, permissions, or immutable financial activity.
