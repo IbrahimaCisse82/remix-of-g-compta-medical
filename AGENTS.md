@@ -18,3 +18,4 @@
 - Accounting posting uses period/tenant/MFA guards and deferred header-to-lines balance validation; why: balanced headers alone cannot prove posted double-entry integrity.
 - VAT liquidation uses a transaction-scoped server RPC that recalculates configured accounts and locks the declaration; why: browser totals and separate status updates permit duplicate or incorrect liquidation.
 - Email diagnostics use managed events matched only to provider message IDs on existing structure-scoped source records, with server-side admin and MFA checks; why: recipient addresses or tags cannot prove tenancy and parallel email-log tables are forbidden.
+- Subscription offers are publicly readable only while active; historical offers remain readable through authorized entreprise subscriptions; why: public pricing must not expose withdrawn offers or break existing subscription details.
