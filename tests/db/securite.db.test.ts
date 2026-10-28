@@ -159,7 +159,11 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     });
     it('rendez-vous : transition interdite (planifié → terminé) refusée', async () => {
       const s = S.A.users.secretaire;
-      const rdv = await s.from('sante_rendez_vous').insert({ structure_id: S.A.structure, patient_id: S.A.patient, praticien_id: S.A.praticien, debut: new Date(Date.now() + 86_400_000).toISOString(), duree_min: 20, motif: 'test' }).select('id').single();
+      // A fresh practitioner isolates this transition test from persisted appointments of earlier runs.
+      const pr = await admin.from('sante_praticiens').insert({ structure_id: S.A.structure, nom: `Dr transition ${randomBytes(8).toString('hex')}` }).select('id').single();
+      expect(pr.error).toBeNull();
+      if (!pr.data) throw new Error('Praticien de test absent');
+      const rdv = await s.from('sante_rendez_vous').insert({ structure_id: S.A.structure, patient_id: S.A.patient, praticien_id: pr.data.id, debut: new Date(Date.now() + 86_400_000).toISOString(), duree_min: 20, motif: 'test' }).select('id').single();
       if (rdv.error) { expect.soft(rdv.error, 'insertion RDV (schéma à vérifier)').toBeNull(); return; }
       const bad = await s.from('sante_rendez_vous').update({ statut: 'termine' }).eq('id', rdv.data.id).select('id');
       expect(bad.error).toBeTruthy();
