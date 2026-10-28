@@ -2,6 +2,7 @@
 - Delivery exclusions are centralized in client delivery-scope and server delivery-scope; why: hiding commercial/SMS controls must not grant rights or leave direct and scheduled SMS sends active.
 - Team invitations use an authenticated same-origin invitation route and the existing server acceptance RPC; why: collaborators need a complete acceptance flow without SMS or automatic role grants.
 - Patient consent capture uses the existing signed-consent RPC with full structure-approved text and signature; why: preserve immutable evidence and never invent legal consent wording.
+- Patient-document fusion transfers metadata with a rollback snapshot and storage checks the effective patient; why: retain immutable file paths while preserving current clinical permissions after merge or reversal.
 - Team role/status changes and invitation revocation use admin/MFA RPCs with structure locking and audit; why: cross-tenant changes and removal of the last active administrator must be refused.
 - Medical visual identity is token-based, with three structure-selectable palettes and dark/light modes, so all screens stay consistent.
 - G-Santé uses dedicated structure, membership, role, invitation, and audit objects while sharing only account identity with G-Compta, preventing health-data scope from weakening accounting tenancy.

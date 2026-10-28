@@ -2,6 +2,8 @@ import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
 import ConsentementPatient from './ConsentementPatient';
+import IdentitePatient from './IdentitePatient';
+import { useApp } from '@/stores/app-store';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -138,6 +140,7 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
 const ONGLETS = ['Identité', 'Assurances', 'Antécédents', 'Consentements', 'Documents'] as const;
 
 function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
+  const { medicalRoles } = useApp();
   const [p, setP] = useState<Record<string, any> | null>(null);
   const [onglet, setOnglet] = useState<(typeof ONGLETS)[number]>('Identité');
   const [items, setItems] = useState<Record<string, any>[]>([]);
@@ -189,11 +192,11 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         {ONGLETS.map(o => <Button key={o} role="tab" aria-selected={onglet === o} variant={onglet === o ? 'secondary' : 'ghost'} size="sm" onClick={() => setOnglet(o)}>{o}</Button>)}
       </div>
       {onglet === 'Documents' ? <DocumentsPatient patientId={id} structureId={p.structure_id} items={items} onChange={loadItems} /> : onglet === 'Identité' ? (
-        <dl className="grid sm:grid-cols-2 gap-3 text-sm">
+        <div className="space-y-4"><dl className="grid sm:grid-cols-2 gap-3 text-sm">
           {[['Téléphone', p.telephone], ['Adresse', p.adresse], ['Personne à prévenir', p.contact_urgence_nom], ['Tél. à prévenir', p.contact_urgence_tel], ['Créé le', new Date(p.created_at).toLocaleDateString('fr-FR')]].map(([k, v]) => (
             <div key={k} className="border border-border rounded-md p-3"><dt className="text-xs text-fg3">{k}</dt><dd>{v || '—'}</dd></div>
           ))}
-        </dl>
+        </dl>{medicalRoles.some(r => ['medecin','secretaire'].includes(r)) && <IdentitePatient patient={{...p,id}} onSaved={() => { void supabase.from('sante_patients').select('*').eq('id',id).single().then(({data}) => { if (data) setP(data); }); }} />}</div>
       ) : (
         <div className="space-y-3">
           {onglet === 'Consentements' && <ConsentementPatient patientId={id} onSaved={loadItems} />}
