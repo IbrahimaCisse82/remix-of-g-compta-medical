@@ -15,7 +15,8 @@ export function accountReference(account: string) {
 /** Restricted arithmetic grammar: no eval, executable expressions or arbitrary identifiers. */
 export function referenceFormula(expression: string, values: Record<string, number>): number {
   if (!/^[+-]?[A-Z]{2}(?:[+-][A-Z]{2})*$/.test(expression)) throw new Error(`Formule de référence invalide : ${expression}`);
-  return (expression.match(/[+-]?[A-Z]{2}/g) ?? []).reduce((sum, term) => {
+  const terms: string[] = Array.from(expression.match(/[+-]?[A-Z]{2}/g) ?? []);
+  return terms.reduce<number>((sum, term) => {
     const id = term.replace(/^[+-]/, '');
     return sum + (term.startsWith('-') ? -1 : 1) * (values[id] ?? 0);
   }, 0);
