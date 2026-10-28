@@ -12,10 +12,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const URL = process.env.SUPABASE_URL!;
+const SUPA = process.env.SUPABASE_URL!;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const ANON = (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY)!;
-export const actif = Boolean(URL && SERVICE && ANON);
+export const actif = Boolean(SUPA && SERVICE && ANON);
 
 export const ROLES = [
   'admin_structure', 'medecin', 'biologiste', 'technicien', 'preleveur',
@@ -39,7 +39,7 @@ async function compte(admin: SupabaseClient, nom: string): Promise<SupabaseClien
     const { error } = await admin.auth.admin.createUser({ email: email(nom), password, email_confirm: true });
     if (error) throw error;
   }
-  const c = createClient(URL, ANON, { auth: { persistSession: false } });
+  const c = createClient(SUPA, ANON, { auth: { persistSession: false } });
   const { error } = await c.auth.signInWithPassword({ email: email(nom), password });
   if (error) throw error;
   return c;
@@ -48,7 +48,7 @@ async function compte(admin: SupabaseClient, nom: string): Promise<SupabaseClien
 async function sauverSession(c: SupabaseClient, fichier: string) {
   const { data } = await c.auth.getSession();
   if (!data.session) throw new Error('session absente');
-  const ref = new URL(URL).hostname.split('.')[0];
+  const ref = new URL(SUPA).hostname.split('.')[0];
   writeFileSync(fichier, JSON.stringify({
     cookies: [],
     origins: [{ origin: 'http://localhost:8080', localStorage: [{ name: `sb-${ref}-auth-token`, value: JSON.stringify(data.session) }] }],
@@ -61,7 +61,7 @@ export default async function globalSetup() {
     return;
   }
   mkdirSync(AUTH_DIR, { recursive: true });
-  const admin = createClient(URL, SERVICE, { auth: { persistSession: false } });
+  const admin = createClient(SUPA, SERVICE, { auth: { persistSession: false } });
 
   // Une structure par type, créée via la fonction d'onboarding réelle.
   const owner = await compte(admin, 'owner');
