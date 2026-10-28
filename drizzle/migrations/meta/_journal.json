@@ -505,6 +505,13 @@
       "when": 1793210945208,
       "tag": "0071_sante_encaissement_montant_entier",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793213433213,
+      "tag": "0072_tiers_reglements_import_valides",
+      "breakpoints": true
     }
   ]
 }
