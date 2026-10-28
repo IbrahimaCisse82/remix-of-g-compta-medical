@@ -5855,6 +5855,8 @@ export type Database = {
           created_by: string | null
           date_reglement: string
           id: string
+          import_cle: string | null
+          import_empreinte: string | null
           mode: string
           montant: number
           organisme: string
@@ -5866,6 +5868,8 @@ export type Database = {
           created_by?: string | null
           date_reglement?: string
           id?: string
+          import_cle?: string | null
+          import_empreinte?: string | null
           mode: string
           montant: number
           organisme: string
@@ -5877,6 +5881,8 @@ export type Database = {
           created_by?: string | null
           date_reglement?: string
           id?: string
+          import_cle?: string | null
+          import_empreinte?: string | null
           mode?: string
           montant?: number
           organisme?: string
@@ -7802,6 +7808,15 @@ export type Database = {
       sante_escalader_bris_glace: { Args: never; Returns: number }
       sante_export_dossier: { Args: { _patient_id: string }; Returns: Json }
       sante_export_structure: { Args: { _structure_id: string }; Returns: Json }
+      sante_factures_rapprochables: {
+        Args: { _structure_id: string }
+        Returns: {
+          id: string
+          numero: string
+          organisme: string
+          reste: number
+        }[]
+      }
       sante_fermer_caisse: {
         Args: { _compte: number; _session_id: string }
         Returns: number
@@ -7811,6 +7826,10 @@ export type Database = {
         Returns: undefined
       }
       sante_germe_definitif: { Args: { _germe_id: string }; Returns: undefined }
+      sante_importer_reglements: {
+        Args: { _lignes: Json; _structure_id: string }
+        Returns: Json
+      }
       sante_imputer_reglement: {
         Args: {
           _imputations: Json
