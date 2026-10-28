@@ -2,10 +2,11 @@
 // Données fictives uniquement. Aucune donnée de santé réelle.
 import { corsFor, estOrigineApercu } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { populateDemo } from '../_shared/demo-population.ts';
 
 
 const DEMOS = [
-  { key: 'A', email: 'demo-sante@gcompta.sn', nom: 'Clinique Démo Dakar', type: 'mixte', secteur: 'sante_mixte', theme: 'clinique',
+  { key: 'A', email: 'demo-sante@gcompta.sn', nom: 'PME 1', type: 'mixte', secteur: 'sante_mixte', theme: 'clinique',
     roles: ['admin_structure', 'medecin', 'biologiste', 'secretaire'] },
   { key: 'B', email: 'demo-sante-b@gcompta.sn', nom: 'Laboratoire Test Thiès', type: 'laboratoire', secteur: 'sante_laboratoire', theme: 'laboratoire',
     roles: ['admin_structure', 'technicien'] },
@@ -23,6 +24,7 @@ Deno.serve(async (req) => {
   }
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   try {
+    const body = await req.json().catch(() => ({}));
     let out: { email: string; password: string } | null = null;
     for (const d of DEMOS) {
       const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
@@ -30,11 +32,15 @@ Deno.serve(async (req) => {
       // Mot de passe aléatoire à chaque lancement : jamais de mot de passe fixe dans le code.
       const pwd = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, '0')).join('') + 'Aa#1';
       if (user) {
-        if (d.key === 'A') await db.auth.admin.updateUserById(user.id, { password: pwd });
+        if (d.key === 'A') {
+          const rotated = await db.auth.admin.updateUserById(user.id, { password: pwd });
+          if (rotated.error) throw rotated.error;
+        }
       } else {
         const { data, error } = await db.auth.admin.createUser({ email: d.email, password: pwd, email_confirm: true, user_metadata: { full_name: `Démo ${d.nom}` } });
         if (error) throw error;
-        user = data.user!;
+        if (!data.user) throw new Error('Demo identity missing');
+        user = data.user;
       }
       const { data: mem } = await db.from('structure_memberships').select('id').eq('user_id', user.id).limit(1).maybeSingle();
       if (!mem) {
@@ -48,7 +54,15 @@ Deno.serve(async (req) => {
         if (e3) throw e3;
         await db.from('medical_user_roles').insert(d.roles.map(role => ({ membership_id: m.id, role })));
       }
-      if (d.key === 'A') out = { email: d.email, password: pwd };
+      if (d.key === 'A') {
+        out = { email: d.email, password: pwd };
+        if (body.populate === true) {
+          const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
+          const login = await client.auth.signInWithPassword(out);
+          if (login.error) throw login.error;
+          await populateDemo(client);
+        }
+      }
     }
     return new Response(JSON.stringify(out), { headers: { ...cors, 'Content-Type': 'application/json' } });
   } catch (e) {
