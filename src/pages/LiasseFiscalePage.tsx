@@ -2,22 +2,24 @@ import { useApp } from '@/stores/app-store';
 import { calc, CR, ACTIF, PASSIF, TFT, fmt, fmtSigned, type MapLine } from '@/lib/accounting';
 import { useNotesData } from '@/hooks/use-notes-data';
 import { buildAnnexesHtml } from '@/lib/dsf-annexes-export';
+import { escapeHtml } from '@/lib/impression';
 
 function buildHeader(entreprise: any, exercice: any): string {
+  // Toutes les données issues de la base sont échappées avant insertion dans le HTML.
   return `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;border-bottom:2px solid #0B1F3A;padding-bottom:10px;">
       <div>
-        <div style="font-size:18px;font-weight:bold;color:#0B1F3A;">${entreprise.nom}</div>
+        <div style="font-size:18px;font-weight:bold;color:#0B1F3A;">${escapeHtml(entreprise.nom)}</div>
         <div style="font-size:9px;color:#555;margin-top:3px;">
-          ${entreprise.forme_juridique || ''} ${entreprise.sigle ? `(${entreprise.sigle})` : ''}
-          ${entreprise.ninea ? ` · NINEA: ${entreprise.ninea}` : ''}
-          ${entreprise.rccm ? ` · RCCM: ${entreprise.rccm}` : ''}
+          ${escapeHtml(entreprise.forme_juridique || '')} ${entreprise.sigle ? `(${escapeHtml(entreprise.sigle)})` : ''}
+          ${entreprise.ninea ? ` · NINEA: ${escapeHtml(entreprise.ninea)}` : ''}
+          ${entreprise.rccm ? ` · RCCM: ${escapeHtml(entreprise.rccm)}` : ''}
         </div>
-        <div style="font-size:9px;color:#555;">${entreprise.adresse || ''} ${entreprise.tel ? `· Tél: ${entreprise.tel}` : ''}</div>
+        <div style="font-size:9px;color:#555;">${escapeHtml(entreprise.adresse || '')} ${entreprise.tel ? `· Tél: ${escapeHtml(entreprise.tel)}` : ''}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:9px;color:#888;">Monnaie: ${entreprise.monnaie || 'FCFA'}</div>
-        <div style="font-size:9px;color:#888;">Exercice: ${exercice.date_debut} au ${exercice.date_fin}</div>
+        <div style="font-size:9px;color:#888;">Monnaie: ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
+        <div style="font-size:9px;color:#888;">Exercice: ${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</div>
       </div>
     </div>`;
 }
@@ -31,15 +33,15 @@ function buildTable(title: string, def: MapLine[], vals: Record<string, number>,
   let rows = '';
   for (const l of def) {
     if (l.type === 'sect') {
-      rows += `<tr class="sect"><td colspan="${isActif ? (hasN1 ? 6 : 5) : (hasN1 ? 4 : 3)}">${l.label}</td></tr>`;
+      rows += `<tr class="sect"><td colspan="${isActif ? (hasN1 ? 6 : 5) : (hasN1 ? 4 : 3)}">${escapeHtml(l.label)}</td></tr>`;
       continue;
     }
     const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
     const v = vals[l.id] || 0;
     if (isActif) {
-      rows += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="r">${fmtSigned(extra!.brut![l.id] || 0)}</td><td class="r">${extra!.amort![l.id] ? fmtSigned(-(extra!.amort![l.id] || 0)) : '—'}</td><td class="r">${fmtSigned(v)}</td>${hasN1 ? `<td class="r">${fmtSigned(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
+      rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r">${fmtSigned(extra!.brut![l.id] || 0)}</td><td class="r">${extra!.amort![l.id] ? fmtSigned(-(extra!.amort![l.id] || 0)) : '—'}</td><td class="r">${fmtSigned(v)}</td>${hasN1 ? `<td class="r">${fmtSigned(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     } else {
-      rows += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="r ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="r">${fmt(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
+      rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="r">${fmt(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     }
   }
 
@@ -76,23 +78,23 @@ export default function LiasseFiscalePage() {
       ${buildHeader(entreprise, exercice)}
       <div style="text-align:center;margin-bottom:20px;">
         <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">DÉCLARATION STATISTIQUE ET FISCALE (DSF)</div>
-        <div style="font-size:10px;color:#555;">Exercice clos le ${exercice.date_fin} · ${entreprise.monnaie || 'FCFA'}</div>
+        <div style="font-size:10px;color:#555;">Exercice clos le ${escapeHtml(exercice.date_fin)} · ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
       </div>
 
       <!-- Fiche signalétique -->
       <h2 style="font-size:12px;font-weight:bold;color:#0B1F3A;margin:16px 0 8px;">FICHE SIGNALÉTIQUE</h2>
       <table>
         <tbody>
-          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${entreprise.nom}</td></tr>
-          <tr><td style="font-weight:bold;">Sigle</td><td>${entreprise.sigle || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Forme juridique</td><td>${entreprise.forme_juridique || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">NINEA</td><td>${entreprise.ninea || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">RCCM</td><td>${entreprise.rccm || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Adresse</td><td>${entreprise.adresse || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Téléphone</td><td>${entreprise.tel || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Secteur</td><td>${entreprise.secteur || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Exercice</td><td>${exercice.date_debut} au ${exercice.date_fin}</td></tr>
-          <tr><td style="font-weight:bold;">Monnaie</td><td>${entreprise.monnaie || 'FCFA'}</td></tr>
+          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${escapeHtml(entreprise.nom)}</td></tr>
+          <tr><td style="font-weight:bold;">Sigle</td><td>${escapeHtml(entreprise.sigle || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Forme juridique</td><td>${escapeHtml(entreprise.forme_juridique || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">NINEA</td><td>${escapeHtml(entreprise.ninea || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">RCCM</td><td>${escapeHtml(entreprise.rccm || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Adresse</td><td>${escapeHtml(entreprise.adresse || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Téléphone</td><td>${escapeHtml(entreprise.tel || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Secteur</td><td>${escapeHtml(entreprise.secteur || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Exercice</td><td>${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</td></tr>
+          <tr><td style="font-weight:bold;">Monnaie</td><td>${escapeHtml(entreprise.monnaie || 'FCFA')}</td></tr>
         </tbody>
       </table>
 
@@ -120,7 +122,7 @@ export default function LiasseFiscalePage() {
 
     const w = window.open('', '_blank', 'width=900,height=700');
     if (!w) { alert('Veuillez autoriser les popups.'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><title>DSF ${entreprise.nom} ${exercice.annee}</title>
+    w.document.write(`<!DOCTYPE html><html><head><title>DSF ${escapeHtml(entreprise.nom)} ${escapeHtml(exercice.annee)}</title>
       <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #222; padding: 12mm; }
@@ -153,20 +155,20 @@ export default function LiasseFiscalePage() {
       ${buildHeader(entreprise, exercice)}
       <div style="text-align:center;margin-bottom:20px;">
         <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">DSF + NOTES ANNEXES — DOSSIER COMPLET</div>
-        <div style="font-size:10px;color:#555;">Exercice clos le ${exercice.date_fin} · ${entreprise.monnaie || 'FCFA'}</div>
+        <div style="font-size:10px;color:#555;">Exercice clos le ${escapeHtml(exercice.date_fin)} · ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
       </div>
 
       <h2 style="font-size:12px;font-weight:bold;color:#0B1F3A;margin:16px 0 8px;">FICHE SIGNALÉTIQUE</h2>
       <table>
         <tbody>
-          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${entreprise.nom}</td></tr>
-          <tr><td style="font-weight:bold;">Sigle</td><td>${entreprise.sigle || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Forme juridique</td><td>${entreprise.forme_juridique || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">NINEA</td><td>${entreprise.ninea || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">RCCM</td><td>${entreprise.rccm || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Adresse</td><td>${entreprise.adresse || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Téléphone</td><td>${entreprise.tel || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Exercice</td><td>${exercice.date_debut} au ${exercice.date_fin}</td></tr>
+          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${escapeHtml(entreprise.nom)}</td></tr>
+          <tr><td style="font-weight:bold;">Sigle</td><td>${escapeHtml(entreprise.sigle || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Forme juridique</td><td>${escapeHtml(entreprise.forme_juridique || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">NINEA</td><td>${escapeHtml(entreprise.ninea || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">RCCM</td><td>${escapeHtml(entreprise.rccm || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Adresse</td><td>${escapeHtml(entreprise.adresse || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Téléphone</td><td>${escapeHtml(entreprise.tel || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Exercice</td><td>${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</td></tr>
         </tbody>
       </table>
 
@@ -195,7 +197,7 @@ export default function LiasseFiscalePage() {
 
     const w = window.open('', '_blank', 'width=900,height=700');
     if (!w) { alert('Veuillez autoriser les popups.'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><title>DSF + Annexes ${entreprise.nom} ${exercice.annee}</title>
+    w.document.write(`<!DOCTYPE html><html><head><title>DSF + Annexes ${escapeHtml(entreprise.nom)} ${escapeHtml(exercice.annee)}</title>
       <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #222; padding: 12mm; }

@@ -4,6 +4,7 @@ import { ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { protegerFormuleCsv } from '@/lib/impression';
 
 export const MOTIFS_BRIS_GLACE: Record<string, string> = {
   urgence_vitale: 'Urgence vitale',
@@ -45,7 +46,9 @@ type Acces = { id: string; motif: string; motif_code: string | null; created_at:
 type Acte = { code: string; libelle: string };
 
 function csv(rows: (string | number | null)[][]) {
-  return rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+  // protegerFormuleCsv : une cellule commençant par = + - @ serait exécutée comme
+  // formule par Excel/LibreOffice à l'ouverture de l'export.
+  return rows.map(r => r.map(c => `"${String(protegerFormuleCsv(c) ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
 }
 export function telecharger(nom: string, contenu: string, type = 'text/csv;charset=utf-8') {
   const url = URL.createObjectURL(new Blob(['\ufeff' + contenu], { type }));

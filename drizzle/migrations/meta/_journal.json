@@ -379,6 +379,13 @@
       "when": 1793141385438,
       "tag": "0053_banque_validation_ecriture",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793150085613,
+      "tag": "0054_portail_acces_expiration",
+      "breakpoints": true
     }
   ]
 }

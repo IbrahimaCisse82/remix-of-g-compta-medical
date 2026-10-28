@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { fcfa } from '@/domain/sante/tiers-payant';
 
 import { messageErreur } from '@/lib/erreurs';
+import { escapeHtml } from '@/lib/impression';
 const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
@@ -308,7 +309,8 @@ export function CreancesOrganismesCard({ structureId }: { structureId: string })
     if (error) { toast.error(error.message); return; }
     const { data: r } = await db.from('sante_relances').select('niveau, montant, factures').eq('id', data).single();
     const { data: fs } = await db.from('sante_factures').select('numero, created_at, part_organisme').in('id', r.factures);
-    const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${o}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${o}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map((f: any) => `<tr><td>${f.numero}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
+    // Données issues de la base échappées avant insertion dans le HTML d'impression.
+    const w = window.open('', '_blank'); if (w) w.document.write(`<html><head><title>Relance ${escapeHtml(o)}</title><style>@page{size:A4;margin:20mm}body{font-family:sans-serif;font-size:12px}td,th{border:1px solid #999;padding:5px}table{border-collapse:collapse;width:100%}</style></head><body><p>${new Date().toLocaleDateString('fr-FR')}</p><h2>À l'attention de ${escapeHtml(o)}</h2><p>Objet : relance n° ${r.niveau} — factures de tiers-payant impayées</p><p>Sauf erreur de notre part, les factures suivantes restent à régler :</p><table><tr><th>Facture</th><th>Date</th><th>Part organisme</th></tr>${(fs ?? []).map((f: any) => `<tr><td>${escapeHtml(f.numero)}</td><td>${new Date(f.created_at).toLocaleDateString('fr-FR')}</td><td style="text-align:right">${fcfa(f.part_organisme)}</td></tr>`).join('')}</table><p><b>Reste dû : ${fcfa(r.montant)}</b></p><p>Nous vous remercions de bien vouloir procéder au règlement.</p><script>print()</script></body></html>`);
     load();
   };
   const provisionner = async (o: string, total: number) => {

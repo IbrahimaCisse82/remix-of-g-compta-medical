@@ -1,10 +1,12 @@
 /**
  * CSV Export utility for G-Compta
  */
+import { protegerFormuleCsv } from './impression';
 
 function escapeCsv(val: string | number | null | undefined): string {
   if (val == null) return '';
-  const s = String(val);
+  // Protection injection de formules (Excel/LibreOffice) avant quoting.
+  const s = String(protegerFormuleCsv(val));
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }

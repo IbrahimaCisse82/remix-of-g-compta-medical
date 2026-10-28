@@ -104,6 +104,30 @@ describe.skipIf(!actif)('P0 — sécurité appliquée par la base', () => {
     });
   });
 
+  describe('Révocation : les liens de fichiers patients sont coupés immédiatement', () => {
+    it('après retrait du rôle, plus aucune URL signée ni liste sur les documents du patient', async () => {
+      const chemin = `${S.A.structure}/${S.A.patient}/test-revocation.txt`;
+      const up = await S.A.users.medecin.storage.from('sante-documents').upload(chemin, new Blob(['test']), { upsert: true });
+      expect(up.error).toBeNull();
+      const avant = await S.A.users.medecin.storage.from('sante-documents').createSignedUrl(chemin, 60);
+      expect(avant.error).toBeNull();
+
+      // L'administrateur retire le rôle médecin : la révocation doit couper l'accès aussitôt.
+      const userId = await uid(S.A.users.medecin);
+      const m = await admin.from('structure_memberships').select('id').eq('structure_id', S.A.structure).eq('user_id', userId).single();
+      await admin.from('medical_user_roles').delete().eq('membership_id', m.data!.id).eq('role', 'medecin');
+      try {
+        const apres = await S.A.users.medecin.storage.from('sante-documents').createSignedUrl(chemin, 60);
+        expect(apres.error, 'URL signée refusée après révocation').toBeTruthy();
+        const liste = await S.A.users.medecin.storage.from('sante-documents').list(`${S.A.structure}/${S.A.patient}`);
+        expect(liste.data ?? [], 'liste vide après révocation').toHaveLength(0);
+      } finally {
+        await admin.from('medical_user_roles').upsert({ membership_id: m.data!.id, role: 'medecin' }, { onConflict: 'membership_id,role' });
+        await admin.storage.from('sante-documents').remove([chemin]);
+      }
+    });
+  });
+
   describe('Fonctions de droits : pas d’interrogation des droits d’un autre utilisateur', () => {
     it('get_user_entreprise_ids / get_entreprise_role / has_role sur un autre compte → vide', async () => {
       const autre = await uid(S.B.users.admin_structure);

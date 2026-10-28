@@ -1,0 +1,2 @@
+ALTER TABLE public.portail_acces ADD COLUMN expire_le timestamptz;
+COMMENT ON COLUMN public.portail_acces.expire_le IS 'Date d''expiration du lien portail : après cette date, le jeton est refusé même si actif reste vrai. NULL = pas d''expiration.';

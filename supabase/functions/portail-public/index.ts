@@ -39,9 +39,11 @@ Deno.serve(async (req) => {
       .eq('jeton', jeton)
       .eq('actif', true).maybeSingle();
 
-    if (accErr || !acces) {
+    // Lien révoqué (actif=false) ou expiré (expire_le dépassé) : refus immédiat,
+    // vérifié à chaque requête — une révocation prend effet dès la requête suivante.
+    if (accErr || !acces || (acces.expire_le && new Date(acces.expire_le).getTime() < Date.now())) {
       await supabase.from('portail_tentatives').insert({ ip, entreprise_id: /^[0-9a-f-]{36}$/i.test(String(entreprise_id)) ? entreprise_id : null, email: String(email).slice(0, 200), succes: false });
-      return new Response(JSON.stringify({ error: 'Accès refusé ou inactif' }), {
+      return new Response(JSON.stringify({ error: 'Accès refusé, révoqué ou expiré' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -151,8 +153,10 @@ Deno.serve(async (req) => {
       const { data: documents } = await supabase.from('documents')
         .select('id,nom,categorie,taille_octets,mime_type,tags,created_at,storage_path,source,statut_validation')
         .eq('entreprise_id', entreprise_id).order('created_at', { ascending: false }).limit(200);
+      // URL signées de 60 s seulement : après révocation du lien, les adresses
+      // déjà délivrées deviennent inutilisables en une minute au plus.
       const withUrls = await Promise.all((documents || []).map(async (d: any) => {
-        const { data: signed } = await supabase.storage.from('ged').createSignedUrl(d.storage_path, 300);
+        const { data: signed } = await supabase.storage.from('ged').createSignedUrl(d.storage_path, 60);
         return { ...d, signed_url: signed?.signedUrl || null };
       }));
       payload.documents = withUrls;
