@@ -41,7 +41,7 @@ function buildTable(title: string, def: MapLine[], vals: Record<string, number>,
     if (isActif) {
       rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r">${fmtSigned(extra!.brut![l.id] || 0)}</td><td class="r">${extra!.amort![l.id] ? fmtSigned(-(extra!.amort![l.id] || 0)) : '—'}</td><td class="r">${fmtSigned(v)}</td>${hasN1 ? `<td class="r">${fmtSigned(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     } else {
-      rows += `<tr class="${cls}"><td>${l.id}</td><td>${l.label}</td><td class="r ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="r">${fmt(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
+      rows += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="r ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="r">${fmt(valsN1[l.id] || 0)}</td>` : ''}</tr>`;
     }
   }
 
@@ -85,16 +85,16 @@ export default function LiasseFiscalePage() {
       <h2 style="font-size:12px;font-weight:bold;color:#0B1F3A;margin:16px 0 8px;">FICHE SIGNALÉTIQUE</h2>
       <table>
         <tbody>
-          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${entreprise.nom}</td></tr>
-          <tr><td style="font-weight:bold;">Sigle</td><td>${entreprise.sigle || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Forme juridique</td><td>${entreprise.forme_juridique || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">NINEA</td><td>${entreprise.ninea || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">RCCM</td><td>${entreprise.rccm || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Adresse</td><td>${entreprise.adresse || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Téléphone</td><td>${entreprise.tel || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Secteur</td><td>${entreprise.secteur || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Exercice</td><td>${exercice.date_debut} au ${exercice.date_fin}</td></tr>
-          <tr><td style="font-weight:bold;">Monnaie</td><td>${entreprise.monnaie || 'FCFA'}</td></tr>
+          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${escapeHtml(entreprise.nom)}</td></tr>
+          <tr><td style="font-weight:bold;">Sigle</td><td>${escapeHtml(entreprise.sigle || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Forme juridique</td><td>${escapeHtml(entreprise.forme_juridique || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">NINEA</td><td>${escapeHtml(entreprise.ninea || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">RCCM</td><td>${escapeHtml(entreprise.rccm || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Adresse</td><td>${escapeHtml(entreprise.adresse || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Téléphone</td><td>${escapeHtml(entreprise.tel || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Secteur</td><td>${escapeHtml(entreprise.secteur || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Exercice</td><td>${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</td></tr>
+          <tr><td style="font-weight:bold;">Monnaie</td><td>${escapeHtml(entreprise.monnaie || 'FCFA')}</td></tr>
         </tbody>
       </table>
 
