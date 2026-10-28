@@ -519,6 +519,13 @@
       "when": 1793215262927,
       "tag": "0073_repertoire_organismes_partage",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793215487007,
+      "tag": "0074_configuration_entreprise_reprise",
+      "breakpoints": true
     }
   ]
 }
