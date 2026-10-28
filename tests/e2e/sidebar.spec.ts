@@ -50,8 +50,11 @@ for (const role of ROLES) {
         await ouvrirEspaceSante(page);
         const menu = page.locator('aside');
         // Les modules sont rangés dans des groupes repliables : tout déplier avant de vérifier.
-        for (const groupe of await menu.locator('button[aria-expanded="false"]').all()) {
-          await groupe.click();
+        // La liste est relue à chaque tour car le menu se re-rend après chaque clic.
+        for (let i = 0; i < 15; i++) {
+          const ferme = menu.locator('button[aria-expanded="false"]').first();
+          if ((await ferme.count()) === 0) break;
+          await ferme.click();
         }
         for (const [label, parRole] of LABELS) {
           const attendu = visible(parRole[role], type);
