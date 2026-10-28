@@ -27,6 +27,7 @@ import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/Fin
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
 import type { PageId } from '@/stores/app-store';
+import ConfigurationEntreprise from './sante/ConfigurationEntreprise';
 
 const PALETTES: MedicalPalette[] = ['clinique', 'laboratoire', 'urgences'];
 
@@ -146,6 +147,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
             <div className="max-w-5xl">
               <p className="text-xs font-mono uppercase text-primary mb-2">Configuration</p>
               <h1 className="font-serif text-3xl mb-2">Sites et équipe</h1>
+              {medicalStructure && medicalRoles.includes('admin_structure') && <ConfigurationEntreprise key={medicalStructure.id} structureId={medicalStructure.id} />}
               {settingsError && <div role="alert" className="mb-5 text-destructive"><p>{settingsError}</p><Button variant="outline" onClick={() => void refreshSettings()}>Réessayer</Button></div>}
               <p className="text-sm text-fg2 mb-8">Ajoutez vos lieux d’exercice et préparez les accès de chaque collaborateur.</p>
               <div className="grid gap-8 lg:grid-cols-2">

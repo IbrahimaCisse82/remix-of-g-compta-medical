@@ -3564,6 +3564,44 @@ export type Database = {
           },
         ]
       }
+      sante_configuration_brouillons: {
+        Row: {
+          donnees: Json
+          etape: number
+          revision: number
+          structure_id: string
+          termine: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          donnees?: Json
+          etape?: number
+          revision?: number
+          structure_id: string
+          termine?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          donnees?: Json
+          etape?: number
+          revision?: number
+          structure_id?: string
+          termine?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_configuration_brouillons_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_consentements: {
         Row: {
           accorde: boolean
@@ -7653,6 +7691,30 @@ export type Database = {
       sante_config_rappels: {
         Args: { _actifs: boolean; _expediteur: string; _structure_id: string }
         Returns: undefined
+      }
+      sante_configuration_sauver: {
+        Args: {
+          _donnees: Json
+          _etape: number
+          _revision: number
+          _structure_id: string
+          _terminer?: boolean
+        }
+        Returns: {
+          donnees: Json
+          etape: number
+          revision: number
+          structure_id: string
+          termine: boolean
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sante_configuration_brouillons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       sante_confirmer_fusion: {
         Args: { _fusion_id: string }

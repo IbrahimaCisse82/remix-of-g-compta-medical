@@ -364,6 +364,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadExerciceData]);
 
   const launchHealth = useCallback(async () => {
+    setLaunched(false);
+    setMedicalStructure(null); setMedicalRoles([]);
+    setEntreprise(null); setEntreprises([]); setExercice(null); setExercices([]);
+    setBalance([]); setBalanceN1([]); setJournal([]); setPlan([]);
+    setCurrentPage('sante_accueil');
     setWorkspace('sante');
     setDemo(false);
     setLoading(true);
@@ -380,7 +385,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .eq('statut', 'actif')
       .limit(1)
       .maybeSingle();
-    if (error) toast.error("Impossible de charger l’espace Santé.");
+    if (error) { toast.error("Impossible de charger l’espace Santé."); setLoading(false); return; }
     const structure = data?.structures as any;
     setMedicalStructure(structure ? {
       id: structure.id,
@@ -395,6 +400,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select('role')
         .eq('membership_id', data.id);
       setMedicalRoles((rolesData || []).map(r => r.role as RoleMedical));
+      if (rolesData?.some(r => r.role === 'admin_structure') && structure?.id) {
+        const draft = await supabase.from('sante_configuration_brouillons').select('termine').eq('structure_id', structure.id).eq('user_id', user.id).maybeSingle();
+        if (draft.error) toast.error('Impossible de retrouver votre configuration.');
+        if (!draft.data?.termine) setCurrentPage('sante_parametres');
+      }
     } else {
       setMedicalRoles([]);
     }
@@ -431,6 +441,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLaunched(false);
     setDemo(false);
     setEntreprise(null);
+    setEntreprises([]); setExercices([]);
     setExercice(null);
     setBalance([]);
     setBalanceN1([]);
@@ -655,6 +666,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const switchEntreprise = useCallback(async (entrepriseId: string) => {
     const ent = entreprises.find(e => e.id === entrepriseId);
     if (!ent) return;
+    if (workspace === 'sante' && entrepriseId !== entreprise?.id) return;
+    setExercice(null); setExercices([]); setBalance([]); setBalanceN1([]); setJournal([]); setPlan([]);
     setEntreprise(ent);
     setLoading(true);
     try {
@@ -677,7 +690,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch { /* keep current */ }
     setLoading(false);
     setCurrentPage('dashboard');
-  }, [entreprises, loadExerciceData]);
+  }, [entreprises, loadExerciceData, workspace, entreprise?.id]);
 
   // ─── CLÔTURE D'EXERCICE ──────────────────────────────
   const clotureExercice = useCallback(async () => {
