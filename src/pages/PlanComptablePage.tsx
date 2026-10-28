@@ -1,10 +1,12 @@
+import { accountReference, REFERENCE_VERSION } from '@/lib/syscohada-reference';
+import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
 import { useState, useMemo } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { exportCsv } from '@/lib/csv-export';
 
 const CLS_COL: Record<string, string> = { '1': '#a78bfa', '2': '#38bdf8', '3': '#34d399', '4': '#fb923c', '5': '#f59e0b', '6': '#fb7185', '7': '#6ee7b7', '8': '#c084fc' };
-const CLS_LBL: Record<string, string> = { '1': 'Ressources Stables', '2': 'Actif Immobilisé', '3': 'Stocks', '4': 'Tiers', '5': 'Trésorerie', '6': 'Charges', '7': 'Produits', '8': 'HAO / Impôts' };
+const CLS_LBL: Record<string, string> = { '1': 'Ressources Stables', '2': 'Actif Immobilisé', '3': 'Stocks', '4': 'Tiers', '5': 'Trésorerie', '6': 'Charges', '7': 'Produits', '8': 'HAO / Impôts', '9': 'Hors bilan / Analytique' };
 
 const SENS_AUTO: Record<string, string> = { '1': 'C', '2': 'D', '3': 'D', '4': 'D/C', '5': 'D', '6': 'D', '7': 'C', '8': 'D/C' };
 const TYPE_AUTO: Record<string, string> = { '1': 'Bilan', '2': 'Bilan', '3': 'Bilan', '4': 'Bilan', '5': 'Bilan', '6': 'Résultat', '7': 'Résultat', '8': 'HAO' };
@@ -24,7 +26,7 @@ export default function PlanComptablePage() {
     if (classeFilter) r = r.filter(x => x.classe === classeFilter);
     if (filter) r = r.filter(x => x.numero.includes(filter) || x.intitule.toLowerCase().includes(filter.toLowerCase()));
     if (!showInactif) r = r.filter(x => x.actif !== false);
-    return r.sort((a, b) => a.numero.localeCompare(b.numero));
+    return [...r].sort((a, b) => a.numero.localeCompare(b.numero));
   }, [plan, filter, classeFilter, showInactif]);
 
   const classCounts = useMemo(() => {
@@ -45,6 +47,7 @@ export default function PlanComptablePage() {
 
   const handleAdd = async () => {
     if (!newNumero || !newIntitule) return;
+    if (!accountReference(newNumero.trim())) { toast.error('Compte inconnu ou supprimé du référentiel SYSCOHADA révisé'); return; }
     const classe = newNumero[0];
     await addCompte({
       id: '', entreprise_id: '',
@@ -84,6 +87,7 @@ export default function PlanComptablePage() {
         </div>
       </div>
       <div className="p-5">
+        <p className="text-xs text-muted-foreground mb-3">Référentiel {REFERENCE_VERSION} — 1 422 comptes, classes 1 à 9 ; mappings en attente de visa.</p>
         {/* Add form */}
         {showForm && (
           <div className="bg-bg2 border border-border rounded-lg p-4 mb-4">

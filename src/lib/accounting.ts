@@ -1,3 +1,4 @@
+import { REFERENCE_MAPPING, referenceFormula } from './syscohada-reference';
 // ─── FORMATTING ────────────────────────────────────────
 export const fmt = (n: number | null | undefined, dash = true): string => {
   if (n === null || n === undefined) return dash ? '—' : '';
@@ -23,10 +24,14 @@ export const pf = (s: string | number): number =>
 export const isBilan = (c: string): boolean => /^[1-5]/.test(String(c || '').trim());
 
 export const inRange = (compte: string, ranges: string[][]): boolean => {
-  const c = String(compte).replace(/\D/g, '').padEnd(10, '0');
-  return ranges.some(([f, t]) =>
-    c >= f.replace(/\D/g, '').padEnd(10, '0') && c <= t.replace(/\D/g, '').padEnd(10, '0')
-  );
+  const c = String(compte).trim();
+  return ranges.some(([f, t]) => {
+    if (f === t) return c.startsWith(f);
+    const low = f.padEnd(16, '0');
+    const high = t.padEnd(16, '9');
+    const value = c.padEnd(16, '0');
+    return value >= low && value <= high;
+  });
 };
 
 // ─── TYPES ─────────────────────────────────────────────
@@ -36,6 +41,7 @@ export interface BalanceLine {
   sd: number; sc: number;
   md: number; mc: number;
   sfd: number; sfc: number;
+  poste_cible?: string | null;
   id?: string;
   exercice_id?: string;
   entreprise_id?: string;
@@ -109,6 +115,10 @@ export interface MapLine {
   refs?: string[];
   f?: (v: Record<string, number>) => number;
   srcCR?: string;
+  exclusions?: string[];
+  signedMovement?: boolean;
+  sign?: number;
+  creditNet?: boolean;
 }
 
 // ─── AGGREGATION ──────────────────────────────────────
@@ -158,11 +168,16 @@ export function aggVar(balance: BalanceLine[], ranges: string[][], sens: string)
 }
 
 export function calc(balance: BalanceLine[], def: MapLine[], extra: Record<string, number> = {}): Record<string, number> {
+  if (def === ACTIF) return calculateActif(balance).net;
+  if (def === TFT) extra = { ...calc(balance, CR), ...extra };
   const v: Record<string, number> = { ...extra };
   for (const l of def) {
     if (l.type || l.srcCR || !l.c) continue;
-    if (l.m === 'var') v[l.id] = aggVar(balance, l.c, l.s || 'D');
-    else v[l.id] = aggBalance(balance, l.c, l.s || 'D', l.m || 'auto');
+    const eligible = balance.filter(b => !l.exclusions?.some(p => b.compte.startsWith(p)));
+    if (l.signedMovement) v[l.id] = eligible.filter(b => inRange(b.compte, l.c ?? [])).reduce((sum, b) => sum + (b.mc || 0) - (b.md || 0), 0);
+    else if (l.creditNet) v[l.id] = -aggBalance(eligible, l.c, 'SC');
+    else if (l.m === 'var') v[l.id] = aggVar(eligible, l.c, l.s || 'D');
+    else v[l.id] = aggBalance(eligible, l.c, l.s || 'D', l.m || 'auto') * (l.sign ?? 1);
   }
   for (const l of def) { if (l.srcCR) v[l.id] = extra[l.srcCR] ?? 0; }
   for (let i = 0; i < 10; i++) {
@@ -171,6 +186,13 @@ export function calc(balance: BalanceLine[], def: MapLine[], extra: Record<strin
       if (!l.f && !l.refs) continue;
       const val = l.f ? l.f(v) : l.refs?.reduce((s, r) => s + (v[r] ?? 0), 0);
       if (val !== undefined && !Number.isNaN(val)) v[l.id] = val;
+    }
+  }
+  if (def === PASSIF && !balance.some(b => /^13/.test(b.compte) && (b.sfd || b.sfc))) {
+    v.CJ = calc(balance, CR).XI ?? 0;
+    for (let i = 0; i < 3; i++) for (const l of def) {
+      if (l.refs) v[l.id] = l.refs.reduce((sum, id) => sum + (v[id] ?? 0), 0);
+      else if (l.f) v[l.id] = l.f(v);
     }
   }
   return v;
@@ -184,7 +206,7 @@ export const ACTIF: MapLine[] = [
   { id: 'S_II', label: 'ACTIF IMMOBILISÉ', type: 'sect' },
   // Immobilisations incorporelles
   { id: 'AD', label: 'IMMOBILISATIONS INCORPORELLES', type: 'total', refs: ['AE', 'AF', 'AG', 'AH'] },
-  { id: 'AE', label: 'Frais de développement et de prospection', c: [['201', '206']], s: 'D' },
+  { id: 'AE', label: 'Frais de développement et de prospection', c: [['211', '211']], s: 'D' },
   { id: 'AF', label: 'Brevets, licences, logiciels, droits similaires', c: [['212', '215']], s: 'D' },
   { id: 'AG', label: 'Fonds commercial et droit au bail', c: [['216', '217']], s: 'D' },
   { id: 'AH', label: 'Autres immobilisations incorporelles', c: [['211', '211'], ['218', '219']], s: 'D' },
@@ -223,7 +245,7 @@ export const ACTIF: MapLine[] = [
   { id: 'BZ', label: 'TOTAL GÉNÉRAL ACTIF (I+II+III)', type: 'gtotal', refs: ['AZ', 'BK', 'BT', 'BU'] },
 ];
 
-export const PASSIF: MapLine[] = [
+const PASSIF_LAYOUT: MapLine[] = [
   { id: 'S_CP', label: 'CAPITAUX PROPRES', type: 'sect' },
   { id: 'CA', label: 'Capital', c: [['101', '104']], s: 'C' },
   { id: 'CB', label: 'Apporteurs capital non appelé (−)', c: [['109', '109']], s: 'D' },
@@ -264,7 +286,7 @@ export const PASSIF: MapLine[] = [
   { id: 'DZ', label: 'TOTAL GÉNÉRAL PASSIF (I+II+III+IV)', type: 'gtotal', refs: ['CP', 'DD', 'DP', 'DT', 'DV'] },
 ];
 
-export const CR: MapLine[] = [
+const CR_LAYOUT: MapLine[] = [
   { id: 'TA', label: 'Ventes de marchandises', c: [['701', '701']], s: 'C', m: 'n' },
   { id: 'RA', label: '(−) Achats de marchandises', c: [['601', '601']], s: 'D', m: 'n' },
   { id: 'RB', label: '(±) Variation de stocks de marchandises', c: [['6031', '6031']], s: 'SC', m: 'n' },
@@ -324,27 +346,35 @@ export const CR: MapLine[] = [
 
 export const TFT: MapLine[] = [
   { id: 'S_OP', label: 'FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS OPÉRATIONNELLES', type: 'sect' },
-  { id: 'ZA', label: "Trésorerie nette au 1er janvier (Trésorerie actif N-1 − Trésorerie passif N-1)", f: (v) => v._ZA_actif - v._ZA_passif },
-  { id: '_ZA_actif', label: '', c: [['521', '585']], s: 'D', m: 'solde_n1' },
-  { id: '_ZA_passif', label: '', c: [['561', '569']], s: 'C', m: 'solde_n1' },
-  { id: 'FA', label: "Capacité d'Autofinancement Globale (CAFG)", f: (v) => v._FA_XI + v._FA_dot - v._FA_rep + v._FA_vnc - v._FA_pci },
-  { id: '_FA_XI', label: '', srcCR: 'XI' },
+  { id: 'ZA', label: "Trésorerie nette au 1er janvier (Trésorerie actif N-1 − Trésorerie passif N-1)", f: (v) => v._ZA_actif - v._ZA_passif - v._ZA_472 },
+  { id: '_ZA_actif', label: '', c: [['50','58']], s: 'D', m: 'solde_n1' },
+  { id: '_ZA_passif', label: '', c: [['52','53'],['561','566']], s: 'C', m: 'solde_n1' },
+  { id: '_ZA_472', label: '', c: [['472','472']], s: 'SC', m: 'solde_n1' },
+  { id: 'FA', label: "Capacité d'Autofinancement Globale (CAFG)", f: (v) => v._FA_XD + v._FA_654 - v._FA_754 + v._FA_XF + v._FA_TO + v._FA_RP + v._FA_RQ + v._FA_RS },
+  { id: '_FA_XD', label: '', srcCR: 'XD' },
+  { id: '_FA_XF', label: '', srcCR: 'XF' },
+  { id: '_FA_TO', label: '', srcCR: 'TO' },
+  { id: '_FA_RP', label: '', srcCR: 'RP' },
+  { id: '_FA_RQ', label: '', srcCR: 'RQ' },
+  { id: '_FA_RS', label: '', srcCR: 'RS' },
+  { id: '_FA_654', label: '', c: [['654','654']], s: 'D', m: 'n' },
+  { id: '_FA_754', label: '', c: [['754','754']], s: 'C', m: 'n' },
   { id: '_FA_dot', label: '', c: [['681', '681'], ['691', '693']], s: 'D', m: 'n' },
   { id: '_FA_rep', label: '', c: [['791', '795'], ['796', '796'], ['787', '787']], s: 'C', m: 'n' },
   { id: '_FA_vnc', label: '', c: [['81', '819']], s: 'D', m: 'n' },
   { id: '_FA_pci', label: '', c: [['82', '829']], s: 'C', m: 'n' },
-  { id: 'FB', label: '(−) Variation de l\'actif circulant HAO', c: [['475', '475']], s: 'D', m: 'var' },
-  { id: 'FC', label: '(−) Variation des stocks', c: [['31', '39']], s: 'D', m: 'var' },
-  { id: 'FD', label: '(−) Variation des créances', c: [['411', '47']], s: 'D', m: 'var' },
-  { id: 'FE', label: '(+) Variation du passif circulant', c: [['401', '499']], s: 'C', m: 'var' },
+  { id: 'FB', label: '(−) Variation de l\'actif circulant HAO', c: [['488', '488']], s: 'D', m: 'var' },
+  { id: 'FC', label: '(−) Variation des stocks', c: [['31', '38']], s: 'D', m: 'var' },
+  { id: 'FD', label: '(−) Variation des créances', c: [['401','47']], exclusions: ['414','467','458','4494','475','472','478','479','481','482','485'], s: 'D', m: 'var' },
+  { id: 'FE', label: '(+) Variation du passif circulant', c: [['401','499']], exclusions: ['404','481','482','467','475','472','478','479'], s: 'C', m: 'var' },
   { id: 'VO', label: 'Variations du BFR lié aux activités opérationnelles (FB+FC+FD+FE)', type: 'total', refs: ['FB', 'FC', 'FD', 'FE'] },
   { id: 'ZB', label: 'FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS OPÉRATIONNELLES (A)', type: 'gtotal', f: v => v.FA - v.FB - v.FC - v.FD + v.FE },
 
   { id: 'S_IV', label: "FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS D'INVESTISSEMENT", type: 'sect' },
-  { id: 'FF', label: "(−) Décaissements liés aux acquisitions d'immobilisations incorporelles", c: [['20', '21']], s: 'D', m: 'var' },
+  { id: 'FF', label: "(−) Décaissements liés aux acquisitions d'immobilisations incorporelles", c: [['21','21']], s: 'D', m: 'var' },
   { id: 'FG', label: "(−) Décaissements liés aux acquisitions d'immobilisations corporelles", c: [['22', '24']], s: 'D', m: 'var' },
   { id: 'FH', label: "(−) Décaissements liés aux acquisitions d'immobilisations financières", c: [['26', '27']], s: 'D', m: 'var' },
-  { id: 'FI', label: "(+) Encaissements liés aux cessions d'immobilisations incorporelles et corporelles", c: [['82', '829']], s: 'C', m: 'n' },
+  { id: 'FI', label: "(+) Encaissements liés aux cessions d'immobilisations incorporelles et corporelles", c: [['821','825'],['754','754']], s: 'C', m: 'n' },
   { id: 'FJ', label: "(+) Encaissements liés aux cessions d'immobilisations financières", c: [['826', '829']], s: 'C', m: 'n' },
   { id: 'ZC', label: "FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS D'INVESTISSEMENT (B)", type: 'gtotal', f: v => -v.FF - v.FG - v.FH + v.FI + v.FJ },
 
@@ -355,8 +385,8 @@ export const TFT: MapLine[] = [
   { id: 'FN', label: '(−) Dividendes versés', c: [['465', '465']], s: 'D', m: 'n' },
   { id: 'ZD', label: 'Flux de trésorerie provenant des capitaux propres (D)', type: 'total', f: v => v.FK + v.FL - v.FM - v.FN },
   { id: 'FO', label: '(+) Emprunts', c: [['161', '169']], s: 'C', m: 'n' },
-  { id: 'FP', label: '(+) Autres dettes financières', c: [['17', '179']], s: 'C', m: 'n' },
-  { id: 'FQ', label: '(−) Remboursements des emprunts et autres dettes financières', c: [['161', '169']], s: 'D', m: 'n' },
+  { id: 'FP', label: '(+) Autres dettes financières', c: [['18','18']], exclusions: ['183'], s: 'C', m: 'n' },
+  { id: 'FQ', label: '(−) Remboursements des emprunts et autres dettes financières', c: [['16','18']], exclusions: ['166','176','183'], s: 'D', m: 'n' },
   { id: 'ZE', label: 'Flux de trésorerie provenant des capitaux étrangers (E)', type: 'total', f: v => v.FO + v.FP - v.FQ },
   { id: 'ZF', label: 'FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS DE FINANCEMENT (F=D+E)', type: 'gtotal', refs: ['ZD', 'ZE'] },
 
@@ -364,3 +394,53 @@ export const TFT: MapLine[] = [
 
   { id: 'ZH', label: 'Trésorerie nette au 31 décembre (G+A) — Contrôle', type: 'gtotal', f: v => v.ZG + v.ZA },
 ];
+
+
+function mappedLayout(layout: MapLine[], state: string): MapLine[] {
+  return layout.map(line => {
+    const row = REFERENCE_MAPPING.find(r => r.etat === state && r.poste === line.id);
+    if (!row) return line;
+    if (row.comptes_prefixes.startsWith('FORMULE:')) return { id: line.id, label: row.libelle, type: line.type, f: v => referenceFormula(row.comptes_prefixes.slice(8), v) };
+    return {
+      id: line.id, label: row.libelle,
+      c: row.comptes_prefixes.split(';').map(p => [p, p]),
+      exclusions: row.exclusions.split(';').filter(Boolean),
+      s: row.sens_solde.startsWith('D') ? 'D' : 'C',
+      signedMovement: state === 'RESULTAT',
+      creditNet: row.sens_solde === 'net',
+      sign: row.signe === '-1' ? -1 : 1,
+    };
+  });
+}
+export const CR = mappedLayout(CR_LAYOUT, 'RESULTAT');
+export const PASSIF = mappedLayout(PASSIF_LAYOUT, 'BILAN_PASSIF');
+
+export function calculateActif(balance: BalanceLine[]) {
+  const brut: Record<string, number> = {}, amort: Record<string, number> = {};
+  const issues: string[] = [];
+  for (const line of balance) {
+    const amount = (line.sfd || 0) - (line.sfc || 0);
+    if (!amount) continue;
+    const column = /^(28|29|39|49|59)/.test(line.compte) ? 'amort_deprec' : 'brut';
+    const candidates = REFERENCE_MAPPING.filter(r => r.etat === 'BILAN_ACTIF' && r.colonne === column)
+      .flatMap(r => r.comptes_prefixes.split(';').filter(p => line.compte.startsWith(p.replace('*',''))).map(p => ({ row: r, prefix: p })));
+    const longest = Math.max(0, ...candidates.map(c => c.prefix.replace('*','').length));
+    let selected = candidates.filter(c => c.prefix.replace('*','').length === longest);
+    if (selected.some(c => c.prefix.includes('*'))) {
+      selected = selected.filter(c => c.row.poste === line.poste_cible);
+      if (selected.length !== 1) { issues.push(`C08 : ${line.compte} exige un poste cible`); continue; }
+    }
+    const unique = [...new Set(selected.map(c => c.row.poste))];
+    if (unique.length > 1) { issues.push(`C07 : ${line.compte} alimente plusieurs postes`); continue; }
+    const id = unique[0];
+    if (!id) continue;
+    const values = column === 'brut' ? brut : amort;
+    values[id] = (values[id] ?? 0) + Math.max(column === 'brut' ? amount : -amount, 0);
+  }
+  for (let i=0;i<4;i++) for (const l of ACTIF) if (l.refs) {
+    brut[l.id] = l.refs.reduce((s,id) => s+(brut[id] ?? 0),0);
+    amort[l.id] = l.refs.reduce((s,id) => s+(amort[id] ?? 0),0);
+  }
+  const net = Object.fromEntries(ACTIF.filter(l => l.type !== 'sect').map(l => [l.id, (brut[l.id] ?? 0)-(amort[l.id] ?? 0)]));
+  return { brut, amort, net, issues };
+}

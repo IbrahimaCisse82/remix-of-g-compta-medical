@@ -1,5 +1,6 @@
+import ControleComptable from '@/components/ControleComptable';
 import { useApp } from '@/stores/app-store';
-import { calc, ACTIF, PASSIF, fmt, fmtSigned, type MapLine, type BalanceLine } from '@/lib/accounting';
+import { calc, calculateActif, ACTIF, PASSIF, fmt, fmtSigned, type MapLine, type BalanceLine } from '@/lib/accounting';
 import { exportCsv } from '@/lib/csv-export';
 import { exportBilanPdf } from '@/lib/pdf-export';
 
@@ -71,24 +72,13 @@ function BilanTable({ def, vals, valsN1, valsBrut, valsAmort, title, acColor }: 
   );
 }
 
-function computeBrut(balance: BalanceLine[], def: MapLine[]): Record<string, number> {
-  const brutBalance = balance.filter(b => !/^(28|29|39)/.test(b.compte));
-  return calc(brutBalance, def);
-}
-
-function computeAmort(balance: BalanceLine[], def: MapLine[]): Record<string, number> {
-  const amortBalance = balance.filter(b => /^(28|29|39)/.test(b.compte));
-  return calc(amortBalance, def);
-}
-
 export default function BilanPage() {
   const { balance, balanceN1, entreprise, exercice } = useApp();
   const vA = calc(balance, ACTIF);
   const vP = calc(balance, PASSIF);
   const vAN1 = calc(balanceN1, ACTIF);
   const vPN1 = calc(balanceN1, PASSIF);
-  const vABrut = computeBrut(balance, ACTIF);
-  const vAAmort = computeAmort(balance, ACTIF);
+  const { brut: vABrut, amort: vAAmort } = calculateActif(balance);
   const tA = vA['BZ'] || 0;
   const tP = vP['DZ'] || 0;
   const eq = Math.abs(tA - tP) < 1;
@@ -122,6 +112,7 @@ export default function BilanPage() {
         </div>
       </div>
       <div className="p-5">
+        <ControleComptable balance={balance} previous={balanceN1} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
           <BilanTable def={ACTIF} vals={vA} valsN1={vAN1} valsBrut={vABrut} valsAmort={vAAmort} title="ACTIF" acColor="#0B1F3A" />
           <BilanTable def={PASSIF} vals={vP} valsN1={vPN1} valsBrut={{}} valsAmort={{}} title="PASSIF" acColor="#163158" />

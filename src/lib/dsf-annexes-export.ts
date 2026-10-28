@@ -73,7 +73,11 @@ export const NOTES_CATALOG: NoteCat[] = [
 ];
 
 export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<string, string>): string {
-  const total = NOTES_CATALOG.length;
+  const documented = NOTES_CATALOG.filter(note => note.num !== '8A' && (
+    note.regex ? balance.some(b => note.regex?.test(b.compte) && (b.sfd !== b.sfc || b.md !== b.mc))
+    : Object.entries(notesData).some(([key, value]) => note.manualPrefix && key.startsWith(note.manualPrefix) && value.trim())
+  ));
+  const total = documented.length;
 
   // ─── Sommaire cliquable ────────────────────────────
   let toc = `<div style="page-break-before: always;"></div>
@@ -81,7 +85,7 @@ export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<strin
       SOMMAIRE — NOTES ANNEXES (${total} NOTES SYSCOHADA)
     </h2>
     <table style="font-size:9px;"><tbody>`;
-  NOTES_CATALOG.forEach((n, i) => {
+  documented.forEach((n, i) => {
     const isManual = !!n.manualPrefix;
     toc += `<tr>
       <td style="width:50px;font-weight:bold;color:#0B1F3A;">N° ${n.num}</td>
@@ -95,10 +99,10 @@ export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<strin
   // ─── Contenu des 54 notes ───────────────────────────
   let html = toc + `<div style="page-break-before: always;"></div>
     <h2 style="font-size:14px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:2px;margin:14px 0 10px;text-align:center;border-bottom:2px solid #0B1F3A;padding-bottom:6px;">
-      NOTES ANNEXES — ${total} NOTES OFFICIELLES SYSCOHADA
+      NOTES ANNEXES PROVISOIRES — ${total} NOTES DOCUMENTÉES
     </h2>`;
 
-  NOTES_CATALOG.forEach((note, i) => {
+  documented.forEach((note, i) => {
     const pageInfo = `Note ${i + 1} / ${total}`;
     html += `<div id="note-${note.num}" style="margin:14px 0 6px;page-break-inside:avoid;">
       <div style="background:#0B1F3A;color:#fff;padding:5px 8px;font-size:10px;font-weight:bold;letter-spacing:0.5px;display:flex;justify-content:space-between;align-items:center;">
@@ -108,7 +112,7 @@ export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<strin
 
     if (note.regex) {
       const rows = balance
-        .filter(b => note.regex!.test(b.compte))
+        .filter(b => note.regex?.test(b.compte))
         .map(b => ({ ...b, solde: (b.sfd || 0) - (b.sfc || 0) }))
         .filter(r => r.solde !== 0)
         .sort((a, b) => a.compte.localeCompare(b.compte));
@@ -134,7 +138,7 @@ export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<strin
       }
     } else if (note.manualPrefix) {
       const entries = Object.entries(notesData)
-        .filter(([k, v]) => k.startsWith(note.manualPrefix!) && v && v.trim() !== '')
+        .filter(([k, v]) => note.manualPrefix && k.startsWith(note.manualPrefix) && v && v.trim() !== '')
         .sort((a, b) => a[0].localeCompare(b[0]));
 
       if (entries.length === 0) {
@@ -144,7 +148,7 @@ export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<strin
           <th style="width:35%">Rubrique</th><th>Valeur saisie</th>
         </tr></thead><tbody>`;
         for (const [k, v] of entries) {
-          const label = k.replace(note.manualPrefix!, '').replace(/_/g, ' ');
+          const label = k.replace(note.manualPrefix ?? '', '').replace(/_/g, ' ');
           html += `<tr><td style="font-family:monospace;font-size:9px;">${escapeHtml(label)}</td><td>${escapeHtml(v)}</td></tr>`;
         }
         html += `</tbody></table>`;

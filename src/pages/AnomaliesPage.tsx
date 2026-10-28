@@ -1,3 +1,5 @@
+import ControleComptable from '@/components/ControleComptable';
+import { controlesSyscohada } from '@/lib/conformite-syscohada';
 import { useMemo, useState } from 'react';
 import { useApp } from '@/stores/app-store';
 import { executerControles, resumeAnomalies, type NiveauAnomalie } from '@/lib/anomalies';
@@ -15,7 +17,7 @@ const LIBELLE_NIVEAU: Record<NiveauAnomalie, string> = {
 };
 
 export default function AnomaliesPage() {
-  const { journal, balance, plan, exercice, setPage } = useApp();
+  const { journal, balance, balanceN1, plan, exercice, setPage } = useApp();
   const [filtre, setFiltre] = useState<'tous' | NiveauAnomalie>('tous');
 
   const anomalies = useMemo(() => executerControles({
@@ -26,6 +28,7 @@ export default function AnomaliesPage() {
   }), [journal, balance, plan, exercice]);
 
   const resume = resumeAnomalies(anomalies);
+  const clotureOk = resume.clotureAutorisee && controlesSyscohada(balance, balanceN1).every(c => !c.bloquant || c.ok);
   const liste = filtre === 'tous' ? anomalies : anomalies.filter(a => a.niveau === filtre);
 
   return (
@@ -35,12 +38,13 @@ export default function AnomaliesPage() {
           <h1 className="font-serif text-[17px]">Contrôles de cohérence</h1>
           <div className="text-[10px] text-fg3 font-mono">Anomalies détectées automatiquement sur l'exercice courant</div>
         </div>
-        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border ${resume.clotureAutorisee ? 'text-success border-success/40 bg-success/10' : COULEUR.bloquant}`}>
-          {resume.clotureAutorisee ? '✔ Clôture autorisée' : '⛔ Clôture bloquée'}
+        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border ${clotureOk ? 'text-success border-success/40 bg-success/10' : COULEUR.bloquant}`}>
+          {clotureOk ? '✔ Clôture autorisée' : '⛔ Clôture bloquée'}
         </span>
       </div>
 
       <div className="p-5 space-y-4">
+        <ControleComptable balance={balance} previous={balanceN1} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {([
             ['Total', resume.total, 'tous'],

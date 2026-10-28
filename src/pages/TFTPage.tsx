@@ -1,3 +1,4 @@
+import ControleComptable from '@/components/ControleComptable';
 import { useApp } from '@/stores/app-store';
 import { calc, TFT, CR, fmt } from '@/lib/accounting';
 import { exportEtatCsv } from '@/lib/csv-export';
@@ -34,6 +35,7 @@ export default function TFTPage() {
         </div>
       </div>
       <div className="p-5">
+        <ControleComptable balance={balance} previous={balanceN1} />
         <div className="bg-bg2 border border-border rounded-lg overflow-hidden">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
             <span className="text-[10px] font-bold text-purple uppercase tracking-[2px] font-mono">TABLEAU DES FLUX DE TRÉSORERIE — {exercice?.annee}</span>

@@ -386,6 +386,41 @@
       "when": 1793150085613,
       "tag": "0054_portail_acces_expiration",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1793205670614,
+      "tag": "0055_syscohada_integrite_et_controles",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1793206304330,
+      "tag": "0056_syscohada_validation_et_tva_atomique",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793206317635,
+      "tag": "0057_syscohada_tva_contexte_validation",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793206387504,
+      "tag": "0058_syscohada_equilibre_trigger_typage",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793206418106,
+      "tag": "0059_syscohada_tva_alias_parametrage",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@
 Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 
 ## Déjà fait (vérifié dans le code)
-- [x] Comptabilité SYSCOHADA complète, environnement unique Santé + compta
+- [x] Environnement unique Santé + compta ; conformité SYSCOHADA complète non démontrée (audit du 28/10)
 - [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire)
 - [x] P4 : allergies, doses pédiatriques, portail lien unique, résultats sensibles masqués, fusion deux temps, consentement signé
 - [x] P5 : stocks pharmacie/réactifs, plannings/gardes/paie, rétrocessions, supervision, sauvegarde
@@ -52,6 +52,17 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [ ] Autorisation CDP et revue juridique avant toute mise en service avec de vrais patients — statut actuel à confirmer avec la structure (la note de conformité ne prouve pas l'obtention)
 
 - [ ] Passage d'année : ouvrir l'exercice suivant au 1er janvier (sinon la compta santé se met en attente)
+
+## Remise en conformité SYSCOHADA — demande du 28 octobre 2026
+- [x] Corrections chiffrées résultat et bilan, rabais, signes, amortissements, 6812 ; premiers correctifs TFT sans réécriture historique. Tests de non-régression ajoutés.
+- [x] Référentiel fourni conservé et chargé en Cloud : 1 422 comptes, 119 mappings ; 84 lignes à valider, états provisoires et clôture serveur bloquée avant visa.
+- [x] Comptabilisation TVA transactionnelle paramétrée ; dates, pièces, montants entiers, équilibre différé et MFA protégés en base. Rapport technique : `docs/syscohada/controle-2026-10-28.md`.
+- [x] Recette technique finale : 208 tests métier et 406 tests API réussis, compilation OK ; états contrôlés à l’écran avec une session dédiée et une vente comptabilisée.
+- [ ] TFT complet et retraitements non monétaires — attend les affectations par nature et les pièces justificatives nécessaires aux flux complexes ; aucune ventilation inventée.
+- [ ] Clôture complète atomique avec résultat en 131/139, reports et réouverture cohérente — attend les règles d'affectation validées ; ancien report client supprimé, clôture suspendue.
+- [ ] Notes, maquettes SN/SMT, Excel et contrôles C09–C14 — attend les imprimés normalisés et règles officielles manquantes ; notes vides et 8A obsolète exclues de l'export.
+- [ ] Recette officielle Application 127 — attend les balances du Guide pages 343–350 et les imprimés officiels.
+- [ ] Validation normative — attend la revue des mappings « à valider » et le visa d’un expert-comptable.
 
 ## Après livraison (selon tiers externes)
 - [ ] SMS Twilio (compte payant + Sender ID G-SANTE)

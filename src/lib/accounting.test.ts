@@ -9,6 +9,8 @@ describe('inRange', () => {
   it('matche les préfixes de comptes SYSCOHADA', () => {
     expect(inRange('521000', [['521', '585']])).toBe(true);
     expect(inRange('411100', [['411', '4198']])).toBe(true);
+    expect(inRange('7019', [['701', '701']])).toBe(true);
+    expect(inRange('4752', [['475', '475']])).toBe(true);
     expect(inRange('701', [['701', '701']])).toBe(true);
     expect(inRange('601', [['701', '708']])).toBe(false);
   });

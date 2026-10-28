@@ -1,3 +1,5 @@
+import ControleComptable from '@/components/ControleComptable';
+import { controlesSyscohada } from '@/lib/conformite-syscohada';
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useCallback } from 'react';
@@ -7,7 +9,7 @@ import { toast } from 'sonner';
 interface ClotureLog { id: string; action: string; details: any; created_at: string; user_id: string | null; }
 
 export default function CloturePage() {
-  const { exercice, exercices, entreprise, balance, clotureExercice, loading, openExercice } = useApp();
+  const { exercice, exercices, entreprise, balance, balanceN1, clotureExercice, loading, openExercice } = useApp();
   const [logs, setLogs] = useState<ClotureLog[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [confirmReopen, setConfirmReopen] = useState<string | null>(null);
@@ -24,17 +26,6 @@ export default function CloturePage() {
   const handleCloture = async () => {
     if (!confirming) { setConfirming(true); return; }
     setConfirming(false);
-    // Log the clôture
-    if (entreprise && exercice) {
-      await supabase.from('cloture_logs').insert({
-        entreprise_id: entreprise.id, exercice_id: exercice.id,
-        action: 'cloture', details: {
-          annee: exercice.annee,
-          nb_comptes_bilan: balance.filter(b => /^[1-5]/.test(b.compte)).length,
-          resultat_net: balance.filter(b => /^[6-8]/.test(b.compte)).reduce((s, b) => s + ((b.sfc || 0) - (b.sfd || 0)), 0),
-        },
-      });
-    }
     await clotureExercice();
     await loadLogs();
   };
@@ -52,6 +43,7 @@ export default function CloturePage() {
   };
 
   const canCloture = exercice?.statut === 'en_cours';
+  const blocked = controlesSyscohada(balance, balanceN1).some(c => c.bloquant && !c.ok);
   const resultatNet = balance.filter(b => /^[6-8]/.test(b.compte)).reduce((s, b) => s + ((b.sfc || 0) - (b.sfd || 0)), 0);
   const bilanCount = balance.filter(b => /^[1-5]/.test(b.compte)).length;
 
@@ -86,22 +78,11 @@ export default function CloturePage() {
             </div>
           </div>
 
-          {/* Info */}
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4 text-[11px] text-fg2">
-            <strong className="text-primary">Processus de clôture :</strong>
-            <ul className="list-disc ml-4 mt-1 space-y-0.5">
-              <li>Les comptes de bilan (classes 1-5) sont reportés en à-nouveaux</li>
-              <li>Les comptes de résultat (classes 6-8) sont soldés</li>
-              <li>Le résultat net est affecté au RAN (121 créditeur / 129 débiteur)</li>
-              <li>L'exercice est verrouillé (lecture seule)</li>
-              <li>Un nouvel exercice N+1 est automatiquement créé</li>
-            </ul>
-          </div>
-
+          <ControleComptable balance={balance} previous={balanceN1} />
           {canCloture && (
             <div className="flex items-center gap-2">
               {confirming && <span className="text-[10px] text-destructive font-bold animate-pulse">⚠ Cette action est irréversible. Confirmer ?</span>}
-              <button onClick={handleCloture} disabled={loading}
+              <button onClick={handleCloture} disabled={loading || blocked}
                 className={`px-4 py-2 rounded text-[11px] font-bold ${confirming ? 'bg-destructive text-destructive-foreground' : 'bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25'}`}>
                 {loading ? '⏳ Clôture en cours...' : confirming ? '⚠ Oui, clôturer définitivement' : `🔒 Clôturer l'exercice ${exercice?.annee}`}
               </button>

@@ -1,6 +1,6 @@
+import { calculTvaPeriode } from '@/lib/tva-periode';
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
-import { enregistrerLignesJournal, round2 } from '@/lib/ecritures';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,7 +9,7 @@ interface TvaParam { id: string; code: string; libelle: string; taux: number; co
 interface Declaration { id: string; periode: string; date_debut: string; date_fin: string; tva_collectee: number; tva_deductible: number; tva_nette: number; credit_precedent: number; tva_a_payer: number; statut: string; }
 
 export default function TvaPage() {
-  const { entreprise, exercice, journal, balance } = useApp();
+  const { entreprise, exercice, journal } = useApp();
   const [params, setParams] = useState<TvaParam[]>([]);
   const [declarations, setDeclarations] = useState<Declaration[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,24 +45,14 @@ export default function TvaPage() {
 
   // Calculate TVA for period
   const calcTva = useMemo(() => {
-    if (!calcDebut || !calcFin) return null;
-    let collectee = 0, deductible = 0;
-    for (const j of journal) {
-      if (j.date_ecriture < calcDebut || j.date_ecriture > calcFin) continue;
-      // TVA collectée = comptes 443x (credit)
-      if (/^443/.test(j.compte)) collectee += (j.credit || 0) - (j.debit || 0);
-      // TVA déductible = comptes 445x (debit)
-      if (/^445/.test(j.compte)) deductible += (j.debit || 0) - (j.credit || 0);
-    }
-    const lastDecl = declarations.filter(d => d.statut === 'validee').sort((a, b) => b.date_fin.localeCompare(a.date_fin))[0];
-    const creditPrec = lastDecl && lastDecl.tva_a_payer < 0 ? Math.abs(lastDecl.tva_a_payer) : 0;
-    const nette = collectee - deductible;
-    const aPayer = nette - creditPrec;
-    return { collectee, deductible, nette, creditPrec, aPayer };
-  }, [journal, calcDebut, calcFin, declarations]);
+    if (!calcDebut || !calcFin || !exercice) return null;
+    try { return calculTvaPeriode(journal, params.filter(p=>p.actif), calcDebut, calcFin, exercice, declarations); }
+    catch { return null; }
+  }, [journal, calcDebut, calcFin, declarations, params, exercice]);
 
   const saveDeclaration = async () => {
-    if (!calcTva || !entreprise || !exercice) return;
+    if (!entreprise || !exercice) return;
+    if (!calcTva) { toast.error('Période invalide, déjà déclarée ou comptes TVA non paramétrés'); return; }
     setLoading(true);
     const periode = `${calcDebut} au ${calcFin}`;
     const { error } = await supabase.from('declarations_tva').insert({
@@ -83,32 +73,11 @@ export default function TvaPage() {
   const validerDecl = async (id: string) => {
     const d = declarations.find(x => x.id === id);
     if (!d || !entreprise || !exercice) return;
-    const collectee = round2(Number(d.tva_collectee));
-    const deductible = round2(Number(d.tva_deductible));
-    const solde = round2(collectee - deductible);
-    if (collectee > 0 || deductible > 0) {
-      const base = {
-        entreprise_id: entreprise.id, exercice_id: exercice.id,
-        date_ecriture: d.date_fin, piece: `TVA-${d.date_fin}`, journal_code: 'OD',
-        libelle: `Liquidation TVA — ${d.periode}`,
-      };
-      const lignes = [
-        { ...base, compte: '4431', intitule: 'TVA facturée sur ventes', debit: collectee, credit: 0 },
-        { ...base, compte: '4452', intitule: 'TVA récupérable sur achats', debit: 0, credit: deductible },
-        solde >= 0
-          ? { ...base, compte: '4441', intitule: 'État, TVA due', debit: 0, credit: solde }
-          : { ...base, compte: '4449', intitule: 'État, crédit de TVA à reporter', debit: -solde, credit: 0 },
-      ].filter(l => (l.debit || 0) + (l.credit || 0) > 0);
-      try {
-        await enregistrerLignesJournal(lignes, { origine: 'tva' });
-      } catch (e: any) {
-        toast.error(`Écriture de liquidation refusée : ${e.message}`);
-        return;
-      }
-    }
-    await supabase.from('declarations_tva').update({ statut: 'validee' } as any).eq('id', id);
+    const result = await supabase.rpc('sante_valider_tva', { _declaration_id: id });
+    if (result.error) { toast.error(result.error.message); return; }
     toast.success('Déclaration validée et liquidation comptabilisée');
     await loadData();
+
   };
 
   return (

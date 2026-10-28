@@ -32,7 +32,7 @@ function buildHeader(entreprise: Entreprise, exercice: Exercice, title: string):
 
 function buildFooter(): string {
   return `<div style="margin-top:20px;padding-top:8px;border-top:1px solid #ccc;text-align:center;font-size:8px;color:#999;">
-    G-Compta · Système Comptable SYSCOHADA Révisé · Généré le ${new Date().toLocaleDateString('fr-FR')}
+    G-Santé ERP · États provisoires SYSCOHADA révisé — validation officielle requise · Généré le ${new Date().toLocaleDateString('fr-FR')}
   </div>`;
 }
 
@@ -52,7 +52,7 @@ function openPrintWindow(html: string, title: string) {
       .sect { background:#f0f0f0; font-weight:bold; font-size:8px; text-transform:uppercase; letter-spacing:1px; color:#555; }
       .right { text-align:right; font-family: 'Courier New', monospace; }
       .neg { color:#c00; }
-      @media print { body { padding: 10mm 8mm; } @page { size: A4; margin: 10mm; } }
+      @media print { body { padding: 10mm 8mm; } * { color: #000 !important; background: #fff !important; border-color: #000 !important; } .no-print { display:none !important; } @page { size: A4; margin: 10mm; } }
       @media screen { body { max-width:900px; margin:0 auto; } .no-print { display:block; text-align:center; margin-bottom:15px; } }
     </style>
   </head><body>
@@ -113,7 +113,7 @@ export function exportCRPdf(
 
   const rn = vCR['XI'] || 0;
   html += `<div style="text-align:center;padding:8px;font-weight:bold;font-size:12px;border-radius:4px;margin-top:8px;${rn >= 0 ? 'background:#e8f4e8;color:#0a6' : 'background:#fde8e8;color:#c00'}">
-    RÉSULTAT NET : ${fmtSigned(rn)} ${entreprise.monnaie || 'FCFA'}
+    RÉSULTAT NET : ${fmtSigned(rn)} ${escapeHtml(entreprise.monnaie || 'FCFA')}
   </div>`;
 
   openPrintWindow(
