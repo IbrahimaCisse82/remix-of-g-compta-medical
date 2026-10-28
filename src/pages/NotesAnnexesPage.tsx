@@ -584,7 +584,6 @@ export default function NotesAnnexesPage() {
       { id: 'stocks', label: '6. Stocks' },
       { id: 'creances', label: '7. Clients' },
       { id: 'tresorerie', label: '8. Autres créances' },
-      { id: 'etalement', label: '8A. Étalement' },
       { id: 'capitaux', label: '9. Titres placement' },
       { id: 'subventions', label: '10. Valeurs encaisser' },
       { id: 'prov', label: '11. Banques/CCP/Caisse' },
