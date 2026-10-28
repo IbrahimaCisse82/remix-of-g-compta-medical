@@ -1,6 +1,7 @@
 - G-Santé uses a phased delivery model; complete and validate each phase before starting the next to preserve security and scope.
 - Delivery exclusions are centralized in client delivery-scope and server delivery-scope; why: hiding commercial/SMS controls must not grant rights or leave direct and scheduled SMS sends active.
 - Team invitations use an authenticated same-origin invitation route and the existing server acceptance RPC; why: collaborators need a complete acceptance flow without SMS or automatic role grants.
+- Team role/status changes and invitation revocation use admin/MFA RPCs with structure locking and audit; why: cross-tenant changes and removal of the last active administrator must be refused.
 - Medical visual identity is token-based, with three structure-selectable palettes and dark/light modes, so all screens stay consistent.
 - G-Santé uses dedicated structure, membership, role, invitation, and audit objects while sharing only account identity with G-Compta, preventing health-data scope from weakening accounting tenancy.
 - G-Santé structures may be linked to a G-Compta entreprise; health modules are gated server-side by entreprise sector + entreprise_modules, so non-health entreprises see no change.

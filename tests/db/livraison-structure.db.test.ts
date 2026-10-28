@@ -52,6 +52,35 @@ describe.skipIf(!enabled)('Livraison : invitations et absence de SMS — API ré
     expect((await invitee.rpc('create_medical_invitation', { _structure_id: structureId, _email: email, _role: 'admin_structure' })).error).toBeTruthy();
   });
 
+  it('révocation d’une invitation empêche son acceptation', async () => {
+    const inv = await owner.rpc('create_medical_invitation', { _structure_id: structureId, _email: email, _role: 'lecteur' });
+    expect(inv.error).toBeNull();
+    expect((await owner.rpc('sante_invitation_revoquer', { _structure_id: structureId, _invitation_id: inv.data })).error).toBeNull();
+    expect((await invitee.rpc('accept_medical_invitation', { _invitation_id: inv.data })).error).toBeTruthy();
+  });
+
+  it('le dernier administrateur actif ne peut être suspendu ni privé de son rôle', async () => {
+    const team = await owner.rpc('sante_equipe_lister', { _structure_id: structureId });
+    expect(team.error).toBeNull();
+    const admin = team.data?.find(m => m.roles.includes('admin_structure'));
+    expect(admin).toBeTruthy();
+    for (const [roles, statut] of [[['admin_structure'],'suspendu'], [['lecteur'],'actif']] as const) {
+      expect((await owner.rpc('sante_equipe_modifier', { _structure_id: structureId, _membership_id: admin?.id, _roles: [...roles], _statut: statut })).error).toBeTruthy();
+    }
+  });
+
+  it('suspension coupe immédiatement les permissions et la réactivation les restaure', async () => {
+    const team = await owner.rpc('sante_equipe_lister', { _structure_id: structureId });
+    const target = team.data?.find(m => m.user_id === inviteeId);
+    expect(target).toBeTruthy();
+    expect((await invitee.rpc('sante_equipe_lister', { _structure_id: structureId })).error).toBeTruthy();
+    expect((await invitee.rpc('sante_equipe_modifier', { _structure_id: structureId, _membership_id: target?.id, _roles: ['admin_structure'], _statut: 'actif' })).error).toBeTruthy();
+    for (const statut of ['suspendu','actif']) {
+      expect((await owner.rpc('sante_equipe_modifier', { _structure_id: structureId, _membership_id: target?.id, _roles: ['secretaire'], _statut: statut })).error).toBeNull();
+      expect((await invitee.rpc('has_medical_role', { _structure_id: structureId, _role: 'secretaire' })).data).toBe(statut === 'actif');
+    }
+  });
+
   it('les rappels SMS sont refusés même par appel direct', async () => {
     const r = await owner.functions.invoke('sante-rappels', { body: { structure_id: structureId } });
     expect(r.error).toBeTruthy();

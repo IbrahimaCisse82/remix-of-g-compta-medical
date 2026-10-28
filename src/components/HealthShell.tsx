@@ -20,6 +20,7 @@ import PlanningsPage from '@/components/sante/PlanningsPage';
 import RetrocessionsPage from '@/components/sante/RetrocessionsPage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 import EmailJournal from '@/components/sante/EmailJournal';
+import EquipeCard from '@/components/sante/EquipeCard';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
@@ -67,6 +68,12 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
       await navigator.clipboard.writeText(`${window.location.origin}/invitation/${id}`);
       toast.success('Lien copié.');
     } catch { toast.error('Impossible de copier le lien.'); }
+  };
+  const revokeInvitation = async (id: string) => {
+    if (!medicalStructure) return;
+    const r = await supabase.rpc('sante_invitation_revoquer', { _structure_id: medicalStructure.id, _invitation_id: id });
+    if (r.error) toast.error('Impossible de révoquer cette invitation.');
+    else { toast.success('Invitation révoquée.'); await refreshSettings(); }
   };
 
   const refreshSettings = async () => {
@@ -154,9 +161,10 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
                     <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['medecin','biologiste','technicien','preleveur','secretaire','caissier','tiers_payant','comptable','lecteur'].map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
                     <Button type="submit" disabled={inviteBusy} className="w-full"><Send />Enregistrer l’invitation</Button>
                   </form>
-                  <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p>{item.statut === 'en_attente' && <Button size="sm" variant="outline" className="mt-2" onClick={() => void copyInvitation(item.id)}>Copier le lien d’invitation</Button>}</div>)}</div>
+                  <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p>{item.statut === 'en_attente' && <div className="flex flex-wrap gap-2 mt-2"><Button size="sm" variant="outline" onClick={() => void copyInvitation(item.id)}>Copier le lien d’invitation</Button><Button size="sm" variant="ghost" onClick={() => void revokeInvitation(item.id)}>Révoquer</Button></div>}</div>)}</div>
                 </section>
               </div>
+              {medicalStructure && medicalRoles.includes('admin_structure') && <EquipeCard structureId={medicalStructure.id} type={medicalStructure.type} />}
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
               {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={medicalStructure.id} structureId={medicalStructure.id} />}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
