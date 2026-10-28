@@ -498,6 +498,13 @@
       "when": 1793210751588,
       "tag": "0070_sante_caisse_mouvements_verrouilles",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793210945208,
+      "tag": "0071_sante_encaissement_montant_entier",
+      "breakpoints": true
     }
   ]
 }
