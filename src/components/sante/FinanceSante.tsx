@@ -105,6 +105,8 @@ export function ReglementOrganismeCard({ structureId, refresh = 0, onChanged }: 
   const [busy, setBusy] = useState(false), [loading, setLoading] = useState(false), [error, setError] = useState('');
   const [history, setHistory] = useState<any[]>([]);
   const request = useRef(0);
+  const [rejet, setRejet] = useState<FactOrg | null>(null);
+  const [rejetType, setRejetType] = useState('administratif'), [rejetMotif, setRejetMotif] = useState(''), [rejetMontant, setRejetMontant] = useState('');
 
   useEffect(() => {
     db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data, error }: any) => { if (error) setError(error.message); setOrganismes((data ?? []).map((o: any) => o.nom)); });
@@ -147,12 +149,15 @@ export function ReglementOrganismeCard({ structureId, refresh = 0, onChanged }: 
       if (error) toast.error(error.message); else { toast.success('Règlement enregistré'); setRef(''); await charger(org); onChanged?.(); }
     } finally { setBusy(false); }
   };
-  const rejeter = async (f: FactOrg) => {
-    const type = prompt('Type de rejet : administratif (à corriger et renvoyer), non_prise_en_charge (bascule au patient si la convention l’autorise), perte (passée en charge)', 'administratif'); if (!type) return;
-    const motif = prompt('Motif (obligatoire) :'); if (!motif) return;
-    const montant = type.trim() === 'administratif' ? null : Number(prompt('Montant concerné :', String(f.reste)));
-    const { error } = await db.rpc('sante_rejet_tiers', { _facture_id: f.id, _type: type.trim(), _motif: motif, _montant: montant });
-    if (error) toast.error(error.message); else { toast.success('Rejet enregistré'); void charger(org); }
+  const rejeter = async () => {
+    if (!rejet || busy) return;
+    const montant = rejetType === 'administratif' ? null : Number(rejetMontant);
+    if (rejetMotif.trim().length < 5 || (montant !== null && (!Number.isSafeInteger(montant) || montant <= 0 || montant > rejet.reste))) return toast.error('Motif requis et montant entier limité au reste dû.');
+    setBusy(true);
+    try {
+      const { error } = await db.rpc('sante_rejet_tiers', { _facture_id: rejet.id, _type: rejetType, _motif: rejetMotif.trim(), _montant: montant });
+      if (error) toast.error(error.message); else { toast.success('Rejet enregistré'); setRejet(null); await charger(org); onChanged?.(); }
+    } finally { setBusy(false); }
   };
 
   return (
@@ -176,11 +181,12 @@ export function ReglementOrganismeCard({ structureId, refresh = 0, onChanged }: 
           <tbody>{factures.map(f => <tr key={f.id} className="border-t border-border">
             <td className="py-1 font-mono">{f.numero}</td><td>{fcfa(f.part_organisme)}</td><td>{fcfa(f.reste)}</td>
             <td><Input aria-label={`Imputer ${f.numero}`} disabled={busy} className="h-8 w-28" type="number" step={1} min={0} max={f.reste} value={imput[f.id] ?? ''} onChange={e => setImput({ ...imput, [f.id]: e.target.value })} /></td>
-            <td><Button size="sm" variant="ghost" onClick={() => rejeter(f)}>Rejet</Button></td>
+            <td><Button size="sm" variant="ghost" disabled={busy} onClick={() => { setRejet(f); setRejetType('administratif'); setRejetMotif(''); setRejetMontant(String(f.reste)); }}>Rejet</Button></td>
           </tr>)}</tbody></table>
         <div className="flex items-center justify-between text-sm"><span>Total du règlement : <b>{fcfa(total)}</b></span><Button disabled={busy || total <= 0 || !!error} onClick={valider}>Imputer le règlement</Button></div>
       </>)}
       {history.length > 0 && <div className="border-t border-border pt-3"><h4 className="text-sm font-semibold mb-2">Derniers règlements reçus</h4>{history.map(h => <div key={h.id} className="flex flex-wrap justify-between gap-2 text-sm py-2 border-t border-border"><span>{new Date(h.created_at).toLocaleDateString('fr-FR')} · {h.mode} · {h.reference || 'Sans référence'}</span><b>{fcfa(Number(h.montant))}</b></div>)}</div>}
+      <Dialog open={!!rejet} onOpenChange={open => { if (!open && !busy) setRejet(null); }}><DialogContent><DialogHeader><DialogTitle>Rejet tiers payant</DialogTitle><DialogDescription>{rejet?.numero} · Reste dû {fcfa(rejet?.reste ?? 0)}</DialogDescription></DialogHeader><Label htmlFor="rejet-type">Type de rejet</Label><select id="rejet-type" className="h-10 rounded-md border border-input bg-background px-3" value={rejetType} disabled={busy} onChange={e => setRejetType(e.target.value)}><option value="administratif">Administratif</option><option value="non_prise_en_charge">Non-prise en charge</option><option value="perte">Perte sur créance</option></select><Label htmlFor="rejet-motif">Motif du rejet</Label><Input id="rejet-motif" disabled={busy} value={rejetMotif} onChange={e => setRejetMotif(e.target.value)} />{rejetType !== 'administratif' && <><Label htmlFor="rejet-montant">Montant du rejet (FCFA)</Label><Input id="rejet-montant" type="number" step={1} min={1} max={rejet?.reste} value={rejetMontant} disabled={busy} onChange={e => setRejetMontant(e.target.value)} /></>}<DialogFooter><Button variant="ghost" disabled={busy} onClick={() => setRejet(null)}>Annuler</Button><Button disabled={busy || rejetMotif.trim().length < 5} onClick={() => void rejeter()}>Enregistrer le rejet</Button></DialogFooter></DialogContent></Dialog>
     </section>
   );
 }
