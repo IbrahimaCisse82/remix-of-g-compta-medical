@@ -428,6 +428,13 @@
       "when": 1793207984957,
       "tag": "0060_plans_abonnement_lecture_ciblee",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793208614758,
+      "tag": "0061_sante_equipe_gestion_securisee",
+      "breakpoints": true
     }
   ]
 }

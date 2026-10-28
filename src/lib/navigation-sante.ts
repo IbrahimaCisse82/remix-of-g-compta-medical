@@ -1,4 +1,5 @@
 import type { PageId } from '@/stores/app-store';
+import { moduleInDelivery } from './delivery-scope';
 
 // Filtrage d'affichage du menu latéral selon le type de structure santé
 // (cabinet / laboratoire / mixte) et les rôles médicaux de l'utilisateur.
@@ -108,13 +109,15 @@ export const VISIBILITE_MODULES: Partial<Record<PageId, RegleVisibilite>> = {
 
 /** Un module est visible si la structure le propose ET si un rôle de l'utilisateur l'autorise. */
 export function moduleVisible(id: PageId, ctx: ContexteNavigation): boolean {
+  if (!moduleInDelivery(id)) return false;
   if (ctx.typeStructure === null) return true; // espace comptable seul / démo : comportement inchangé
   const regle = VISIBILITE_MODULES[id];
   if (!regle) return true;
   if (regle.structures && !regle.structures.includes(ctx.typeStructure)) return false;
   if (regle.roles) {
     if (ctx.roles.includes('admin_structure')) return true;
-    if (!ctx.roles.some(r => regle.roles!.includes(r))) return false;
+    const roles = regle.roles;
+    if (!ctx.roles.some(r => roles.includes(r))) return false;
   }
   return true;
 }

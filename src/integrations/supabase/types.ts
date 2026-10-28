@@ -7758,6 +7758,26 @@ export type Database = {
         }
         Returns: string
       }
+      sante_equipe_lister: {
+        Args: { _structure_id: string }
+        Returns: {
+          email: string
+          id: string
+          nom: string
+          roles: string[]
+          statut: string
+          user_id: string
+        }[]
+      }
+      sante_equipe_modifier: {
+        Args: {
+          _membership_id: string
+          _roles: string[]
+          _statut: string
+          _structure_id: string
+        }
+        Returns: undefined
+      }
       sante_escalader_bris_glace: { Args: never; Returns: number }
       sante_export_dossier: { Args: { _patient_id: string }; Returns: Json }
       sante_export_structure: { Args: { _structure_id: string }; Returns: Json }
@@ -7784,6 +7804,10 @@ export type Database = {
       sante_indicateurs_exploitation: {
         Args: { _structure_id: string }
         Returns: Json
+      }
+      sante_invitation_revoquer: {
+        Args: { _invitation_id: string; _structure_id: string }
+        Returns: undefined
       }
       sante_journaliser: {
         Args: {
