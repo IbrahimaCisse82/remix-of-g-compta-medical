@@ -27,8 +27,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     let out: { email: string; password: string } | null = null;
     for (const d of DEMOS) {
-      const { data: list } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
-      let user = list?.users.find(u => u.email === d.email);
+      let user: { id: string; email?: string } | undefined;
+      for (let page = 1; ; page++) {
+        const { data: list, error: listError } = await db.auth.admin.listUsers({ page, perPage: 200 });
+        if (listError) throw listError;
+        user = list.users.find(u => u.email === d.email);
+        if (user || list.users.length < 200) break;
+      }
       // Mot de passe aléatoire à chaque lancement : jamais de mot de passe fixe dans le code.
       const pwd = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, '0')).join('') + 'Aa#1';
       if (user) {

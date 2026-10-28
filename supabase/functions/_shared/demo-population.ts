@@ -40,7 +40,7 @@ export async function populateDemo(db: any) {
   }
   const patients = [];
   for (let i = 1; i <= 12; i++) {
-    const prenoms = `Patient fictif ${String(i).padStart(2, '0')}`;
+    const prenoms = `Patient Fictif ${String(i).padStart(2, '0')}`;
     const rows = await checked(db.from('sante_patients').select('*').eq('structure_id', sid).eq('nom', 'DÉMONSTRATION').eq('prenoms', prenoms));
     if (rows.length > 1) throw new Error('Duplicate demo patient');
     const pid = rows[0]?.id || await rpc('sante_creer_patient', { _structure_id: sid, _nom: 'DÉMONSTRATION', _prenoms: prenoms, _sexe: i % 2 ? 'F' : 'M', _date_naissance: `${1975 + i * 3}-05-15`, _consentement: true });
