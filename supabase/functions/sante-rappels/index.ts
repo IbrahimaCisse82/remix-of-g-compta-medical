@@ -3,6 +3,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsFor } from '../_shared/cors.ts';
 import { authenticateCronRequest } from '../_shared/cron-auth.ts';
+import { SMS_ENABLED } from '../_shared/delivery-scope.ts';
 
 let corsHeaders: Record<string, string> = {};
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -20,6 +21,7 @@ function e164(tel: string | null): string | null {
 Deno.serve(async (req) => {
   corsHeaders = corsFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (!SMS_ENABLED) return json({ error: 'Les SMS sont exclus de cette livraison.' }, 410);
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   let structureFiltre: string | null = null;
 

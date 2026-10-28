@@ -29,8 +29,7 @@ export default function PortailPatientPage() {
   const [token, setToken] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState('');
-  const [dossier, setDossier] = useState(''); const [tel, setTel] = useState(''); const [code, setCode] = useState('');
-  const [etape, setEtape] = useState<'id' | 'code'>('id'); const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const [lien, setLien] = useState<string | null>(null); const [dn, setDn] = useState('');
   useEffect(() => {
@@ -57,20 +56,8 @@ export default function PortailPatientPage() {
             <Input aria-label="Date de naissance" type="date" value={dn} onChange={e => setDn(e.target.value)} />
             <Button className="w-full" disabled={busy || !dn} onClick={() => go(async () => { const r = await appel({ action: 'ouvrir_lien', token: lien, date_naissance: dn }); sessionStorage.setItem(KEY, r.token); setLien(null); setToken(r.token); })}>Accéder</Button>
           </>
-        ) : etape === 'id' ? (
-          <>
-            <p className="text-sm text-fg2">Entrez votre numéro de dossier et le téléphone donné à l’accueil. Vous recevrez un code par SMS.</p>
-            <Input aria-label="Numéro de dossier" placeholder="P2026-000001" value={dossier} onChange={e => setDossier(e.target.value)} />
-            <Input aria-label="Téléphone" inputMode="tel" placeholder="77 123 45 67" value={tel} onChange={e => setTel(e.target.value)} />
-            <Button className="w-full" disabled={busy} onClick={() => go(async () => { await appel({ action: 'demander_code', numero_dossier: dossier, telephone: tel }); setEtape('code'); })}>Recevoir mon code</Button>
-          </>
         ) : (
-          <>
-            <p className="text-sm text-fg2">Si les informations sont correctes, un code à 6 chiffres vous a été envoyé. Il est valable 10 minutes.</p>
-            <Input aria-label="Code" inputMode="numeric" maxLength={6} placeholder="000000" value={code} onChange={e => setCode(e.target.value)} />
-            <Button className="w-full" disabled={busy} onClick={() => go(async () => { const r = await appel({ action: 'verifier_code', numero_dossier: dossier, code }); sessionStorage.setItem(KEY, r.token); setToken(r.token); })}>Accéder</Button>
-            <Button variant="ghost" className="w-full" onClick={() => setEtape('id')}>Recommencer</Button>
-          </>
+          <p className="text-sm text-fg2">Demandez votre lien personnel à l’accueil de votre structure de santé.</p>
         )}
         {err && <p className="text-sm text-destructive">{err}</p>}
       </div>

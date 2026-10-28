@@ -2,6 +2,7 @@
 // Accès par lien sécurisé 48 h (créé par le personnel) ou numéro de dossier + code SMS (session 24 h).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsFor } from '../_shared/cors.ts';
+import { SMS_ENABLED } from '../_shared/delivery-scope.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const sha = async (s: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -21,6 +22,9 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const body = await req.json().catch(() => ({}));
   const action = String(body?.action ?? '');
+  if (!SMS_ENABLED && ['demander_code', 'verifier_code'].includes(action)) {
+    return json({ error: 'Accès par lien sécurisé uniquement. Demandez un lien à l’accueil.' }, 410);
+  }
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'inconnue';
 
   const limite = async (cle: string, max: number) => {

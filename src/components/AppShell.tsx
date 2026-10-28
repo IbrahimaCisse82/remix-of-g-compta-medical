@@ -47,6 +47,7 @@ import AnomaliesPage from '@/pages/AnomaliesPage';
 import HealthShell, { type HealthView } from '@/components/HealthShell';
 import HealthOnboarding from '@/components/HealthOnboarding';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
+import { moduleInDelivery } from '@/lib/delivery-scope';
 
 type NavItem = { id: PageId; icon: string; label: string; shortcut?: string; cabinet?: boolean };
 type NavSection = { key: string; section: string; icon: string; groups: { title?: string; items: NavItem[] }[] };
@@ -363,7 +364,7 @@ export default function AppShell() {
         </aside>
 
         <main className="flex-1 overflow-y-auto">
-          {healthView ? (medicalStructure ? <HealthShell embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent />}
+          {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent />}
         </main>
       </div>
     </div>

@@ -50,7 +50,6 @@ export default function Landing() {
         <nav className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4">
           <span className="font-serif text-xl text-primary">G‑Santé ERP</span>
           <div className="flex items-center gap-4 text-xs">
-            <Link to="/tarifs" className="text-fg2 hover:text-primary transition-colors">Tarifs</Link>
             <span className="text-[10px] text-fg3 font-mono hidden sm:inline">par GROW HUB SARL</span>
           </div>
         </nav>
