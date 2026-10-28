@@ -115,7 +115,7 @@ export function compteDeprecFrom(compteImmo: string): string {
 // Compte de dotation aux amortissements selon la nature
 export function compteDotationFrom(compteImmo: string): string {
   const n = natureImmo(compteImmo);
-  if (n === 'incorporelle') return '6811';
+  if (n === 'incorporelle') return '6812';
   if (n === 'financiere') return '6972'; // dotations aux dépréciations financières
   return '6813';
 }

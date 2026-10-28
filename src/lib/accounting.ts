@@ -169,6 +169,7 @@ export function aggVar(balance: BalanceLine[], ranges: string[][], sens: string)
 
 export function calc(balance: BalanceLine[], def: MapLine[], extra: Record<string, number> = {}): Record<string, number> {
   if (def === ACTIF) return calculateActif(balance).net;
+  if (def === TFT) extra = { ...calc(balance, CR), ...extra };
   const v: Record<string, number> = { ...extra };
   for (const l of def) {
     if (l.type || l.srcCR || !l.c) continue;
@@ -189,7 +190,10 @@ export function calc(balance: BalanceLine[], def: MapLine[], extra: Record<strin
   }
   if (def === PASSIF && !balance.some(b => /^13/.test(b.compte) && (b.sfd || b.sfc))) {
     v.CJ = calc(balance, CR).XI ?? 0;
-    for (let i = 0; i < 3; i++) for (const l of def) if (l.refs) v[l.id] = l.refs.reduce((sum, id) => sum + (v[id] ?? 0), 0);
+    for (let i = 0; i < 3; i++) for (const l of def) {
+      if (l.refs) v[l.id] = l.refs.reduce((sum, id) => sum + (v[id] ?? 0), 0);
+      else if (l.f) v[l.id] = l.f(v);
+    }
   }
   return v;
 }
@@ -202,7 +206,7 @@ export const ACTIF: MapLine[] = [
   { id: 'S_II', label: 'ACTIF IMMOBILISÉ', type: 'sect' },
   // Immobilisations incorporelles
   { id: 'AD', label: 'IMMOBILISATIONS INCORPORELLES', type: 'total', refs: ['AE', 'AF', 'AG', 'AH'] },
-  { id: 'AE', label: 'Frais de développement et de prospection', c: [['201', '206']], s: 'D' },
+  { id: 'AE', label: 'Frais de développement et de prospection', c: [['211', '211']], s: 'D' },
   { id: 'AF', label: 'Brevets, licences, logiciels, droits similaires', c: [['212', '215']], s: 'D' },
   { id: 'AG', label: 'Fonds commercial et droit au bail', c: [['216', '217']], s: 'D' },
   { id: 'AH', label: 'Autres immobilisations incorporelles', c: [['211', '211'], ['218', '219']], s: 'D' },
