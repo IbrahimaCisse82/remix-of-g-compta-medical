@@ -73,10 +73,11 @@ describe.skipIf(!url||!key||!service)('Livraison des parcours santé restants',(
   expect((await call({action:'ouvrir_lien',token:l.data.token,date_naissance:'1990-04-12'})).status).toBe(401);
  });
  it('annule un relevé validé non payé avec motif long et conserve son historique',async()=>{
-  const tomorrow=new Date();tomorrow.setUTCDate(tomorrow.getUTCDate()+1);const date=tomorrow.toISOString().slice(0,10);
-  const f=await c.rpc('sante_creer_facture',{_patient_id:pid,_lignes:[{libelle:'Acte recette annulation',prix_unitaire:10000}]});expect(f.error).toBeNull();
-  const setup=await admin.from('sante_factures').update({praticien_id:prid,created_at:`${date}T12:00:00Z`}).eq('id',f.data);expect(setup.error).toBeNull();
-  const r=await c.rpc('sante_valider_retrocession',{_praticien_id:prid,_debut:date,_fin:date});expect(r.error).toBeNull();
+  const pr=await c.from('sante_praticiens').insert({structure_id:sid,nom:'Dr Annulation fictif'}).select('id').single();expect(pr.error).toBeNull();
+  const consult=await c.rpc('sante_demarrer_consultation',{_patient_id:pid,_praticien_id:pr.data?.id,_motif:'Recette annulation'});expect(consult.error).toBeNull();
+  const f=await c.rpc('sante_creer_facture',{_patient_id:pid,_consultation_id:consult.data,_lignes:[{libelle:'Acte recette annulation',prix_unitaire:10000}]});expect(f.error).toBeNull();
+  const rule=await c.from('sante_retrocession_regles').insert({structure_id:sid,praticien_id:pr.data?.id,categorie:'toutes',taux:30});expect(rule.error).toBeNull();
+  const r=await c.rpc('sante_valider_retrocession',{_praticien_id:pr.data?.id,_debut:today,_fin:today});expect(r.error).toBeNull();
   expect((await c.rpc('sante_annuler_retrocession',{_id:r.data,_motif:'court'})).error).toBeTruthy();
   expect((await c.rpc('sante_annuler_retrocession',{_id:r.data,_motif:'Erreur de période fictive'})).error).toBeNull();
   const read=await c.from('sante_retrocessions').select('statut,motif_annulation').eq('id',r.data).single();expect(read.data).toEqual({statut:'annulee',motif_annulation:'Erreur de période fictive'});
