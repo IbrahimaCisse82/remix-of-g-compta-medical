@@ -8150,6 +8150,7 @@ export type Database = {
       sante_revoir_bris_glace:
         | { Args: { _id: string }; Returns: undefined }
         | { Args: { _commentaire: string; _id: string }; Returns: undefined }
+      sante_revoquer_portail: { Args: { _patient_id: string }; Returns: number }
       sante_saisir_cq: {
         Args: { _controle_id: string; _valeur: number }
         Returns: string
