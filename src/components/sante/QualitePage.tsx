@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { NonConformites, Eeq, Echantillons } from './QualiteLabo';
 import { toast } from 'sonner';
@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { alertesReactif } from '@/domain/sante/westgard';
+import { nombreQualite } from '@/lib/qualite-valeurs';
 
 const msg = (e: { message: string }) => e.message.includes('row-level') ? 'Action réservée au biologiste ou à l’administrateur' : e.message;
 
@@ -41,40 +42,54 @@ function ControleQualite({ structureId }: { structureId: string }) {
   const [mesures, setMesures] = useState<Record<string, any[]>>({});
   const [f, setF] = useState({ parametre_id: '', lot: '', niveau: 'normal', automate: '', cible: '', ecart_type: '' });
   const [val, setVal] = useState<Record<string, string>>({});
+  const pending = useRef(new Set<string>());
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     const [p, c] = await Promise.all([
       supabase.from('sante_analyse_parametres').select('id, libelle, analyse:sante_analyses(libelle)').eq('structure_id', structureId).order('libelle'),
       supabase.from('sante_controles_qualite').select('*, parametre:sante_analyse_parametres(libelle, unite)').eq('structure_id', structureId).eq('actif', true).order('created_at'),
     ]);
+    if (p.error || c.error) return toast.error(msg(p.error ?? c.error ?? { message: 'Contrôles indisponibles' }));
     setParams((p.data ?? []).map((x: any) => ({ id: x.id, libelle: `${x.analyse?.libelle} — ${x.libelle}` })));
     setCtrls(c.data ?? []);
     const ids = (c.data ?? []).map(x => x.id);
     if (ids.length) {
-      const { data } = await supabase.from('sante_cq_mesures').select('controle_id, valeur, z, statut, regles, saisi_le').in('controle_id', ids).order('saisi_le', { ascending: false }).limit(500);
+      const { data, error } = await supabase.from('sante_cq_mesures').select('controle_id, valeur, z, statut, regles, saisi_le').in('controle_id', ids).order('saisi_le', { ascending: false }).limit(500);
+      if (error) return toast.error(msg(error));
       const g: Record<string, any[]> = {};
       (data ?? []).forEach(m => { (g[m.controle_id] ??= []).length < 30 && g[m.controle_id].push(m); });
       Object.values(g).forEach(a => a.reverse());
       setMesures(g);
-    }
+    } else setMesures({});
   }, [structureId]);
   useEffect(() => { void load(); }, [load]);
 
   const creer = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('sante_controles_qualite').insert({ structure_id: structureId, parametre_id: f.parametre_id, lot: f.lot, niveau: f.niveau, automate: f.automate || null, cible: Number(f.cible), ecart_type: Number(f.ecart_type) });
+    if (busy) return;
+    let cible, ecart;
+    try { cible = nombreQualite(f.cible); ecart = nombreQualite(f.ecart_type, true); } catch (e) { return toast.error((e as Error).message); }
+    setBusy(true);
+    try {
+    const { error } = await supabase.from('sante_controles_qualite').insert({ structure_id: structureId, parametre_id: f.parametre_id, lot: f.lot, niveau: f.niveau, automate: f.automate || null, cible, ecart_type: ecart });
     if (error) return toast.error(msg(error));
     setF({ parametre_id: '', lot: '', niveau: 'normal', automate: '', cible: '', ecart_type: '' }); toast.success('Contrôle créé'); void load();
+    } finally { setBusy(false); }
   };
   const saisir = async (id: string) => {
-    const v = Number((val[id] ?? '').replace(',', '.'));
-    if (!val[id] || Number.isNaN(v)) return;
+    if (pending.current.has(id)) return;
+    let v;
+    try { v = nombreQualite(val[id] ?? ''); } catch (e) { return toast.error((e as Error).message); }
+    pending.current.add(id);
+    try {
     const { data, error } = await supabase.rpc('sante_saisir_cq', { _controle_id: id, _valeur: v });
     if (error) return toast.error(msg(error));
     if (data === 'rejete') toast.error('Contrôle rejeté : validation des résultats bloquée aujourd’hui pour ce paramètre');
     else if (data === 'alerte') toast.warning('Alerte 1-2s');
     else toast.success('Contrôle accepté');
     setVal(s => ({ ...s, [id]: '' })); void load();
+    } finally { pending.current.delete(id); }
   };
 
   return (
@@ -84,7 +99,7 @@ function ControleQualite({ structureId }: { structureId: string }) {
         <Input required aria-label="Lot" placeholder="Lot" value={f.lot} onChange={e => setF({ ...f, lot: e.target.value })} />
         <Input aria-label="Automate" placeholder="Automate" value={f.automate} onChange={e => setF({ ...f, automate: e.target.value })} />
         <Input required aria-label="Cible" inputMode="decimal" placeholder="Cible" value={f.cible} onChange={e => setF({ ...f, cible: e.target.value })} />
-        <div className="flex gap-2"><Input required aria-label="Écart-type" inputMode="decimal" placeholder="ET" value={f.ecart_type} onChange={e => setF({ ...f, ecart_type: e.target.value })} /><Button size="icon" aria-label="Créer"><Plus /></Button></div>
+        <div className="flex gap-2"><Input required aria-label="Écart-type" inputMode="decimal" placeholder="ET" value={f.ecart_type} onChange={e => setF({ ...f, ecart_type: e.target.value })} /><Button size="icon" aria-label="Créer" disabled={busy}><Plus /></Button></div>
       </form>
       {ctrls.length === 0 && <p className="text-sm text-fg3">Aucun contrôle défini.</p>}
       {ctrls.map(c => {
@@ -108,37 +123,57 @@ function Reactifs({ structureId }: { structureId: string }) {
   const [f, setF] = useState({ nom: '', unite: 'test', seuil_alerte: '' });
   const [rec, setRec] = useState<Record<string, { lot: string; per: string; q: string }>>({});
   const [conso, setConso] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('sante_reactifs').select('*, lots:sante_lots_reactifs(id, numero_lot, peremption, quantite_restante, quantite_recue)').eq('structure_id', structureId).eq('actif', true).order('nom');
+    const { data, error } = await supabase.from('sante_reactifs').select('*, lots:sante_lots_reactifs(id, numero_lot, peremption, quantite_restante, quantite_recue)').eq('structure_id', structureId).eq('actif', true).order('nom');
+    if (error) { setLoadError(msg(error)); return; }
+    setLoadError('');
     setRows(data ?? []);
   }, [structureId]);
   useEffect(() => { void load(); }, [load]);
 
   const creer = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('sante_reactifs').insert({ structure_id: structureId, nom: f.nom, unite: f.unite, seuil_alerte: Number(f.seuil_alerte || 0) });
+    if (pending.current) return;
+    let seuil;
+    try { seuil = nombreQualite(f.seuil_alerte || '0'); if (seuil < 0) throw new Error('Seuil positif ou nul obligatoire'); } catch (e) { return toast.error((e as Error).message); }
+    pending.current = true; setBusy(true);
+    try {
+    const { error } = await supabase.from('sante_reactifs').insert({ structure_id: structureId, nom: f.nom.trim(), unite: f.unite.trim(), seuil_alerte: seuil });
     if (error) return toast.error(msg(error));
     setF({ nom: '', unite: 'test', seuil_alerte: '' }); void load();
+    } finally { pending.current = false; setBusy(false); }
   };
   const mvt = async (reactif: string, type: 'reception' | 'consommation', lotId?: string) => {
+    if (pending.current) return;
     const r = rec[reactif];
+    if (type === 'consommation' && !lotId) return;
+    if (type === 'reception' && (!r?.lot.trim() || !r.per)) return toast.error('N° de lot et péremption obligatoires');
+    let q;
+    try { q = nombreQualite(type === 'reception' ? r?.q ?? '' : conso[lotId ?? ''] ?? '', true); } catch (e) { return toast.error((e as Error).message); }
+    pending.current = true; setBusy(true);
+    try {
     const { error } = await supabase.rpc('sante_mouvement_reactif', type === 'reception'
-      ? { _reactif_id: reactif, _type: type, _quantite: Number(r?.q), _numero_lot: r?.lot, _peremption: r?.per }
-      : { _reactif_id: reactif, _type: type, _quantite: Number(conso[lotId!]), _lot_id: lotId });
+      ? { _reactif_id: reactif, _type: type, _quantite: q, _numero_lot: r?.lot, _peremption: r?.per }
+      : { _reactif_id: reactif, _type: type, _quantite: q, _lot_id: lotId });
     if (error) return toast.error(msg(error));
     toast.success(type === 'reception' ? 'Lot réceptionné' : 'Consommation enregistrée');
-    if (type === 'reception') setRec(s => ({ ...s, [reactif]: { lot: '', per: '', q: '' } })); else setConso(s => ({ ...s, [lotId!]: '' }));
+    if (type === 'reception') setRec(s => ({ ...s, [reactif]: { lot: '', per: '', q: '' } })); else if (lotId) setConso(s => ({ ...s, [lotId]: '' }));
     void load();
+    } finally { pending.current = false; setBusy(false); }
   };
 
   return (
     <div className="space-y-4">
-      <form onSubmit={creer} className="border border-border bg-bg2 rounded-md p-4 grid grid-cols-[3fr_1fr_1fr_auto] gap-2">
+      {loadError && <p role="alert" className="text-destructive">{loadError}</p>}
+      <form onSubmit={creer} className="border border-border bg-bg2 rounded-md p-4 grid grid-cols-2 sm:grid-cols-[3fr_1fr_1fr_auto] gap-2">
         <Input required aria-label="Nom du réactif" placeholder="Réactif" value={f.nom} onChange={e => setF({ ...f, nom: e.target.value })} />
         <Input aria-label="Unité" placeholder="Unité" value={f.unite} onChange={e => setF({ ...f, unite: e.target.value })} />
         <Input aria-label="Seuil d'alerte" inputMode="numeric" placeholder="Seuil" value={f.seuil_alerte} onChange={e => setF({ ...f, seuil_alerte: e.target.value })} />
-        <Button size="icon" aria-label="Ajouter"><Plus /></Button>
+        <Button size="icon" aria-label="Ajouter" disabled={busy}><Plus /></Button>
       </form>
       {rows.length === 0 && <p className="text-sm text-fg3">Aucun réactif.</p>}
       {rows.map(r => {
@@ -147,12 +182,12 @@ function Reactifs({ structureId }: { structureId: string }) {
         const x = rec[r.id] ?? { lot: '', per: '', q: '' };
         return <section key={r.id} className="border border-border bg-bg2 rounded-md p-4 space-y-2">
           <div className="flex flex-wrap justify-between gap-2"><span><strong>{r.nom}</strong> <span className="text-sm text-fg2">· stock utilisable {stock} {r.unite} (seuil {r.seuil_alerte})</span></span>{al.length > 0 && <span className="text-xs text-destructive font-semibold">{al.join(' · ')}</span>}</div>
-          <div className="grid grid-cols-[2fr_2fr_1fr_auto] gap-2"><Input aria-label="N° de lot" placeholder="N° de lot" value={x.lot} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, lot: e.target.value } }))} /><Input aria-label="Péremption" type="date" value={x.per} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, per: e.target.value } }))} /><Input aria-label="Quantité reçue" inputMode="numeric" placeholder="Qté" value={x.q} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, q: e.target.value } }))} /><Button size="sm" variant="outline" onClick={() => mvt(r.id, 'reception')}>Réceptionner</Button></div>
+          <div className="grid grid-cols-2 sm:grid-cols-[2fr_2fr_1fr_auto] gap-2"><Input aria-label="N° de lot" placeholder="N° de lot" value={x.lot} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, lot: e.target.value } }))} /><Input aria-label="Péremption" type="date" value={x.per} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, per: e.target.value } }))} /><Input aria-label="Quantité reçue" inputMode="decimal" placeholder="Qté" value={x.q} onChange={e => setRec(s => ({ ...s, [r.id]: { ...x, q: e.target.value } }))} /><Button size="sm" variant="outline" disabled={busy || !!loadError} onClick={() => mvt(r.id, 'reception')}>Réceptionner</Button></div>
           {r.lots.filter((l: any) => Number(l.quantite_restante) > 0).sort((a: any, b: any) => a.peremption.localeCompare(b.peremption)).map((l: any) => {
             const perime = new Date(l.peremption + 'T23:59:59') < new Date();
             return <div key={l.id} className={`flex flex-wrap items-center justify-between gap-2 text-sm border-t border-border pt-2 ${perime ? 'text-destructive' : ''}`}>
               <span>Lot {l.numero_lot} · périme le {new Date(l.peremption).toLocaleDateString('fr-FR')} · reste {l.quantite_restante}/{l.quantite_recue}{perime && ' · PÉRIMÉ'}</span>
-              {!perime && <span className="flex gap-2"><Input aria-label="Quantité consommée" className="w-20 h-8" inputMode="numeric" value={conso[l.id] ?? ''} onChange={e => setConso(s => ({ ...s, [l.id]: e.target.value }))} /><Button size="sm" variant="ghost" onClick={() => mvt(r.id, 'consommation', l.id)}>Consommer</Button></span>}
+              {!perime && <span className="flex gap-2"><Input aria-label="Quantité consommée" className="w-20 h-8" inputMode="decimal" value={conso[l.id] ?? ''} onChange={e => setConso(s => ({ ...s, [l.id]: e.target.value }))} /><Button size="sm" variant="ghost" disabled={busy || !!loadError} onClick={() => mvt(r.id, 'consommation', l.id)}>Consommer</Button></span>}
             </div>;
           })}
         </section>;
