@@ -122,7 +122,7 @@ export default function LiasseFiscalePage() {
 
     const w = window.open('', '_blank', 'width=900,height=700');
     if (!w) { alert('Veuillez autoriser les popups.'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><title>DSF ${entreprise.nom} ${exercice.annee}</title>
+    w.document.write(`<!DOCTYPE html><html><head><title>DSF ${escapeHtml(entreprise.nom)} ${escapeHtml(exercice.annee)}</title>
       <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #222; padding: 12mm; }
@@ -161,14 +161,14 @@ export default function LiasseFiscalePage() {
       <h2 style="font-size:12px;font-weight:bold;color:#0B1F3A;margin:16px 0 8px;">FICHE SIGNALÉTIQUE</h2>
       <table>
         <tbody>
-          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${entreprise.nom}</td></tr>
-          <tr><td style="font-weight:bold;">Sigle</td><td>${entreprise.sigle || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Forme juridique</td><td>${entreprise.forme_juridique || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">NINEA</td><td>${entreprise.ninea || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">RCCM</td><td>${entreprise.rccm || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Adresse</td><td>${entreprise.adresse || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Téléphone</td><td>${entreprise.tel || '—'}</td></tr>
-          <tr><td style="font-weight:bold;">Exercice</td><td>${exercice.date_debut} au ${exercice.date_fin}</td></tr>
+          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${escapeHtml(entreprise.nom)}</td></tr>
+          <tr><td style="font-weight:bold;">Sigle</td><td>${escapeHtml(entreprise.sigle || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Forme juridique</td><td>${escapeHtml(entreprise.forme_juridique || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">NINEA</td><td>${escapeHtml(entreprise.ninea || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">RCCM</td><td>${escapeHtml(entreprise.rccm || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Adresse</td><td>${escapeHtml(entreprise.adresse || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Téléphone</td><td>${escapeHtml(entreprise.tel || '—')}</td></tr>
+          <tr><td style="font-weight:bold;">Exercice</td><td>${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</td></tr>
         </tbody>
       </table>
 
@@ -197,7 +197,7 @@ export default function LiasseFiscalePage() {
 
     const w = window.open('', '_blank', 'width=900,height=700');
     if (!w) { alert('Veuillez autoriser les popups.'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><title>DSF + Annexes ${entreprise.nom} ${exercice.annee}</title>
+    w.document.write(`<!DOCTYPE html><html><head><title>DSF + Annexes ${escapeHtml(entreprise.nom)} ${escapeHtml(exercice.annee)}</title>
       <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #222; padding: 12mm; }
