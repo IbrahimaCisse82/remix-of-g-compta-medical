@@ -20,6 +20,7 @@ import PlanningsPage from '@/components/sante/PlanningsPage';
 import RetrocessionsPage from '@/components/sante/RetrocessionsPage';
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 import RappelsSmsCard from '@/components/sante/RappelsSmsCard';
+import EmailJournal from '@/components/sante/EmailJournal';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
@@ -136,6 +137,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               </div>
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
               {medicalStructure && <div className="mt-8"><RappelsSmsCard structureId={medicalStructure.id} /></div>}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={medicalStructure.id} structureId={medicalStructure.id} />}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
               {medicalStructure && <ConformiteCard structureId={medicalStructure.id} />}

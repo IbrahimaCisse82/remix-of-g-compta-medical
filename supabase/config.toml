@@ -11,3 +11,5 @@ project_id = "otyqiiumbdgaxvkcqpht"
     verify_jwt = false
   [functions.preview-transactional-email]
     verify_jwt = false
+  [functions.email-journal]
+    verify_jwt = false
