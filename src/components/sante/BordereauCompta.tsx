@@ -35,8 +35,9 @@ export default function BordereauCompta({ structureId }: { structureId: string }
 
   const imprimer = (g: (typeof groupes)[number]) => {
     const w = window.open('', '_blank'); if (!w) return;
-    const rows = g.lignes.map(l => `<tr><td>${l.date}</td><td>${l.numero}</td><td>${l.dossier}</td><td>${l.patient}</td><td style="text-align:right">${fcfa(l.part_organisme)}</td></tr>`).join('');
-    w.document.write(`<html><head><title>Bordereau ${g.organisme} ${mois}</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:5px}</style></head><body><h2>Bordereau de facturation — ${g.organisme}</h2><p>Période : ${mois}</p><table><tr><th>Date</th><th>Facture</th><th>Dossier</th><th>Patient</th><th>Montant</th></tr>${rows}<tr><td colspan="4"><b>Total</b></td><td style="text-align:right"><b>${fcfa(g.total)}</b></td></tr></table><script>print()</script></body></html>`);
+    // Toutes les données issues de la base sont échappées avant insertion dans le HTML.
+    const rows = g.lignes.map(l => `<tr><td>${escapeHtml(l.date)}</td><td>${escapeHtml(l.numero)}</td><td>${escapeHtml(l.dossier)}</td><td>${escapeHtml(l.patient)}</td><td style="text-align:right">${fcfa(l.part_organisme)}</td></tr>`).join('');
+    w.document.write(`<html><head><title>Bordereau ${escapeHtml(g.organisme)} ${escapeHtml(mois)}</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:5px}</style></head><body><h2>Bordereau de facturation — ${escapeHtml(g.organisme)}</h2><p>Période : ${escapeHtml(mois)}</p><table><tr><th>Date</th><th>Facture</th><th>Dossier</th><th>Patient</th><th>Montant</th></tr>${rows}<tr><td colspan="4"><b>Total</b></td><td style="text-align:right"><b>${fcfa(g.total)}</b></td></tr></table><script>print()</script></body></html>`);
   };
 
   return (
