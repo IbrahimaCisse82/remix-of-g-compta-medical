@@ -42,7 +42,7 @@ describe.skipIf(!url || !key || !service)('Configuration et isolation — API r�
   }
  });
  it('refuse un écrasement depuis une ancienne révision et des champs de droits', async () => {
-  expect((await cs[0].rpc('sante_configuration_sauver', { _structure_id: ids[0], _donnees: {}, _etape: 0, _revision: 0 })).error?.code).toBe('40001');
+  expect((await cs[0].rpc('sante_configuration_sauver', { _structure_id: ids[0], _donnees: {}, _etape: 0, _revision: 0 })).error?.code).toBe('P0001');
   expect((await cs[0].rpc('sante_configuration_sauver', { _structure_id: ids[0], _donnees: { entreprise_id: eids[1] }, _etape: 1, _revision: 1 })).error).toBeTruthy();
  });
  it('finalise identité santé et entreprise sans modifier l’autre structure', async () => {
