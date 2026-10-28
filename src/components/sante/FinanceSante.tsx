@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { MODES_PAIEMENT } from '@/domain/sante/tiers-payant';
 import { imputationsValides } from '@/lib/tiers-payant-saisie';
+import ImportReglements from './ImportReglements';
+import { classerDebiteurs, totauxBalance } from '@/lib/reglements-import';
 const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
@@ -156,6 +158,7 @@ export function ReglementOrganismeCard({ structureId, refresh = 0, onChanged }: 
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
       <h3 className="font-semibold">Règlements des organismes</h3>
+      <ImportReglements key={structureId} structureId={structureId} onSaved={() => { if (org) void charger(org); onChanged?.(); }} />
       {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <select aria-label="Organisme à régler" disabled={busy} className="bg-bg3 border border-border rounded-md px-2 py-1.5 text-sm" value={org} onChange={e => charger(e.target.value)}>
@@ -353,7 +356,9 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
   const [recherche, setRecherche] = useState(''), [error, setError] = useState(''), [loading, setLoading] = useState(false);
   const load = () => { setLoading(true); return db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { setRows(error ? [] : data ?? []); setError(error?.message ?? ''); }).finally(() => setLoading(false)); };
   useEffect(() => { setRows([]); setError(''); void load(); }, [structureId, refresh]);
-  const visibles = rows.filter(r => String(r.organisme).toLocaleLowerCase('fr-FR').includes(recherche.toLocaleLowerCase('fr-FR')));
+  const classes = classerDebiteurs(rows);
+  const visibles = classes.filter(r => String(r.organisme).toLocaleLowerCase('fr-FR').includes(recherche.toLocaleLowerCase('fr-FR')));
+  const totaux = totauxBalance(visibles);
   const relancer = async (o: string) => {
     const { data, error } = await db.rpc('sante_relancer', { _structure_id: structureId, _organisme: o });
     if (error) { toast.error(error.message); return; }
@@ -371,17 +376,19 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
   };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 overflow-x-auto">
-      <h3 className="font-semibold mb-2">Créances par organisme</h3>
+      <h3 className="font-semibold mb-2">Balance âgée du tiers payant</h3>
+      <p className="text-xs text-fg3 mb-4">Au {new Date().toLocaleDateString('fr-FR')} · Ancienneté depuis l’envoi à l’organisme, ou l’émission si non envoyée.</p>
+      {!loading && !error && classes.length > 0 && <div className="border-b border-border pb-4 mb-4"><h4 className="text-sm font-semibold mb-2">Principaux organismes débiteurs</h4><ol className="space-y-2">{classes.slice(0,5).map((r,i)=><li key={r.organisme} className="flex flex-wrap items-center justify-between gap-2 text-sm"><span><span className="font-mono text-fg3 mr-2">{i+1}.</span>{r.organisme}</span><span><strong>{fcfa(Number(r.total))}</strong><span className="text-fg3 ml-2">{(Number(r.total)/Math.max(1,totauxBalance(classes).total)*100).toFixed(1)} %</span></span></li>)}</ol></div>}
       <Input aria-label="Rechercher un organisme débiteur" placeholder="Rechercher un organisme" className="mb-3" value={recherche} onChange={e => setRecherche(e.target.value)} />
       {loading && <p role="status" className="text-sm text-fg3">Chargement des créances…</p>}
       {error && <div role="alert" className="text-destructive text-sm">{error}<Button variant="outline" size="sm" onClick={() => void load()}>Réessayer</Button></div>}
       {!loading && !error && !visibles.length && <p className="text-sm text-fg3">Aucune créance trouvée.</p>}
-      <table className="w-full text-sm"><thead className="text-xs text-fg3 text-left"><tr><th>Organisme</th><th>0-30 j</th><th>31-60 j</th><th>61-90 j</th><th>&gt; 90 j</th><th>Total</th><th>Relance</th><th /></tr></thead>
+      <table aria-label="Balance âgée des créances" className="w-full min-w-[760px] text-sm"><thead className="text-xs text-fg3 text-left"><tr><th>Organisme</th><th>0–30 j</th><th>31–60 j</th><th>61–90 j</th><th>Plus de 90 j</th><th>Total</th><th>Relance</th><th /></tr></thead>
         <tbody>{visibles.map(r => <tr key={r.organisme} className="border-t border-border">
           <td className="py-1">{r.organisme}</td>{[r.j0_30, r.j31_60, r.j61_90, r.plus_90, r.total].map((v, i) => <td key={i}>{v ? fcfa(Number(v)) : '—'}</td>)}
           <td className="text-xs">{r.niveau ? `n° ${r.niveau} le ${new Date(r.derniere_relance).toLocaleDateString('fr-FR')}` : '—'}</td>
           <td className="space-x-1 whitespace-nowrap"><Button size="sm" variant="outline" onClick={() => relancer(r.organisme)}>Relancer</Button><Button size="sm" variant="ghost" onClick={() => provisionner(r.organisme, Number(r.total))}>Provisionner</Button></td>
-        </tr>)}</tbody></table>
+        </tr>)}</tbody><tfoot><tr className="border-t-2 border-border font-semibold"><td className="py-3">Total affiché</td>{[totaux.j0_30,totaux.j31_60,totaux.j61_90,totaux.plus_90,totaux.total].map((v,i)=><td key={i}>{fcfa(v)}</td>)}<td colSpan={2} /></tr></tfoot></table>
     </section>
   );
 }
