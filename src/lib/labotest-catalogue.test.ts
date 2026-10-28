@@ -3,7 +3,7 @@ import { rechercherLabotest } from './labotest-catalogue';
 describe('Consultation Labotest', () => {
   it('affiche les 192 analyses sans modifier les données source', () => {
     expect(rechercherLabotest('', 'particulier')).toHaveLength(192);
-    const r = rechercherLabotest('AFP', 'particulier'); r[0].prix = 0;
+    const r = rechercherLabotest('AFP', 'particulier'); r[0].prix = 1000;
     expect(rechercherLabotest('AFP', 'particulier')[0].prix).toBe(20800);
   });
   it('recherche par code et par libellé sans accents', () => {
