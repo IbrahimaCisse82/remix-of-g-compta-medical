@@ -4,6 +4,7 @@ import { ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { protegerFormuleCsv } from '@/lib/impression';
 
 export const MOTIFS_BRIS_GLACE: Record<string, string> = {
   urgence_vitale: 'Urgence vitale',

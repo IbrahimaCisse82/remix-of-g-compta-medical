@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { bordereauParOrganisme, fcfa, type LigneBordereau } from '@/domain/sante/tiers-payant';
 import { exportCsv } from '@/lib/csv-export';
+import { escapeHtml } from '@/lib/impression';
 
 type Lien = { source_type: string; statut: string; erreur: string | null; created_at: string };
 
