@@ -10,6 +10,7 @@ import { alertesConstantes, classeImc, imc, validerOrdonnance, type LigneOrdonna
 import { libelleAge } from '@/domain/sante/patient';
 import { imprimerOrdonnance } from './print-ordonnance';
 import CertificatsAnalyses from './CertificatsAnalyses';
+import { saveBeforeClosing } from '@/lib/consultation-workflow';
 
 const CHAMPS = [['motif', 'Motif'], ['anamnese', 'Anamnèse'], ['examen', 'Examen clinique'], ['diagnostic', 'Diagnostic'], ['conduite', 'Conduite à tenir']] as const;
 const CONST = [['ta_sys', 'TA sys.'], ['ta_dia', 'TA dia.'], ['pouls', 'Pouls'], ['temperature', 'T° °C'], ['poids', 'Poids kg'], ['taille', 'Taille cm'], ['spo2', 'SpO₂ %'], ['glycemie', 'Glyc. g/L']] as const;
@@ -26,6 +27,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   const [lignes, setLignes] = useState<LigneOrdonnance[]>([{ medicament: '', posologie: '', duree: '', quantite: '' }]);
   const [reco, setReco] = useState('');
   const [medocs, setMedocs] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('sante_consultations').select('*').eq('id', id).maybeSingle();
@@ -47,17 +49,23 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   if (!c || !patient) return <div className="text-sm text-fg3">Chargement…</div>;
   const verrou = c.statut === 'cloturee';
 
-  const enregistrer = async () => {
-    const { error } = await supabase.from('sante_consultations').update({ motif: c.motif, anamnese: c.anamnese, examen: c.examen, diagnostic: c.diagnostic, conduite: c.conduite }).eq('id', id);
-    if (error) return toast.error(error.message);
+  const enregistrer = async (): Promise<boolean> => {
+    const { error, data } = await supabase.from('sante_consultations').update({ motif: c.motif, anamnese: c.anamnese, examen: c.examen, diagnostic: c.diagnostic, conduite: c.conduite }).eq('id', id).select('id').single();
+    if (error || !data) { toast.error(error?.message || 'Consultation non enregistrée.'); return false; }
     toast.success('Consultation enregistrée');
+    return true;
   };
   const cloturer = async () => {
-    await enregistrer();
-    if (!confirm('Clôturer la consultation ? Elle ne pourra plus être modifiée (addendum uniquement).')) return;
-    const { error } = await supabase.rpc('sante_cloturer_consultation', { _consultation_id: id });
-    if (error) return toast.error(error.message);
-    toast.success('Consultation clôturée'); load();
+    if (busy) return;
+    setBusy(true);
+    try {
+      await saveBeforeClosing(enregistrer, () => confirm('Clôturer la consultation ? Elle ne pourra plus être modifiée (addendum uniquement).'), async () => {
+        const { error } = await supabase.rpc('sante_cloturer_consultation', { _consultation_id: id });
+        if (error) { toast.error(error.message); return; }
+        toast.success('Consultation clôturée'); await load();
+      });
+    } catch { toast.error('Consultation non clôturée. Vérifiez votre connexion.'); }
+    finally { setBusy(false); }
   };
   const ajouterConstantes = async () => {
     const row: Record<string, number | string> = { consultation_id: id, patient_id: c.patient_id };
@@ -69,7 +77,8 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   };
   const ajouterAddendum = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('sante_consultation_addenda').insert({ consultation_id: id, patient_id: c.patient_id, texte: addendum, auteur: user!.id });
+    if (!user) return toast.error('Veuillez vous reconnecter.');
+    const { error } = await supabase.from('sante_consultation_addenda').insert({ consultation_id: id, patient_id: c.patient_id, texte: addendum, auteur: user.id });
     if (error) return toast.error('Addendum refusé (5 caractères minimum)');
     setAddendum(''); load();
   };
@@ -113,7 +122,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
             </div>
             <div className="flex gap-2 items-start">
               {verrou ? <span className="flex items-center gap-1 text-xs border border-border rounded px-2 py-1"><Lock className="h-3 w-3" />Clôturée le {new Date(c.cloturee_le).toLocaleString('fr-FR')}</span> : (
-                <><Button variant="outline" onClick={enregistrer}><Save />Enregistrer</Button><Button onClick={cloturer}><Lock />Clôturer</Button></>
+                <><Button disabled={busy} variant="outline" onClick={() => void enregistrer()}><Save />Enregistrer</Button><Button disabled={busy} onClick={cloturer}><Lock />Clôturer</Button></>
               )}
             </div>
           </div>
@@ -137,7 +146,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
           <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
             {CHAMPS.map(([k, l]) => (
               <div key={k}><Label htmlFor={`c-${k}`}>{l}{(k === 'motif' || k === 'diagnostic') && ' *'}</Label>
-                <Textarea id={`c-${k}`} rows={k === 'motif' ? 1 : 3} disabled={verrou} value={c[k] ?? ''} onChange={e => setC(s => ({ ...s!, [k]: e.target.value }))} /></div>
+                <Textarea id={`c-${k}`} rows={k === 'motif' ? 1 : 3} disabled={verrou || busy} value={c[k] ?? ''} onChange={e => setC(s => s ? ({ ...s, [k]: e.target.value }) : s)} /></div>
             ))}
           </section>
 
