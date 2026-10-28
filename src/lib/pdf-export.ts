@@ -4,27 +4,29 @@
  */
 import type { Entreprise, Exercice, MapLine } from './accounting';
 import { fmt, fmtSigned } from './accounting';
+import { escapeHtml } from './impression';
 
 function buildHeader(entreprise: Entreprise, exercice: Exercice, title: string): string {
+  // Toutes les données issues de la base sont échappées avant insertion dans le HTML.
   return `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #0B1F3A;padding-bottom:12px;">
       <div>
-        <div style="font-size:20px;font-weight:bold;color:#0B1F3A;">${entreprise.nom}</div>
+        <div style="font-size:20px;font-weight:bold;color:#0B1F3A;">${escapeHtml(entreprise.nom)}</div>
         <div style="font-size:10px;color:#555;margin-top:4px;">
-          ${entreprise.forme_juridique || ''} ${entreprise.sigle ? `(${entreprise.sigle})` : ''}
-          ${entreprise.ninea ? ` · NINEA: ${entreprise.ninea}` : ''}
-          ${entreprise.rccm ? ` · RCCM: ${entreprise.rccm}` : ''}
+          ${escapeHtml(entreprise.forme_juridique || '')} ${entreprise.sigle ? `(${escapeHtml(entreprise.sigle)})` : ''}
+          ${entreprise.ninea ? ` · NINEA: ${escapeHtml(entreprise.ninea)}` : ''}
+          ${entreprise.rccm ? ` · RCCM: ${escapeHtml(entreprise.rccm)}` : ''}
         </div>
-        <div style="font-size:10px;color:#555;">${entreprise.adresse || ''} ${entreprise.tel ? `· Tél: ${entreprise.tel}` : ''}</div>
+        <div style="font-size:10px;color:#555;">${escapeHtml(entreprise.adresse || '')} ${entreprise.tel ? `· Tél: ${escapeHtml(entreprise.tel)}` : ''}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:9px;color:#888;">Monnaie: ${entreprise.monnaie || 'FCFA'}</div>
-        <div style="font-size:9px;color:#888;">Exercice: ${exercice.date_debut} au ${exercice.date_fin}</div>
+        <div style="font-size:9px;color:#888;">Monnaie: ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
+        <div style="font-size:9px;color:#888;">Exercice: ${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</div>
       </div>
     </div>
     <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">${title}</div>
-      <div style="font-size:11px;color:#555;">Exercice clos le ${exercice.date_fin} · ${entreprise.monnaie || 'FCFA'}</div>
+      <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">${escapeHtml(title)}</div>
+      <div style="font-size:11px;color:#555;">Exercice clos le ${escapeHtml(exercice.date_fin)} · ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
     </div>`;
 }
 
@@ -37,7 +39,7 @@ function buildFooter(): string {
 function openPrintWindow(html: string, title: string) {
   const w = window.open('', '_blank', 'width=900,height=700');
   if (!w) { alert('Veuillez autoriser les popups pour exporter en PDF.'); return; }
-  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(title)}</title>
     <style>
       * { margin:0; padding:0; box-sizing:border-box; }
       body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #222; padding: 15mm; }
