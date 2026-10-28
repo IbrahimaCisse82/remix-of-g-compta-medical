@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LabotestCatalogue from './LabotestCatalogue';
 
 const VALID_MAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
@@ -17,6 +19,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const [derog, setDerog] = useState(false);
   const [ac, setAc] = useState({ code: '', libelle: '', tarif: '' });
   const [analyseBusy, setAnalyseBusy] = useState(false);
+  const [vue, setVue] = useState('structure');
 
   const load = useCallback(async () => {
     const [a, b, c] = await Promise.all([
@@ -59,6 +62,8 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   return (
     <div className="max-w-6xl space-y-8">
       <div><p className="text-xs font-mono uppercase text-primary mb-1">Paramétrage</p><h1 className="font-serif text-3xl">Praticiens, actes et analyses</h1><p className="text-sm text-fg2">Les tarifs sont propres à votre structure : aucun prix n’est imposé par le logiciel.</p></div>
+      <Tabs value={vue} onValueChange={setVue}><TabsList><TabsTrigger value="structure">Catalogue de la structure</TabsTrigger><TabsTrigger value="labotest">Labotest · démo</TabsTrigger></TabsList></Tabs>
+      {vue === 'labotest' ? <LabotestCatalogue /> : <>
       <section className="border border-border bg-bg2 rounded-md p-4">
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={derog} onChange={async e => { const v = e.target.checked; if (ok((await supabase.from('structures').update({ derogation_validation_unique: v } as any).eq('id', structureId)).error, v ? 'Biologiste seul autorisé' : 'Double validation rétablie')) setDerog(v); }} />
           <span><strong>Laboratoire avec un seul biologiste</strong><br /><span className="text-fg3">Autorise le biologiste à saisir et valider seul (technique puis biologique). Chaque utilisation est tracée. Laissez décoché si une autre personne peut faire la validation technique.</span></span></label>
@@ -93,6 +98,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
         {analyses.length === 0 && <p className="text-xs text-fg3">Aucune analyse.</p>}
         {analyses.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_analyses', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle} <span className="text-xs text-fg3">· {a.section} · rendu {a.delai_heures} h</span></span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_analyses', a.id, e.target.value)} /></Ligne>)}
       </section>
+      </>}
     </div>
   );
 }

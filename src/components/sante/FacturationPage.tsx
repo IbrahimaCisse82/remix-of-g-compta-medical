@@ -10,6 +10,8 @@ import { OutboxCard, RemboursementsCard, ReglementOrganismeCard, ConventionsCard
 import { MODES_PAIEMENT, fcfa, resteDu, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
 import { montantCaisse } from '@/lib/caisse-montant';
 import { escapeHtml } from '@/lib/impression';
+import { OrganismesPayeurs, CouverturePatient } from './TiersPayantSaisie';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Item = { code: string; libelle: string; tarif: number };
 type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; envoye_tiers_le: string | null; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
@@ -36,6 +38,9 @@ export default function FacturationPage({ structureId }: { structureId: string }
   const [refresh, setRefresh] = useState(0);
   const pending = useRef(false);
   const [loadError, setLoadError] = useState('');
+  const [vue, setVue] = useState('factures');
+  const [organismesRefresh, setOrganismesRefresh] = useState(0);
+  const [catalogueQuery, setCatalogueQuery] = useState('');
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -60,8 +65,13 @@ export default function FacturationPage({ structureId }: { structureId: string }
   };
   const choisir = async (p: { id: string; nom: string; prenoms: string; numero_dossier: string }) => {
     setPatient({ id: p.id, label: `${p.nom} ${p.prenoms ?? ''} · ${p.numero_dossier}` }); setPatients([]);
-    const { data } = await db.from('sante_patient_assurances').select('id, organisme, taux_couverture, plafond').eq('patient_id', p.id);
-    setAssurances(data || []); setAssuranceId('aucune');
+    await chargerAssurances(p.id);
+  };
+  const chargerAssurances = async (id: string) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await db.from('sante_patient_assurances').select('id, organisme, taux_couverture, plafond, date_debut, date_fin').eq('patient_id', id);
+    if (error) toast.error(error.message);
+    setAssurances((data ?? []).filter((a: any) => (!a.date_debut || a.date_debut <= today) && (!a.date_fin || a.date_fin >= today))); setAssuranceId('aucune');
   };
 
   const run = async (fn: string, args: object, ok: string) => {
@@ -158,7 +168,14 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
     <div className="max-w-6xl space-y-8">
       <div><p className="text-xs font-mono uppercase text-primary mb-2">Facturation</p><h1 className="font-serif text-3xl">Factures & caisse</h1></div>
       {loadError && <div role="alert" className="text-destructive"><p>{loadError}</p><Button variant="outline" onClick={() => void load()}>Réessayer</Button></div>}
-
+      <Tabs value={vue} onValueChange={setVue}><TabsList><TabsTrigger value="factures">Factures & caisse</TabsTrigger><TabsTrigger value="tiers">Tiers payant</TabsTrigger></TabsList></Tabs>
+      {vue === 'tiers' ? <>
+        <OrganismesPayeurs structureId={structureId} onChanged={() => setOrganismesRefresh(v => v + 1)} />
+        <Button variant="outline" onClick={() => setVue('factures')}>Créer une facture avec prise en charge</Button>
+        <ReglementOrganismeCard structureId={structureId} refresh={refresh + organismesRefresh} onChanged={() => { void load(); setRefresh(v => v + 1); }} />
+        <CreancesOrganismesCard key={refresh} structureId={structureId} />
+        <ConventionsCard key={organismesRefresh} structureId={structureId} />
+      </> : <>
       <section className="border border-border bg-bg2 rounded-md p-5 flex flex-wrap items-end gap-3">
         {session ? (<>
           <p className="text-sm flex-1">Caisse ouverte depuis {new Date(session.ouverte_le).toLocaleTimeString('fr-FR')} · fond {fcfa(Number(session.fond_initial))}</p>
@@ -178,8 +195,9 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
           <div><div className="flex gap-2"><Input placeholder="Nom, téléphone ou n° de dossier" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && chercher()} /><Button onClick={chercher}>Chercher</Button></div>
             <div className="mt-2 space-y-1">{patients.map(p => <button key={p.id} className="block w-full text-left text-sm border border-border rounded p-2 hover:bg-muted" onClick={() => choisir(p)}>{p.nom} {p.prenoms} · {p.numero_dossier}</button>)}</div></div>
         )}
-        {patient && <BonsPecCard structureId={structureId} patientId={patient.id} organismes={[...new Set(assurances.map(a => a.organisme))]} />}
-        <div className="flex flex-wrap gap-2">{catalogue.map(i => <Button key={i.code} size="sm" variant="outline" onClick={() => setPanier([...panier, i])}>{i.libelle} · {fcfa(i.tarif)}</Button>)}</div>
+        {patient && <><CouverturePatient key={patient.id} structureId={structureId} patientId={patient.id} refresh={organismesRefresh} onSaved={() => void chargerAssurances(patient.id)} /><BonsPecCard structureId={structureId} patientId={patient.id} organismes={[...new Set(assurances.map(a => a.organisme))]} /></>}
+        <Input aria-label="Rechercher une prestation" placeholder="Rechercher un acte ou une analyse" value={catalogueQuery} onChange={e => setCatalogueQuery(e.target.value)} />
+        <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">{catalogue.filter(i => `${i.code} ${i.libelle}`.toLowerCase().includes(catalogueQuery.toLowerCase())).map(i => <Button key={i.code} size="sm" variant="outline" className="h-auto whitespace-normal text-left" onClick={() => setPanier([...panier, i])}>{i.libelle} · {fcfa(i.tarif)}</Button>)}</div>
         {panier.length > 0 && <ul className="text-sm space-y-1">{panier.map((p, k) => <li key={k} className="flex justify-between border-b border-border py-1"><span>{p.libelle}</span><span>{fcfa(p.tarif)} <button className="text-destructive ml-2" onClick={() => setPanier(panier.filter((_, j) => j !== k))}>×</button></span></li>)}</ul>}
         <div className="grid sm:grid-cols-3 gap-3">
           <div><Label>Prise en charge</Label><Select value={assuranceId} onValueChange={setAssuranceId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="aucune">Aucune</SelectItem>{assurances.map(a => <SelectItem key={a.id} value={a.id}>{a.organisme} ({a.taux_couverture} %)</SelectItem>)}</SelectContent></Select></div>
@@ -187,7 +205,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
           <div><Label>Motif de remise</Label><Input value={motifRemise} onChange={e => setMotifRemise(e.target.value)} /></div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <span>Total {fcfa(total)} · Organisme {fcfa(apercu.organisme)} · <b>Patient {fcfa(apercu.patient)}</b></span>
+          <span>Estimation : total {fcfa(total)} · Organisme {fcfa(apercu.organisme)} · <b>Patient {fcfa(apercu.patient)}</b>{ass && <span className="block text-xs text-fg3">Répartition définitive sur la facture, selon la convention, les exclusions et le bon de prise en charge.</span>}</span>
           <Button disabled={busy || !!loadError || !patient || panier.length === 0} onClick={creer}>Émettre la facture</Button>
         </div>
       </section>
@@ -203,7 +221,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
               <td>{fcfa(f.part_patient)}<span className="block text-xs text-fg3">reste {fcfa(reste)}</span></td>
               <td>{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}{f.envoye_tiers_le ? ` · envoyé le ${new Date(f.envoye_tiers_le).toLocaleDateString("fr-FR")}` : ""}</span>
                 {f.statut_tiers === 'a_facturer' || f.statut_tiers === 'rejete' ? <Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'envoye' }, 'Envoyé.')}>Envoyer</Button> : null}
-                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'paye' }, 'Réglé.')}>Payé</Button><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'rejete' }, 'Rejet noté.')}>Rejeté</Button></>}
+                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'rejete' }, 'Rejet noté.')}>Rejeté</Button></>}
               </> : '—'}</td>
               <td className="p-3 space-y-1">
                 {f.type === 'facture' && !f.annulee && reste > 0 && <div className="flex gap-1">
@@ -218,13 +236,11 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
           })}</tbody></table>
       </section>
       <RemboursementsCard structureId={structureId} refresh={refresh} onChanged={() => { void load(); setRefresh(v => v + 1); }} />
-      <ReglementOrganismeCard structureId={structureId} />
-      <CreancesOrganismesCard structureId={structureId} />
-      <ConventionsCard structureId={structureId} />
       <SaisieSecoursCard structureId={structureId} />
       <AnalytiqueSanteCard structureId={structureId} />
       <OutboxCard key={refresh} structureId={structureId} />
       <BordereauCompta structureId={structureId} />
+      </>}
     </div>
   );
 }
