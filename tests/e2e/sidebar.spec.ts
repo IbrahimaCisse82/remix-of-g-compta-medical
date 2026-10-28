@@ -49,6 +49,10 @@ for (const role of ROLES) {
       test('le menu ne propose que les modules autorisés', async ({ page }) => {
         await ouvrirEspaceSante(page);
         const menu = page.locator('aside');
+        // Les modules sont rangés dans des groupes repliables : tout déplier avant de vérifier.
+        for (const groupe of await menu.locator('button[aria-expanded="false"]').all()) {
+          await groupe.click();
+        }
         for (const [label, parRole] of LABELS) {
           const attendu = visible(parRole[role], type);
           const item = menu.getByText(label, { exact: true });
