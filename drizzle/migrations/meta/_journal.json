@@ -421,6 +421,13 @@
       "when": 1793206418106,
       "tag": "0059_syscohada_tva_alias_parametrage",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793207984957,
+      "tag": "0060_plans_abonnement_lecture_ciblee",
+      "breakpoints": true
     }
   ]
 }
