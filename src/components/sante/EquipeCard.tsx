@@ -31,7 +31,7 @@ export default function EquipeCard({ structureId, type }: { structureId: string;
     {error && <p role="alert" className="text-destructive">{error}<Button variant="ghost" onClick={() => void load()}>Réessayer</Button></p>}
     {members.map(m => <div key={m.id} className="border border-border rounded-md p-4 space-y-3">
       <div className="flex flex-wrap justify-between gap-2"><span className="font-medium break-all">{m.nom || m.email || m.user_id}</span><span className="text-xs text-fg2">{m.statut}</span></div>
-      <div className="flex flex-wrap gap-4">{roles.map(role => <label key={role} className="flex items-center gap-2 text-sm"><Checkbox disabled={busy} checked={m.roles.includes(role)} onCheckedChange={checked => setMembers(prev => prev.map(item => item.id === m.id ? { ...item, roles: checked ? [...item.roles, role] : item.roles.filter(r => r !== role) } : item))} />{role.replaceAll('_',' ')}</label>)}</div>
+      <div className="flex flex-wrap gap-4">{roles.map(role => <label key={role} className="flex items-center gap-2 text-sm"><Checkbox disabled={busy} checked={m.roles.includes(role)} onCheckedChange={checked => setMembers(prev => prev.map(item => item.id === m.id ? { ...item, roles: checked ? [...item.roles, role] : item.roles.filter(r => r !== role) } : item))} />{role.replace(/_/g,' ')}</label>)}</div>
       <div className="flex flex-wrap gap-2"><Button disabled={busy || !m.roles.length} onClick={() => void save(m, m.statut)}>Enregistrer les rôles</Button><Button variant="outline" disabled={busy || !m.roles.length} onClick={() => void save(m, m.statut === 'actif' ? 'suspendu' : 'actif')}>{m.statut === 'actif' ? 'Suspendre l’accès' : 'Réactiver l’accès'}</Button></div>
     </div>)}
   </section>;

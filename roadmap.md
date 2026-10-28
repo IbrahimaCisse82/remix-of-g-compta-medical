@@ -3,8 +3,8 @@ Mise à jour : 28 octobre 2026
 
 ## Livraison module par module — périmètre décidé par Ibou le 28/10
 Twilio/SMS et l’option commerciale abonnement sont exclus de la livraison. Les écritures récurrentes comptables restent dans le périmètre. Aucun historique financier ni droit d’accès ne doit être supprimé pour masquer ces options.
-- [ ] Retirer les options abonnement et SMS de l’expérience livrée, sans affaiblir les contrôles serveur.
-- [ ] 1. Structure, sites et équipe : terminer les parcours et tester création, invitations, habilitations et révocations.
+- [x] Retirer les options abonnement et SMS de l’expérience livrée, sans affaiblir les contrôles serveur : offres commerciales masquées, route tarifs retirée, rappels et codes SMS refusés côté serveur (410), lien patient conservé ; historique et protections inchangés.
+- [x] 1. Structure, sites et équipe : création, ajout de site, invitation avec lien et acceptation par le destinataire testés à l’écran ; gestion des rôles/suspension/réactivation et révocation des invitations via RPC admin/MFA avec audit et protection du dernier administrateur. 216 tests métier + 15 tests API ciblés réussis. Aucun rôle réel modifié.
 - [ ] 2. Patients : identification, doublons, fusion, consentement et documents.
 - [ ] 3. Agenda et consultations : rendez-vous, soin, prescriptions et certificats.
 - [ ] 4. Laboratoire/catalogue : demandes, résultats, validations et remise ; catalogue réel attendu du client.
