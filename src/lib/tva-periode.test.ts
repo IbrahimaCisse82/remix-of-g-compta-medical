@@ -1,0 +1,10 @@
+import { expect, it } from 'vitest';
+import { calculTvaPeriode } from './tva-periode';
+const ex={date_debut:'2026-01-01',date_fin:'2026-12-31'};
+const params=[{compte_tva_collectee:'4431',compte_tva_deductible:'4452',taux:18}];
+const journal=[{compte:'4431',date_ecriture:'2026-10-10',debit:0,credit:18000},{compte:'4432',date_ecriture:'2026-10-10',debit:0,credit:9000}];
+it('TVA de période utilise seulement les comptes paramétrés',()=>expect(calculTvaPeriode(journal,params,'2026-10-01','2026-10-31',ex,[]).collectee).toBe(18000));
+it('refuse une période inversée',()=>expect(()=>calculTvaPeriode(journal,params,'2026-10-31','2026-10-01',ex,[])).toThrow());
+it('refuse une période hors exercice',()=>expect(()=>calculTvaPeriode(journal,params,'2025-10-01','2025-10-31',ex,[])).toThrow());
+it('ne reporte pas le crédit d’une déclaration future',()=>expect(calculTvaPeriode(journal,params,'2026-10-01','2026-10-31',ex,[{date_debut:'2026-11-01',date_fin:'2026-11-30',statut:'validee',tva_a_payer:-10000}]).creditPrec).toBe(0));
+it('refuse une période déjà déclarée',()=>expect(()=>calculTvaPeriode(journal,params,'2026-10-01','2026-10-31',ex,[{date_debut:'2026-10-01',date_fin:'2026-10-31',statut:'validee',tva_a_payer:0}])).toThrow());
