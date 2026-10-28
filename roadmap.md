@@ -43,7 +43,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [x] Recette automatique relancée le 27/10 : 140 tests métier + 65 tests base réussis
 - [x] Contrôle rapide de sécurité le 27/10 : une information sur la lecture publique des plans d'abonnement (catalogue commercial), aucune alerte critique de ce contrôle ; ne constitue pas une validation de sécurité complète
 - [x] Analyse approfondie terminée le 27/10 : 10 avertissements (5 injections dans les impressions/rapports, 2 injections de formules dans les exports, 3 liens de fichiers restant utilisables après révocation)
-- [ ] Examiner et corriger ces 10 avertissements, tester chaque protection et refaire le contrôle avant validation de livraison
+- [x] 10 avertissements corrigés (28/10) : échappement HTML systématique (escapeHtml) dans toutes les impressions et exports (bordereaux, relances, bilan/CR/TFT, DSF + annexes) ; protection anti-formules dans tous les exports CSV ; liens du portail client avec expiration (expire_le) et URL signées réduites à 60 s ; révocation des fichiers patients prouvée par test (plus aucune URL signée après retrait du rôle) ; 172 tests unitaires + 397 tests base réussis, avertissements clos dans le contrôle de sécurité
 - [ ] Corriger les bibliothèques signalées par le contrôle des dépendances (ws, DOMPurify/fflate, routeur, lodash, Zod), puis relancer tests et contrôle ; aucune mise à jour appliquée dans cette étape
 - [x] Guide de prise en main et procédure de livraison rédigés : `docs/livraison/guide-utilisateur.md`, `docs/livraison/checklist.md`
 - [ ] Formation réalisée, guide remis et procès-verbal de recette signé par le client
