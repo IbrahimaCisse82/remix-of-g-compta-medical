@@ -14,5 +14,11 @@ export default defineConfig({
     baseURL: 'http://localhost:8080',
     viewport: { width: 1280, height: 1800 },
     headless: true,
+    // Navigateur fourni par l'environnement (nix) : le binaire téléchargé par
+    // `playwright install` ne trouve pas ses bibliothèques système ici.
+    launchOptions: {
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH
+        || '/nix/store/6n79cgani6b8jvqsfki6vizf8dcf65j7-playwright-browsers-with-overrides/chromium_headless_shell-1194/chrome-linux/headless_shell',
+    },
   },
 });
