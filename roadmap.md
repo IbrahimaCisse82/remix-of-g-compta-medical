@@ -20,6 +20,7 @@ Twilio/SMS et l’option commerciale abonnement sont exclus de la livraison. Les
 - [ ] 10. Comptabilité SYSCOHADA : poursuivre les corrections ci-dessous ; certification suspendue aux références officielles et au visa professionnel.
 - [ ] 11. Banque, stocks/pharmacie, paie, immobilisations, provisions, lettrage, budget et analytique : recette complète de chaque module successivement.
 - [ ] 12. Livraison : structure réelle, rôles réels, sauvegarde/restauration, recette client et autorisation de publication.
+- [x] SOLABSEN SARL (laboratoire) et LE MEDICAL KAMAANO SUARL (cabinet) créés avec leurs comptes administrateurs désignés, tous rôles compatibles attribués par RPC auditée et entreprise/exercice associés. Connexions réussies, ouverture des deux espaces et refus de lecture croisée vérifiés. Zéro patient, facture ou analyse démo. Restent coordonnées/mentions légales, catalogue/tarifs réels et activation MFA par les administrateurs. Les mots de passe fournis ne sont pas conservés dans le projet et doivent être changés après première connexion.
 Un module n’est clos qu’après correction et vérification de ses parcours ; les validations externes restent explicitement bloquantes.
 
 ## Déjà fait (vérifié dans le code)
