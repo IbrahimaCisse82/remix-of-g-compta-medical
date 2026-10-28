@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { couvertureValide, imputationsValides } from './tiers-payant-saisie';
+import { couvertureValide, imputationsValides, conventionValide } from './tiers-payant-saisie';
 describe('Saisie tiers payant', () => {
+  it('convention : taux valide et plafond/franchise FCFA entiers', () => {
+    expect(conventionValide('80','50000','1000')).toEqual({taux:80,plafond:50000,franchise:1000});
+    expect(() => conventionValide('80','','0.5')).toThrow();
+    expect(() => conventionValide('101','','0')).toThrow();
+  });
   it('enregistre taux, plafond et dates sans inventer de couverture', () => {
     expect(couvertureValide('80','50000','2026-01-01','2026-12-31')).toEqual({ taux_couverture:80,plafond:50000,date_debut:'2026-01-01',date_fin:'2026-12-31' });
     expect(() => couvertureValide('','','','')).toThrow();

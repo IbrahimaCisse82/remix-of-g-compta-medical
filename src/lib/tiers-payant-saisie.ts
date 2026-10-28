@@ -12,3 +12,9 @@ export function imputationsValides(values: Record<string, string>, factures: { i
     return { facture_id, montant };
   }).filter(l => l.montant > 0);
 }
+export function conventionValide(taux: string, plafond: string, franchise: string) {
+  const coverage = couvertureValide(taux, plafond, '', '');
+  const montant = Number(franchise || 0);
+  if (!Number.isSafeInteger(montant) || montant < 0) throw new Error('Franchise FCFA entière positive ou nulle requise.');
+  return { taux: coverage.taux_couverture, plafond: coverage.plafond, franchise: montant };
+}

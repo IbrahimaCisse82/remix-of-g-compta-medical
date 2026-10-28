@@ -10,7 +10,7 @@ import { escapeHtml } from '@/lib/impression';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { MODES_PAIEMENT } from '@/domain/sante/tiers-payant';
-import { imputationsValides } from '@/lib/tiers-payant-saisie';
+import { imputationsValides, conventionValide } from '@/lib/tiers-payant-saisie';
 import ImportReglements from './ImportReglements';
 import { classerDebiteurs, totauxBalance } from '@/lib/reglements-import';
 const db = supabase as any;
@@ -286,20 +286,28 @@ export function ConventionsCard({ structureId }: { structureId: string }) {
   const [tarifs, setTarifs] = useState<any[]>([]);
   const [excl, setExcl] = useState<any[]>([]);
   const [f, setF] = useState({ categorie: 'consultation', taux: '80', plafond: '', franchise: '0', code: '', tarif: '', exclu: '' });
+  const [convError, setConvError] = useState('');
   useEffect(() => { db.from('sante_organismes').select('nom').eq('structure_id', structureId).order('nom').then(({ data }: any) => setOrgs((data ?? []).map((o: any) => o.nom))); }, [structureId]);
   const charger = async (o: string) => {
-    setOrg(o); if (!o) return;
+    setOrg(o); setConv([]); setTarifs([]); setExcl([]); setConvError(''); if (!o) return;
     const [a, b, c] = await Promise.all([
       db.from('sante_conventions').select('*').eq('structure_id', structureId).eq('organisme', o),
       db.from('sante_tarifs_convention').select('*').eq('structure_id', structureId).eq('organisme', o),
       db.from('sante_convention_exclusions').select('*').eq('structure_id', structureId).eq('organisme', o),
     ]);
+    if (a.error || b.error || c.error) { setConvError('Impossible de charger les conventions.'); return; }
     setConv(a.data ?? []); setTarifs(b.data ?? []); setExcl(c.data ?? []);
   };
   const ok = (r: any) => { if (r.error) toast.error(r.error.message); else void charger(org); };
+  const sauverTaux = async () => {
+    let values;
+    try { values = conventionValide(f.taux, f.plafond, f.franchise); } catch(e) { return toast.error((e as Error).message); }
+    ok(await db.from('sante_conventions').upsert({ structure_id: structureId, organisme: org, categorie: f.categorie, ...values }, { onConflict: 'structure_id,organisme,categorie' }));
+  };
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
       <h3 className="font-semibold">Conventions tiers-payant</h3>
+      {convError && <p role="alert" className="text-destructive">{convError}</p>}
       <select aria-label="Organisme" className="bg-bg3 border border-border rounded-md px-2 py-1.5 text-sm" value={org} onChange={e => charger(e.target.value)}>
         <option value="">— Organisme —</option>{orgs.map(o => <option key={o}>{o}</option>)}
       </select>
@@ -310,7 +318,7 @@ export function ConventionsCard({ structureId }: { structureId: string }) {
           <Input className="w-20" type="number" placeholder="Taux %" value={f.taux} onChange={e => setF({ ...f, taux: e.target.value })} />
           <Input className="w-28" type="number" placeholder="Plafond" value={f.plafond} onChange={e => setF({ ...f, plafond: e.target.value })} />
           <Input className="w-28" type="number" placeholder="Franchise" value={f.franchise} onChange={e => setF({ ...f, franchise: e.target.value })} />
-          <Button size="sm" onClick={async () => ok(await db.from('sante_conventions').upsert({ structure_id: structureId, organisme: org, categorie: f.categorie, taux: Number(f.taux), plafond: f.plafond ? Number(f.plafond) : null, franchise: Number(f.franchise) || 0 }, { onConflict: 'structure_id,organisme,categorie' }))}>Enregistrer le taux</Button>
+          <Button size="sm" onClick={() => void sauverTaux()}>Enregistrer le taux</Button>
         </div>
         <div className="grid sm:grid-cols-2 gap-3 text-sm">
           <div className="space-y-1"><b>Tarifs conventionnés</b>
