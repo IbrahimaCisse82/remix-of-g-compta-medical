@@ -47,4 +47,11 @@ describe.skipIf(!url || !service || !key)('Livraison laboratoire — rectificati
   it('l’ancien appel rectificatif n’est pas exposé aux utilisateurs', async () => {
     expect((await c.rpc('sante_rectifier_resultat', { _demande_id: demande, _parametre_id: param, _valeur_num: null, _valeur_texte: 'interdit', _motif: 'Test accès ancien appel' })).error).toBeTruthy();
   });
+  it('le catalogue crée ensemble l’analyse et son paramètre, sans analyse partielle après refus', async () => {
+    const args = { _structure_id: sid, _code: 'ATOMIC', _libelle: 'Analyse atomique fictive', _section: 'biochimie', _tarif: 1000, _delai: 24, _tube: '', _echantillon: '', _parametre: 'Paramètre fictif', _unite: '', _type: 'texte' };
+    const r = await c.rpc('sante_catalogue_creer_analyse', args); expect(r.error).toBeNull();
+    const p = await c.from('sante_analyse_parametres').select('analyse_id,libelle').eq('analyse_id', r.data); expect(p.error).toBeNull(); expect(p.data).toEqual([{ analyse_id: r.data, libelle: 'Paramètre fictif' }]);
+    expect((await c.rpc('sante_catalogue_creer_analyse', { ...args, _code: 'INVALID', _type: 'invalide' })).error).toBeTruthy();
+    const absent = await c.from('sante_analyses').select('id').eq('structure_id', sid).eq('code', 'INVALID'); expect(absent.error).toBeNull(); expect(absent.data).toEqual([]);
+  });
 });
