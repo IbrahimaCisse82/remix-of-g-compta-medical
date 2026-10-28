@@ -40,9 +40,16 @@ async function compte(admin: SupabaseClient, nom: string): Promise<SupabaseClien
     if (error) throw error;
   }
   const c = createClient(SUPA, ANON, { auth: { persistSession: false } });
-  const { error } = await c.auth.signInWithPassword({ email: email(nom), password });
-  if (error) throw error;
-  return c;
+  // Le service d'authentification limite le débit des connexions : temporisation + nouvelles tentatives.
+  let error: { message: string } | null = null;
+  for (let essai = 0; essai < 6; essai++) {
+    await new Promise(r => setTimeout(r, 1500));
+    const r = await c.auth.signInWithPassword({ email: email(nom), password });
+    error = r.error;
+    if (!error) return c;
+    if (!/rate limit/i.test(error.message)) throw error;
+  }
+  throw error;
 }
 
 async function sauverSession(c: SupabaseClient, fichier: string) {
