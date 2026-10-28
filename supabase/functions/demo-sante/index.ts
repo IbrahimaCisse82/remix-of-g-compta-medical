@@ -3,6 +3,7 @@
 import { corsFor, estOrigineApercu } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { populateDemo } from '../_shared/demo-population.ts';
+import { populateLabotest } from '../_shared/labotest-population.ts';
 
 
 const DEMOS = [
@@ -61,11 +62,12 @@ Deno.serve(async (req) => {
       }
       if (d.key === 'A') {
         out = { email: d.email, password: pwd };
-        if (body.populate === true) {
+        {
           const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
           const login = await client.auth.signInWithPassword(out);
           if (login.error) throw login.error;
-          await populateDemo(client);
+          if (body.populate === true) await populateDemo(client);
+          await populateLabotest(client);
         }
       }
     }
