@@ -40,6 +40,16 @@ async function ouvrirEspaceSante(page: Page) {
   await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
 }
 
+// Les modules sont rangés dans des groupes repliables : tout déplier avant de vérifier.
+// La liste est relue à chaque tour car le menu se re-rend après chaque clic.
+async function deplierGroupes(menu: ReturnType<Page['locator']>) {
+  for (let i = 0; i < 15; i++) {
+    const ferme = menu.locator('button[aria-expanded="false"]').first();
+    if ((await ferme.count()) === 0) break;
+    await ferme.click();
+  }
+}
+
 for (const role of ROLES) {
   for (const type of TYPES) {
     test.describe(`${type} / ${role}`, () => {
