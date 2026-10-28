@@ -108,6 +108,7 @@ function NouveauRdv({ structureId, jour, praticiens, onClose }: { structureId: s
   const [h, setH] = useState('09:00');
   const [duree, setDuree] = useState(20);
   const [motif, setMotif] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (q.trim().length < 2) { setRes([]); return; }
@@ -119,7 +120,11 @@ function NouveauRdv({ structureId, jour, praticiens, onClose }: { structureId: s
   }, [q, structureId]);
 
   const save = async () => {
+    if (busy) return;
     if (!patient || !praticien) return toast.error('Patient et praticien obligatoires');
+    if (!Number.isInteger(duree) || duree < 5 || duree > 240) return toast.error('Durée attendue : entre 5 et 240 minutes.');
+    setBusy(true);
+    try {
     const { error } = await supabase.from('sante_rendez_vous').insert({
       structure_id: structureId, patient_id: patient.id, praticien_id: praticien,
       debut: new Date(`${jour}T${h}:00`).toISOString(), duree_min: duree, motif: motif || null,
@@ -127,6 +132,8 @@ function NouveauRdv({ structureId, jour, praticiens, onClose }: { structureId: s
     if (error) return toast.error(error.message);
     toast.success('Rendez-vous enregistré');
     onClose();
+    } catch { toast.error('Rendez-vous non enregistré. Vérifiez votre connexion.'); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -148,7 +155,7 @@ function NouveauRdv({ structureId, jour, praticiens, onClose }: { structureId: s
         <div><Label htmlFor="rdv-d">Durée (min)</Label><Input id="rdv-d" type="number" min={5} max={240} value={duree} onChange={e => setDuree(Number(e.target.value))} /></div>
         <div><Label htmlFor="rdv-m">Motif</Label><Input id="rdv-m" value={motif} onChange={e => setMotif(e.target.value)} /></div>
       </div>
-      <div className="flex gap-2 justify-end"><Button variant="ghost" onClick={onClose}>Annuler</Button><Button onClick={save}>Enregistrer</Button></div>
+      <div className="flex gap-2 justify-end"><Button disabled={busy} variant="ghost" onClick={onClose}>Annuler</Button><Button disabled={busy} onClick={save}>{busy ? 'Enregistrement…' : 'Enregistrer'}</Button></div>
     </div>
   );
 }

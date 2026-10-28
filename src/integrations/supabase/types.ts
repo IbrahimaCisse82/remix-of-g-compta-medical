@@ -7698,6 +7698,11 @@ export type Database = {
         Args: { _consultation_id: string; _lignes: Json }
         Returns: number
       }
+      sante_document_patient_effectif: {
+        Args: { _path: string }
+        Returns: string
+      }
+      sante_document_sans_fiche: { Args: { _path: string }; Returns: boolean }
       sante_doublons_patient: {
         Args: {
           _date_naissance: string

@@ -1,0 +1,1 @@
+CREATE POLICY sante_docs_orphan_owner_read ON storage.objects FOR SELECT TO authenticated USING (bucket_id='sante-documents' AND owner_id=auth.uid()::text AND public.mfa_conforme() AND public.can_access_patient(public.sante_storage_patient(name)) AND public.sante_document_sans_fiche(name));
