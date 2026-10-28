@@ -689,13 +689,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const { error: clErr } = await supabase.rpc('fn_cloturer_exercice', { _exercice_id: exercice.id });
       if (clErr) throw clErr;
 
-      await loadExerciceData(exercice);
+      await loadExerciceData(exercice.id, exercices, exercice);
       toast.success(`Exercice ${exercice.annee} clôturé.`);
     } catch (err: any) {
       toast.error('Erreur clôture: ' + (err?.message || 'Erreur inconnue'));
     }
     setLoading(false);
-  }, [exercice, entreprise, balance, balanceN1, loadExerciceData]);
+  }, [exercice, exercices, entreprise, balance, balanceN1, loadExerciceData]);
 
   return (
     <AppContext.Provider value={{
