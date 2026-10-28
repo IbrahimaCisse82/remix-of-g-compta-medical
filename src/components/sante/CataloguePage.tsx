@@ -16,6 +16,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const [an, setAn] = useState({ code: '', libelle: '', section: 'biochimie', tube: '', echantillon: 'Sang veineux', delai: '24', tarif: '', param: '', unite: '', type: 'numerique' });
   const [derog, setDerog] = useState(false);
   const [ac, setAc] = useState({ code: '', libelle: '', tarif: '' });
+  const [analyseBusy, setAnalyseBusy] = useState(false);
 
   const load = useCallback(async () => {
     const [a, b, c] = await Promise.all([
@@ -33,12 +34,19 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
     const uid = pr.moi ? (await supabase.auth.getUser()).data.user?.id ?? null : null;
     if (ok((await supabase.from('sante_praticiens').insert({ structure_id: structureId, nom: pr.nom, specialite: pr.specialite, numero_ordre: pr.numero_ordre, email: m || null, user_id: uid })).error, 'Praticien ajouté')) setPr({ nom: '', specialite: '', numero_ordre: '', email: '', moi: false }); };
   const lierMoi = async (id: string) => { const uid = (await supabase.auth.getUser()).data.user?.id; if (uid) ok((await supabase.from('sante_praticiens').update({ user_id: uid }).eq('id', id)).error, 'Fiche reliée à votre compte'); };
-  const addAn = async (e: React.FormEvent) => { e.preventDefault(); const t = Number(an.tarif), d = Number(an.delai); if (!(t >= 0)) return toast.error('Tarif invalide'); if (!an.param.trim()) return toast.error('Indiquez au moins un paramètre mesuré');
-    const r = await supabase.from('sante_analyses').insert({ structure_id: structureId, code: an.code.trim().toUpperCase(), libelle: an.libelle.trim(), section: an.section, tube: an.tube || null, echantillon: an.echantillon || null, delai_heures: d > 0 ? d : 24, tarif: t } as any).select('id').single();
-    if (!ok(r.error, 'Analyse ajoutée')) return;
-    const p = await supabase.from('sante_analyse_parametres').insert({ structure_id: structureId, analyse_id: r.data!.id, code: an.code.trim().toUpperCase(), libelle: an.param.trim(), unite: an.unite || null, type: an.type, ordre: 0 } as any);
-    if (p.error) toast.error('Paramètre non enregistré : ' + p.error.message);
-    setAn({ ...an, code: '', libelle: '', tarif: '', param: '', unite: '' }); };
+  const addAn = async (e: React.FormEvent) => {
+    e.preventDefault(); if (analyseBusy) return;
+    const t = Number(an.tarif), d = Number(an.delai);
+    if (!Number.isSafeInteger(t) || t < 0) return toast.error('Tarif FCFA entier positif ou nul obligatoire');
+    if (!Number.isSafeInteger(d) || d <= 0) return toast.error('Délai positif obligatoire');
+    if (!an.param.trim()) return toast.error('Indiquez au moins un paramètre mesuré');
+    setAnalyseBusy(true);
+    try {
+      const r = await supabase.rpc('sante_catalogue_creer_analyse', { _structure_id: structureId, _code: an.code, _libelle: an.libelle, _section: an.section, _tarif: t, _delai: d, _tube: an.tube, _echantillon: an.echantillon, _parametre: an.param, _unite: an.unite, _type: an.type });
+      if (!ok(r.error, 'Analyse et paramètre ajoutés')) return;
+      setAn({ ...an, code: '', libelle: '', tarif: '', param: '', unite: '' });
+    } finally { setAnalyseBusy(false); }
+  };
   const addAc = async (e: React.FormEvent) => { e.preventDefault(); const t = Number(ac.tarif); if (!(t >= 0)) return toast.error('Tarif invalide'); if (ok((await supabase.from('sante_actes').insert({ structure_id: structureId, code: ac.code.trim().toUpperCase(), libelle: ac.libelle, tarif: t })).error, 'Acte ajouté')) setAc({ code: '', libelle: '', tarif: '' }); };
   const toggle = async (table: 'sante_praticiens' | 'sante_actes' | 'sante_analyses', id: string, actif: boolean) => ok((await supabase.from(table).update({ actif: !actif }).eq('id', id)).error, actif ? 'Désactivé' : 'Réactivé');
   const tarif = async (table: 'sante_actes' | 'sante_analyses', id: string, v: string) => { const t = Number(v); if (t >= 0) ok((await supabase.from(table).update({ tarif: t }).eq('id', id)).error, 'Tarif mis à jour'); };
@@ -80,7 +88,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
           <Input required aria-label="Paramètre mesuré" placeholder="Paramètre mesuré (ex. Glucose)" value={an.param} onChange={e => setAn({ ...an, param: e.target.value })} />
           <Input aria-label="Unité" placeholder="Unité (ex. g/L)" value={an.unite} onChange={e => setAn({ ...an, unite: e.target.value })} />
           <select aria-label="Type de résultat" className="h-10 rounded-md border border-border bg-background px-2 text-sm" value={an.type} onChange={e => setAn({ ...an, type: e.target.value })}><option value="numerique">Nombre</option><option value="qualitatif">Positif / négatif</option><option value="texte">Texte</option></select>
-          <Button size="sm" className="md:col-span-4" aria-label="Ajouter l’analyse"><Plus /> Ajouter l’analyse</Button>
+          <Button size="sm" className="md:col-span-4" aria-label="Ajouter l’analyse" disabled={analyseBusy}><Plus /> Ajouter l’analyse</Button>
         </form>
         {analyses.length === 0 && <p className="text-xs text-fg3">Aucune analyse.</p>}
         {analyses.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_analyses', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle} <span className="text-xs text-fg3">· {a.section} · rendu {a.delai_heures} h</span></span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_analyses', a.id, e.target.value)} /></Ligne>)}
