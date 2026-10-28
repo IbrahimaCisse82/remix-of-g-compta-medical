@@ -30,7 +30,8 @@ describe.skipIf(!url||!service||!key)('Livraison caisse — clôture et rembours
  });
  it('clôture refuse le montant fractionnaire et verrouille le fond initial',async()=>{
   expect((await c.rpc('sante_fermer_caisse',{_session_id:session,_compte:5000.5})).error).toBeTruthy();
-  expect((await c.from('sante_sessions_caisse').update({fond_initial:0}).eq('id',session)).error).toBeTruthy();
+  const changed=await c.from('sante_sessions_caisse').update({fond_initial:0}).eq('id',session).select('id');expect(changed.error || changed.data?.length===0).toBeTruthy();
+  const unchanged=await c.from('sante_sessions_caisse').select('fond_initial').eq('id',session).single();expect(unchanged.data?.fond_initial).toBe(5000);
   const closed=await c.rpc('sante_fermer_caisse',{_session_id:session,_compte:5000});expect(closed.error).toBeNull();expect(closed.data).toBe(0);
   expect((await c.rpc('sante_fermer_caisse',{_session_id:session,_compte:5000})).error).toBeTruthy();
  });
