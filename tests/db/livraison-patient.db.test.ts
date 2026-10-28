@@ -47,4 +47,15 @@ describe.skipIf(!url || !service || !key)('Livraison dossier patient — API ré
     const row=await admin.from('sante_documents_patient').select('patient_id,storage_path').eq('id',doc).single();expect(row.data).toEqual({patient_id:duplicate,storage_path:path});
     expect((await owner.rpc('sante_document_patient_effectif',{_path:path})).data).toBe(duplicate);
   });
+  it('le déposant nettoie un fichier sans fiche mais ne peut supprimer un document clinique lié',async()=>{
+    const orphan=`${sid}/${duplicate}/${randomBytes(8).toString('hex')}.txt`;
+    expect((await owner.storage.from('sante-documents').upload(orphan,new Blob(['recette']))).error).toBeNull();
+    expect((await owner.rpc('sante_document_sans_fiche',{_path:orphan})).data).toBe(true);
+    expect((await owner.storage.from('sante-documents').remove([orphan])).error).toBeNull();
+    expect((await owner.rpc('sante_document_sans_fiche',{_path:path})).data).toBe(false);
+    await owner.storage.from('sante-documents').remove([path]);
+    const files=await admin.storage.from('sante-documents').list(`${sid}/${duplicate}`);
+    expect(files.data?.some(f=>f.name===path.split('/').pop())).toBe(true);
+    expect(files.data?.some(f=>f.name===orphan.split('/').pop())).toBe(false);
+  });
 });
