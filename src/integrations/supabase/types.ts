@@ -2557,6 +2557,7 @@ export type Database = {
           derniere_connexion: string | null
           email: string
           entreprise_id: string
+          expire_le: string | null
           id: string
           jeton: string
           nom: string | null
@@ -2573,6 +2574,7 @@ export type Database = {
           derniere_connexion?: string | null
           email: string
           entreprise_id: string
+          expire_le?: string | null
           id?: string
           jeton?: string
           nom?: string | null
@@ -2589,6 +2591,7 @@ export type Database = {
           derniere_connexion?: string | null
           email?: string
           entreprise_id?: string
+          expire_le?: string | null
           id?: string
           jeton?: string
           nom?: string | null
