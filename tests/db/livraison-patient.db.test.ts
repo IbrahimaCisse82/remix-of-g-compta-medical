@@ -25,7 +25,8 @@ describe.skipIf(!url || !service || !key)('Livraison dossier patient — API ré
     }
     path=`${sid}/${duplicate}/${randomBytes(8).toString('hex')}.txt`;
     const up=await owner.storage.from('sante-documents').upload(path,new Blob(['document fictif'],{type:'text/plain'}));if(up.error)throw up.error;
-    const d=await owner.from('sante_documents_patient').insert({structure_id:sid,patient_id:duplicate,nom:'Document de recette',storage_path:path,mime_type:'text/plain',taille_octets:16}).select('id').single();if(d.error)throw d.error;doc=d.data?.id || '';
+    const d=await owner.from('sante_documents_patient').insert({structure_id:sid,patient_id:duplicate,nom:'Document de recette',storage_path:path,mime_type:'text/plain',taille_octets:16});if(d.error)throw d.error;
+    const savedDoc=await admin.from('sante_documents_patient').select('id').eq('storage_path',path).single();doc=savedDoc.data?.id || '';
   });
   it('un doublon est détecté avant de créer un troisième dossier',async()=>{
     const r=await owner.rpc('sante_creer_patient',{_structure_id:sid,_nom:'RECETTE',_prenoms:`Patient${run}`,_sexe:'F',_date_naissance:'1990-04-12'});expect(r.error?.message).toContain('DOUBLON_POSSIBLE');
