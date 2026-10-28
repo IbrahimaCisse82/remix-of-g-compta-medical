@@ -1,5 +1,22 @@
 # Plan de livraison G-Santé ERP
-Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
+Mise à jour : 28 octobre 2026
+
+## Livraison module par module — périmètre décidé par Ibou le 28/10
+Twilio/SMS et l’option commerciale abonnement sont exclus de la livraison. Les écritures récurrentes comptables restent dans le périmètre. Aucun historique financier ni droit d’accès ne doit être supprimé pour masquer ces options.
+- [ ] Retirer les options abonnement et SMS de l’expérience livrée, sans affaiblir les contrôles serveur.
+- [ ] 1. Structure, sites et équipe : terminer les parcours et tester création, invitations, habilitations et révocations.
+- [ ] 2. Patients : identification, doublons, fusion, consentement et documents.
+- [ ] 3. Agenda et consultations : rendez-vous, soin, prescriptions et certificats.
+- [ ] 4. Laboratoire/catalogue : demandes, résultats, validations et remise ; catalogue réel attendu du client.
+- [ ] 5. Qualité et réactifs : réceptions, consommation, péremptions et non-conformités.
+- [ ] 6. Facturation/caisse : tarifs, avoirs, remboursements, clôture et comptabilisation.
+- [ ] 7. Tiers payant : conventions, prises en charge, rejets et règlements partiels.
+- [ ] 8. Portail patient et e-mails : remise, expiration, révocation et réception réelle (validation du domaine externe).
+- [ ] 9. Plannings, gardes et rétrocessions : bases, calcul, validation, paiement et annulation.
+- [ ] 10. Comptabilité SYSCOHADA : poursuivre les corrections ci-dessous ; certification suspendue aux références officielles et au visa professionnel.
+- [ ] 11. Banque, stocks/pharmacie, paie, immobilisations, provisions, lettrage, budget et analytique : recette complète de chaque module successivement.
+- [ ] 12. Livraison : structure réelle, rôles réels, sauvegarde/restauration, recette client et autorisation de publication.
+Un module n’est clos qu’après correction et vérification de ses parcours ; les validations externes restent explicitement bloquantes.
 
 ## Déjà fait (vérifié dans le code)
 - [x] Environnement unique Santé + compta ; conformité SYSCOHADA complète non démontrée (audit du 28/10)
@@ -34,7 +51,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 ## Sprint 3 — Préparer la livraison (2 jours)
 - [x] Journal des e-mails (28/10) dans Structure & équipe : accès administrateur avec MFA, événements gérés corrélés aux identifiants fournisseur des rappels e-mail existants, filtres et diagnostics, aucun stockage parallèle. 5 tests métier + 4 tests endpoint réel réussis ; écran et actualisation vérifiés avec administrateur connecté. Aucun envoi métier rattaché actuellement ; domaine en vérification et déclencheurs e-mail métier non branchés, donc réception/envoi réel non vérifié. Les e-mails de connexion restent dans Plus → E-mails car ils ne sont pas attribuables à une structure.
 - [x] Démonstration PME 1 peuplée (28/10) : 12 patients fictifs, 4 actes, 6 analyses et paramètres fictifs, 6 consultations/factures, 3 encaissements, 4 demandes labo (facturation automatique), 6 rendez-vous, 3 lots de réactifs, 3 plannings, 1 organisme et 1 règle de rétrocession. Second peuplement sans doublons ; patients/factures vérifiés à l’écran et bouton démo testé avec l’origine d’aperçu autorisée ; 2 tests d’isolation réussis ; outbox comptabilisée et écritures équilibrées. Aucune donnée des structures réelles ni rôle existant modifié. Tarifs de démonstration uniquement, sans résultats cliniques validés ni notifications externes.
-- [ ] Reconnecter Twilio dans le nouveau workspace — connexion non finalisée par l’utilisateur le 28/10 ; aucune notification envoyée. Avant SMS réels : vérifier abonnement, Sender ID, protection anti-fraude et pays autorisés.
+- [x] Twilio/SMS retiré du périmètre de livraison à la demande d’Ibou le 28/10 ; aucune connexion ni émission à activer.
 - [x] Import de relevés CSV/TSV et rapprochement bancaire persistant (27/10) : sélection des colonnes, contrôle dates/montants, doublons bloqués, propositions non ambiguës, rapprochement manuel, annulation et audit. Parcours connecté testé à l'écran avec une écriture de 10 000 FCFA, persistance après réouverture ; 146 tests métier et 70 tests base réussis.
 - [x] Menu latéral filtré par type de structure (cabinet/laboratoire/mixte) et par rôle (27/10) : matrice de visibilité centralisée, rôles lus depuis la base à l'entrée dans l'espace santé, protections serveur inchangées ; 19 tests couvrant les 30 combinaisons type × rôle ; vérifié à l'écran avec un caissier (pas de Patients ni saisie comptable) et une secrétaire (pas de caisse ni comptabilité)
 - [x] Accès direct aux modules testé en base (27/10) : 225 tests prouvant qu'un utilisateur qui contourne le menu est refusé par la base, pour chaque type de structure × rôle (patients, consultations, demandes d'analyses, factures, comptabilité, journaux d'accès, paramètres, création de patient) ; 292 tests base au total, tous verts
@@ -66,7 +83,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 - [ ] Validation normative — attend la revue des mappings « à valider » et le visa d’un expert-comptable.
 
 ## Après livraison (selon tiers externes)
-- [ ] SMS Twilio (compte payant + Sender ID G-SANTE)
+- Twilio/SMS et abonnement commercial : exclus, ne pas réactiver sans nouvelle demande.
 - [ ] E-mails praticien/patient : domaine notify.g-sante.app déjà configuré dans l'historique ; vérifier les parcours de notification et la réception réelle, ne pas confondre e-mails de connexion et notifications métier
 - [ ] DGID e-facturation réelle
 - [ ] Validations juriste/CDP, expert-comptable, biologiste
