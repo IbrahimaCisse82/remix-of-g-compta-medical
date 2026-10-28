@@ -533,6 +533,13 @@
       "when": 1793215642580,
       "tag": "0075_configuration_conflit_sans_retry",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1793216021560,
+      "tag": "0076_sante_parcours_validations",
+      "breakpoints": true
     }
   ]
 }

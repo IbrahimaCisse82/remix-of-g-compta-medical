@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { messageErreur } from '@/lib/erreurs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const CATEGORIES = ['toutes', 'consultation', 'acte', 'analyses', 'autres'] as const;
 const MODES = ['especes', 'virement', 'cheque', 'mobile_money'] as const;
@@ -34,6 +35,8 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
   const [simulation, setSimulation] = useState<{ praticien: string; base: number; montant_brut: number; retenue: number; montant_net: number; nb_factures: number; nb_avoirs: number; categories: Record<string, { base: number; taux: number; montant: number }> } | null>(null);
   const [paiement, setPaiement] = useState<Record<string, { mode: string; reference: string }>>({});
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [annulation, setAnnulation] = useState<string | null>(null), [motifAnnulation, setMotifAnnulation] = useState('');
 
   const load = useCallback(async () => {
     const [p, r, t] = await Promise.all([
@@ -41,6 +44,8 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
       supabase.from('sante_retrocession_regles').select('id, praticien_id, categorie, taux, actif').eq('structure_id', structureId).order('created_at'),
       supabase.from('sante_retrocessions').select('id, praticien_id, numero, periode_debut, periode_fin, base, montant_brut, retenue, montant_net, statut, mode_paiement, reference_paiement, motif_annulation').eq('structure_id', structureId).order('valide_le', { ascending: false }).limit(100),
     ]);
+    if (p.error || r.error || t.error) { setError('Impossible de charger les rétrocessions.'); return; }
+    setError('');
     setPraticiens(p.data ?? []);
     setRegles(r.data ?? []);
     setRetros(t.data ?? []);
@@ -53,6 +58,7 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
   const ajouterRegle = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!regle.praticien_id || regle.taux === '') return;
+    if (!Number.isFinite(Number(regle.taux)) || Number(regle.taux) < 0 || Number(regle.taux) > 100) return toast.error('Taux entre 0 et 100 requis.');
     const { error } = await supabase.from('sante_retrocession_regles').insert({
       structure_id: structureId, praticien_id: regle.praticien_id, categorie: regle.categorie, taux: Number(regle.taux),
     });
@@ -69,6 +75,8 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
   const calculer = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!calcul.praticien_id || !calcul.debut || !calcul.fin) return;
+    if (busy) return;
+    if (calcul.fin < calcul.debut) return toast.error('Période invalide.');
     setBusy(true);
     setSimulation(null);
     const { data, error } = await supabase.rpc('sante_calcul_retrocession', { _praticien_id: calcul.praticien_id, _debut: calcul.debut, _fin: calcul.fin });
@@ -78,6 +86,7 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
   };
 
   const valider = async () => {
+    if (busy || !simulation) return;
     setBusy(true);
     const { error } = await supabase.rpc('sante_valider_retrocession', { _praticien_id: calcul.praticien_id, _debut: calcul.debut, _fin: calcul.fin });
     setBusy(false);
@@ -86,22 +95,29 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
   };
 
   const payer = async (id: string) => {
+    if (busy) return;
     const p = paiement[id] ?? { mode: 'especes', reference: '' };
+    if (p.mode !== 'especes' && !p.reference.trim()) return toast.error('Référence du paiement obligatoire.');
+    setBusy(true);
     const { error } = await supabase.rpc('sante_payer_retrocession', { _id: id, _mode: p.mode, _reference: p.reference || null });
+    setBusy(false);
     if (error) toast.error(messageErreur(error));
     else { toast.success('Paiement enregistré.'); await load(); }
   };
 
   const annuler = async (id: string) => {
-    const motif = window.prompt('Motif d’annulation (obligatoire) :');
-    if (!motif || motif.trim().length < 3) { if (motif !== null) toast.error('Le motif est obligatoire.'); return; }
-    const { error } = await supabase.rpc('sante_annuler_retrocession', { _id: id, _motif: motif.trim() });
+    if (busy || motifAnnulation.trim().length < 10) return;
+    setBusy(true);
+    const { error } = await supabase.rpc('sante_annuler_retrocession', { _id: id, _motif: motifAnnulation.trim() });
+    setBusy(false);
     if (error) toast.error(messageErreur(error));
-    else { toast.success('Rétrocession annulée.'); await load(); }
+    else { setAnnulation(null); toast.success('Rétrocession annulée.'); await load(); }
   };
 
   return (
     <div className="max-w-6xl space-y-6">
+      {error && <div role="alert" className="text-destructive">{error}<Button variant="outline" onClick={() => void load()}>Réessayer</Button></div>}
+      <Dialog open={!!annulation} onOpenChange={open => { if (!open && !busy) setAnnulation(null); }}><DialogContent><DialogHeader><DialogTitle>Annuler la rétrocession</DialogTitle></DialogHeader><Label htmlFor="retro-motif">Motif d’annulation</Label><Input id="retro-motif" value={motifAnnulation} disabled={busy} onChange={e => setMotifAnnulation(e.target.value)} /><DialogFooter><Button variant="ghost" disabled={busy} onClick={() => setAnnulation(null)}>Fermer</Button><Button disabled={busy || motifAnnulation.trim().length < 10} onClick={() => { if (annulation) void annuler(annulation); }}>Confirmer l’annulation</Button></DialogFooter></DialogContent></Dialog>
       <div><p className="text-xs font-mono uppercase text-primary mb-1">Équipe</p><h1 className="font-serif text-3xl">Rétrocessions des praticiens</h1></div>
       <div className="flex flex-wrap gap-1">
         {([['retros', 'Rétrocessions'], ['regles', 'Règles de taux']] as const).map(([k, l]) => <Button key={k} size="sm" variant={onglet === k ? 'secondary' : 'ghost'} onClick={() => setOnglet(k)}>{l}</Button>)}
@@ -193,8 +209,8 @@ export default function RetrocessionsPage({ structureId }: { structureId: string
                           <SelectContent>{MODES.map(m => <SelectItem key={m} value={m}>{m.replace('_', ' ')}</SelectItem>)}</SelectContent>
                         </Select>
                         <Input className="w-48" placeholder="Référence (optionnel)" value={paiement[r.id]?.reference ?? ''} onChange={e => setPaiement({ ...paiement, [r.id]: { mode: paiement[r.id]?.mode ?? 'especes', reference: e.target.value } })} />
-                        <Button size="sm" onClick={() => void payer(r.id)}><Banknote />Marquer payée</Button>
-                        <Button size="sm" variant="ghost" onClick={() => void annuler(r.id)}><X />Annuler</Button>
+                        <Button size="sm" disabled={busy} onClick={() => void payer(r.id)}><Banknote />Marquer payée</Button>
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setMotifAnnulation(''); setAnnulation(r.id); }}><X />Annuler</Button>
                       </div>
                     )}
                   </div>

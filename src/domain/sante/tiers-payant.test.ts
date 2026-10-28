@@ -18,4 +18,8 @@ describe('bordereau', () => {
     const r = bordereauParOrganisme([b('IPM', 8000), b('IPM', -8000), b('IPM', 5000), b('AXA', 3000), b(null, 0)]);
     expect(r.map(g => [g.organisme, g.total])).toEqual([['AXA', 3000], ['IPM', 5000]]);
   });
+  it('exclut les factures annulées sans exclure les avoirs valides', () => {
+    const r = bordereauParOrganisme([{ ...b('IPM', 8000), annulee: true }, b('IPM', 10000), b('IPM', -2000)]);
+    expect(r[0].total).toBe(8000); expect(r[0].lignes).toHaveLength(2);
+  });
 });

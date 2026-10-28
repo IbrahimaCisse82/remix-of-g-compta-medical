@@ -47,9 +47,12 @@ Deno.serve(async (req) => {
     if (!p) return json({ error: 'Patient introuvable' }, 404);
     const { data: ok } = await user.rpc('has_any_medical_role', { _structure_id: p.structure_id, _roles: ['admin_structure', 'secretaire', 'medecin', 'biologiste'] });
     if (!ok) return json({ error: 'Accès refusé' }, 403);
+    const { data: mfa } = await user.rpc('mfa_conforme');
+    if (mfa !== true) return json({ error: 'MFA requise' }, 403);
     const heures = body.heures === 24 ? 24 : 48;
     const t = rand(32);
-    await admin.from('sante_portail_patient').insert({ structure_id: p.structure_id, patient_id: p.id, type: 'lien', secret_hash: await sha(t), expire_le: new Date(Date.now() + heures * 3600_000).toISOString(), cree_par: u.user.id });
+    const saved = await admin.from('sante_portail_patient').insert({ structure_id: p.structure_id, patient_id: p.id, type: 'lien', secret_hash: await sha(t), expire_le: new Date(Date.now() + heures * 3600_000).toISOString(), cree_par: u.user.id });
+    if (saved.error) return json({ error: 'Lien non enregistré' }, 500);
     await admin.from('medical_access_log').insert({ structure_id: p.structure_id, patient_id: p.id, user_id: u.user.id, ecran: 'portail', motif: 'Lien portail patient créé' }).then(() => {}, () => {});
     return json({ token: t, expire_heures: heures });
   }
@@ -124,7 +127,7 @@ Deno.serve(async (req) => {
     const t = String(body.token ?? '');
     if (!/^[0-9a-f]{64}$/.test(t)) return json({ error: 'Lien invalide' }, 400);
     if (await limite(`data:${ip}`, 60)) return json({ error: 'Trop de requêtes' }, 429);
-    const { data: acc } = await admin.from('sante_portail_patient').select('patient_id, structure_id, expire_le').eq('secret_hash', await sha(t)).eq('type', 'session').gt('expire_le', new Date().toISOString()).maybeSingle();
+    const { data: acc } = await admin.from('sante_portail_patient').select('patient_id, structure_id, expire_le').eq('secret_hash', await sha(t)).eq('type', 'session').eq('utilise', false).gt('expire_le', new Date().toISOString()).maybeSingle();
     if (!acc) return json({ error: 'Session expirée. Demandez un nouvel accès.' }, 401);
     const [{ data: patient }, { data: structure }, { data: ords }, { data: dems }] = await Promise.all([
       admin.from('sante_patients').select('numero_dossier, nom, prenoms, sexe, date_naissance').eq('id', acc.patient_id).single(),
@@ -136,7 +139,7 @@ Deno.serve(async (req) => {
     const sensibles = (dems ?? []).filter((d: any) => (d.resultats ?? []).some((r: any) => r.parametre?.analyse?.sensible));
     const publiables = (dems ?? []).filter((d: any) => !sensibles.includes(d));
     const remettables = [];
-    for (const d of publiables) { const { data: ok } = await admin.rpc('sante_cr_remettable', { _demande_id: d.id }); if (ok !== false) remettables.push(d); }
+    for (const d of publiables) { const { data: ok, error } = await admin.rpc('sante_cr_remettable', { _demande_id: d.id }); if (!error && ok === true) remettables.push(d); }
     await admin.from('medical_access_log').insert({ structure_id: acc.structure_id, patient_id: acc.patient_id, user_id: null, ecran: 'portail', motif: 'Consultation par le patient' }).then(() => {}, () => {});
     return json({ patient, structure, ordonnances: ords ?? [], comptes_rendus: remettables, en_attente_reglement: publiables.length - remettables.length, a_retirer_sur_place: sensibles.length, expire_le: acc.expire_le });
   }
