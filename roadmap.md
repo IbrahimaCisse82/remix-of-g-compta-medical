@@ -33,6 +33,7 @@ Mise à jour : 27 octobre 2026 (d'après l'historique du code et la base)
 
 ## Sprint 3 — Préparer la livraison (2 jours)
 - [ ] Peupler une démonstration complète fictive dans PME 1, isolée des structures réelles ; vérifier les données et leur affichage sans modifier les rôles existants (demande du 28/10).
+- [ ] Reconnecter Twilio dans le nouveau workspace (demande du 28/10).
 - [x] Import de relevés CSV/TSV et rapprochement bancaire persistant (27/10) : sélection des colonnes, contrôle dates/montants, doublons bloqués, propositions non ambiguës, rapprochement manuel, annulation et audit. Parcours connecté testé à l'écran avec une écriture de 10 000 FCFA, persistance après réouverture ; 146 tests métier et 70 tests base réussis.
 - [x] Menu latéral filtré par type de structure (cabinet/laboratoire/mixte) et par rôle (27/10) : matrice de visibilité centralisée, rôles lus depuis la base à l'entrée dans l'espace santé, protections serveur inchangées ; 19 tests couvrant les 30 combinaisons type × rôle ; vérifié à l'écran avec un caissier (pas de Patients ni saisie comptable) et une secrétaire (pas de caisse ni comptabilité)
 - [x] Accès direct aux modules testé en base (27/10) : 225 tests prouvant qu'un utilisateur qui contourne le menu est refusé par la base, pour chaque type de structure × rôle (patients, consultations, demandes d'analyses, factures, comptabilité, journaux d'accès, paramètres, création de patient) ; 292 tests base au total, tous verts
