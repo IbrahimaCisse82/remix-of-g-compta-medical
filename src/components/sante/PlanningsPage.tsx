@@ -28,6 +28,7 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
   const [forfaits, setForfaits] = useState({ garde: '', astreinte: '' });
   const [f, setF] = useState({ membership_id: '', type: 'poste' as string, debut: '', fin: '', note: '' });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     const debut = `${mois}-01T00:00:00Z`;
@@ -36,10 +37,12 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
     const [m, p, pf, u] = await Promise.all([
       supabase.from('structure_memberships').select('id, user_id').eq('structure_id', structureId).eq('statut', 'actif'),
       supabase.from('sante_plannings').select('id, membership_id, type, debut, fin, statut, note, valide_le').eq('structure_id', structureId)
-        .gte('debut', debut).lt('debut', finMois.toISOString()).order('debut'),
+        .gt('fin', debut).lt('debut', finMois.toISOString()).order('debut'),
       supabase.from('sante_personnel_parametres').select('forfait_garde, forfait_astreinte').eq('structure_id', structureId).maybeSingle(),
       supabase.auth.getUser(),
     ]);
+    if (m.error || p.error || pf.error) { setError('Impossible de charger les plannings.'); return; }
+    setError('');
     // Chaque utilisateur ne lit que son propre profil (RLS) : nom complet pour soi, repère court pour les autres.
     let monNom = '';
     if (u.data.user) {
@@ -64,6 +67,8 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
   const ajouter = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!f.membership_id || !f.debut || !f.fin) return;
+    if (saving) return;
+    if (new Date(f.fin).getTime() <= new Date(f.debut).getTime()) return toast.error('La fin doit être postérieure au début.');
     setSaving(true);
     const { error } = await supabase.from('sante_plannings').insert({
       structure_id: structureId, membership_id: f.membership_id, type: f.type,
@@ -86,6 +91,8 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
   };
 
   const sauverForfaits = async () => {
+    if (saving) return;
+    if (![forfaits.garde, forfaits.astreinte].every(v => Number.isSafeInteger(Number(v)) && Number(v) >= 0)) return toast.error('Forfaits FCFA entiers positifs ou nuls requis.');
     const { error } = await supabase.from('sante_personnel_parametres').upsert({
       structure_id: structureId, forfait_garde: Number(forfaits.garde || 0), forfait_astreinte: Number(forfaits.astreinte || 0), updated_at: new Date().toISOString(),
     }, { onConflict: 'structure_id' });
@@ -95,6 +102,7 @@ export default function PlanningsPage({ structureId }: { structureId: string }) 
 
   return (
     <div className="max-w-6xl space-y-6">
+      {error && <div role="alert" className="text-destructive">{error}<Button variant="outline" onClick={() => void load()}>Réessayer</Button></div>}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-xs font-mono uppercase text-primary mb-1">Équipe</p><h1 className="font-serif text-3xl">Plannings et gardes</h1></div>
         <div><Label htmlFor="mois" className="sr-only">Mois</Label><Input id="mois" type="month" value={mois} onChange={e => setMois(e.target.value)} className="w-40" /></div>
