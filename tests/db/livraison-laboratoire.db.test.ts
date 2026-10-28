@@ -34,7 +34,7 @@ describe.skipIf(!url || !service || !key)('Livraison laboratoire — rectificati
   });
   it('le parcours complet conserve original, version, empreinte et alerte de traitement du rectificatif', async () => {
     for (const statut of ['recue', 'en_analyse']) expect((await c.rpc('sante_avancer_demande', { _demande_id: demande, _statut: statut })).error).toBeNull();
-    expect((await c.rpc('sante_saisir_resultat', { _demande_id: demande, _parametre_id: param, _valeur_texte: 'original' })).error).toBeNull();
+    expect((await c.rpc('sante_saisir_resultat', { _demande_id: demande, _parametre_id: param, _valeur_num: null, _valeur_texte: 'original' })).error).toBeNull();
     for (const niveau of ['technique', 'biologique']) expect((await c.rpc('sante_valider_demande', { _demande_id: demande, _niveau: niveau })).error).toBeNull();
     const original = await c.from('sante_demandes_labo').select('version,cr_hash').eq('id', demande).single(); expect(original.error).toBeNull(); expect(original.data?.version).toBe(1);
     const correction = await c.rpc('sante_rectifier_resultat_v2', { _demande_id: demande, _parametre_id: param, _valeur_num: null, _valeur_texte: '0012', _motif: 'Correction fictive de recette', _traitement_deja_prescrit: true });

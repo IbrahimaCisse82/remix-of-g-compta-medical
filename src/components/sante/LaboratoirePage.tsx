@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2, FlaskConical, Plus, Printer, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,14 +131,19 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [lesAnalyses, setLesAnalyses] = useState<{ id: string; libelle: string }[]>([]);
   const [rect, setRect] = useState<{ parametre: string; valeur: string; motif: string; traitement: boolean } | null>(null);
   const [rectBusy, setRectBusy] = useState(false);
+  const saving = useRef(new Set<string>());
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('sante_demandes_labo').select('*, patient:sante_patients(nom, prenoms, sexe, date_naissance, numero_dossier)').eq('id', id).maybeSingle();
+    const { data, error } = await supabase.from('sante_demandes_labo').select('*, patient:sante_patients(nom, prenoms, sexe, date_naissance, numero_dossier)').eq('id', id).maybeSingle();
+    if (error || !data) { setLoadError(error?.message ?? 'Demande introuvable ou accès refusé'); return; }
+    setLoadError('');
     setD(data);
-    const [{ data: das }, { data: r }] = await Promise.all([
+    const [{ data: das, error: analyseError }, { data: r, error: resultatError }] = await Promise.all([
       supabase.from('sante_demande_analyses').select('analyse:sante_analyses(id, libelle, parametres:sante_analyse_parametres(id, code, libelle, unite, type, decimales, ordre))').eq('demande_id', id),
       supabase.from('sante_resultats').select('*').eq('demande_id', id),
     ]);
+    if (analyseError || resultatError) { setLoadError((analyseError ?? resultatError)?.message ?? 'Résultats indisponibles'); return; }
     setLesAnalyses((das ?? []).map((x: any) => ({ id: x.analyse.id, libelle: x.analyse.libelle })));
     setParams((das ?? []).flatMap((x: any) => [...x.analyse.parametres].sort((a: any, b: any) => a.ordre - b.ordre).map((p: any) => ({ ...p, analyse: x.analyse.libelle }))));
     setRes(new Map((r ?? []).map(x => [x.parametre_id, x])));
@@ -156,6 +161,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
     }
   }, [id]);
   useEffect(() => { void load(); }, [load]);
+  if (loadError) return <div className="space-y-3"><Button variant="ghost" onClick={onBack}><ArrowLeft />Demandes</Button><p role="alert" className="text-destructive">{loadError}</p><Button variant="outline" onClick={() => void load()}>Réessayer</Button></div>;
   if (!d) return <p className="text-sm text-fg3">Chargement…</p>;
 
   const avancer = async (statut: string) => {
@@ -169,14 +175,18 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
     toast.success(niveau === 'technique' ? 'Validation technique enregistrée' : 'Résultats validés'); await load();
   };
   const enregistrer = async (p: (typeof params)[number]) => {
+    if (saving.current.has(p.id)) return;
     const raw = (saisie[p.id] ?? '').trim();
     if (!raw) return;
     let valeur;
     try { valeur = valeurResultat(p.type, raw); } catch (error) { return toast.error((error as Error).message); }
+    saving.current.add(p.id);
+    try {
     const { data, error } = await supabase.rpc('sante_saisir_resultat', { _demande_id: id, _parametre_id: p.id, ...valeur });
     if (error) return toast.error(error.message);
     if (estCritique(data as Drapeau)) toast.error(`Valeur critique sur ${p.libelle} : prévenir le prescripteur puis acquitter`);
     setSaisie(s => ({ ...s, [p.id]: '' })); await load();
+    } finally { saving.current.delete(p.id); }
   };
   const acquitter = async (rid: string) => {
     const { error } = await supabase.rpc('sante_acquitter_critique', { _resultat_id: rid });
@@ -235,7 +245,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
               <td className="p-2 text-xs">{LIBELLE_DRAPEAU[f]}{r && estCritique(f) && (r.critique_acquitte_le ? <span className="block text-fg3">acquitté</span> : <Button size="sm" variant="destructive" className="ml-2 h-7" onClick={() => acquitter(r.id)}><AlertTriangle />Acquitter</Button>)}</td>
               <td className="p-2 text-xs">{(() => { const a = anterieurs.get(pa.id); if (a === undefined) return '—'; const dc = r?.valeur_num != null ? deltaCheck(Number(r.valeur_num), a) : null; return <span className={dc?.alerte ? 'text-destructive font-semibold' : ''}>{a}{dc ? ` (${dc.variation > 0 ? '+' : ''}${dc.variation} %)` : ''}{dc?.alerte ? ' Δ' : ''}</span>; })()}</td>
               {st === 'validee' && <td className="p-2">{r && <Button size="sm" variant="ghost" onClick={() => setRect({ parametre: pa.id, valeur: '', motif: '', traitement: false })}>Rectifier</Button>}</td>}
-              {st === 'en_analyse' && <td className="p-2"><Input aria-label={`Saisie ${pa.libelle}`} className="h-8 w-28" inputMode={pa.type === 'numerique' ? 'decimal' : 'text'} value={saisie[pa.id] ?? ''} onChange={e => setSaisie(s => ({ ...s, [pa.id]: e.target.value }))} onBlur={() => enregistrer(pa)} onKeyDown={e => e.key === 'Enter' && enregistrer(pa)} /></td>}
+              {st === 'en_analyse' && <td className="p-2"><Input aria-label={`Saisie ${pa.libelle}`} className="h-8 w-28" inputMode={pa.type === 'numerique' ? 'decimal' : 'text'} value={saisie[pa.id] ?? ''} onChange={e => setSaisie(s => ({ ...s, [pa.id]: e.target.value }))} onBlur={() => enregistrer(pa)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void enregistrer(pa); } }} /></td>}
             </tr>;
           })}</tbody>
         </table>
