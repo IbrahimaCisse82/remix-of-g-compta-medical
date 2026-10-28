@@ -173,8 +173,8 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
         <OrganismesPayeurs structureId={structureId} onChanged={() => setOrganismesRefresh(v => v + 1)} />
         <Button variant="outline" onClick={() => setVue('factures')}>Créer une facture avec prise en charge</Button>
         <ReglementOrganismeCard structureId={structureId} refresh={refresh + organismesRefresh} onChanged={() => { void load(); setRefresh(v => v + 1); }} />
-        <CreancesOrganismesCard key={refresh} structureId={structureId} />
-        <ConventionsCard key={organismesRefresh} structureId={structureId} />
+        <CreancesOrganismesCard refresh={refresh} structureId={structureId} />
+        <ConventionsCard key={`conventions-${organismesRefresh}`} structureId={structureId} />
       </> : <>
       <section className="border border-border bg-bg2 rounded-md p-5 flex flex-wrap items-end gap-3">
         {session ? (<>

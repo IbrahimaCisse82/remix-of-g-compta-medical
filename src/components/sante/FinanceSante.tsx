@@ -348,10 +348,10 @@ export function BonsPecCard({ structureId, patientId, organismes }: { structureI
 }
 
 /** Créances par organisme (âge), relances imprimables, provision des créances douteuses. */
-export function CreancesOrganismesCard({ structureId }: { structureId: string }) {
+export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structureId: string; refresh?: number }) {
   const [rows, setRows] = useState<any[]>([]);
   const load = () => db.rpc('sante_creances_organismes', { _structure_id: structureId }).then(({ data, error }: any) => { if (!error) setRows(data ?? []); });
-  useEffect(() => { load(); }, [structureId]);
+  useEffect(() => { load(); }, [structureId, refresh]);
   if (!rows.length) return null;
   const relancer = async (o: string) => {
     const { data, error } = await db.rpc('sante_relancer', { _structure_id: structureId, _organisme: o });
