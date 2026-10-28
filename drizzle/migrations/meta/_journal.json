@@ -470,6 +470,13 @@
       "when": 1793209840356,
       "tag": "0066_sante_rectificatif_empreinte_atomique",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793210042692,
+      "tag": "0067_sante_catalogue_creation_atomique",
+      "breakpoints": true
     }
   ]
 }

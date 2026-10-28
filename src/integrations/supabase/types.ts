@@ -7513,6 +7513,22 @@ export type Database = {
         Args: { _debut: string; _fin: string; _praticien_id: string }
         Returns: Json
       }
+      sante_catalogue_creer_analyse: {
+        Args: {
+          _code: string
+          _delai: number
+          _echantillon: string
+          _libelle: string
+          _parametre: string
+          _section: string
+          _structure_id: string
+          _tarif: number
+          _tube: string
+          _type: string
+          _unite: string
+        }
+        Returns: string
+      }
       sante_categorie_code: {
         Args: { _code: string; _structure_id: string }
         Returns: string
