@@ -8068,6 +8068,7 @@ export type Database = {
         Args: { _debut: string; _fin: string; _praticien_id: string }
         Returns: string
       }
+      sante_valider_tva: { Args: { _declaration_id: string }; Returns: string }
       sante_ventes_par_categorie: {
         Args: { _debut: string; _fin: string; _structure_id: string }
         Returns: {
