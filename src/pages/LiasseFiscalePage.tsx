@@ -78,7 +78,7 @@ export default function LiasseFiscalePage() {
       ${buildHeader(entreprise, exercice)}
       <div style="text-align:center;margin-bottom:20px;">
         <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">DÉCLARATION STATISTIQUE ET FISCALE (DSF)</div>
-        <div style="font-size:10px;color:#555;">Exercice clos le ${exercice.date_fin} · ${entreprise.monnaie || 'FCFA'}</div>
+        <div style="font-size:10px;color:#555;">Exercice clos le ${escapeHtml(exercice.date_fin)} · ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
       </div>
 
       <!-- Fiche signalétique -->
@@ -155,7 +155,7 @@ export default function LiasseFiscalePage() {
       ${buildHeader(entreprise, exercice)}
       <div style="text-align:center;margin-bottom:20px;">
         <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">DSF + NOTES ANNEXES — DOSSIER COMPLET</div>
-        <div style="font-size:10px;color:#555;">Exercice clos le ${exercice.date_fin} · ${entreprise.monnaie || 'FCFA'}</div>
+        <div style="font-size:10px;color:#555;">Exercice clos le ${escapeHtml(exercice.date_fin)} · ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
       </div>
 
       <h2 style="font-size:12px;font-weight:bold;color:#0B1F3A;margin:16px 0 8px;">FICHE SIGNALÉTIQUE</h2>

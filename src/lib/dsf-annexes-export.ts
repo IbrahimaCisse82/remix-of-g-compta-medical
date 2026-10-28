@@ -4,6 +4,7 @@
  */
 import type { BalanceLine } from './accounting';
 import { fmt } from './accounting';
+import { escapeHtml } from './impression';
 
 interface NoteCat {
   num: string;
@@ -123,7 +124,7 @@ export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<strin
           <th class="r" style="width:100px">Solde</th>
         </tr></thead><tbody>`;
         for (const r of rows) {
-          html += `<tr><td>${r.compte}</td><td>${r.intitule}</td>
+          html += `<tr><td>${escapeHtml(r.compte)}</td><td>${escapeHtml(r.intitule)}</td>
             <td class="r">${r.sfd ? fmt(r.sfd) : '—'}</td>
             <td class="r">${r.sfc ? fmt(r.sfc) : '—'}</td>
             <td class="r ${r.solde < 0 ? 'neg' : ''}">${fmt(r.solde)}</td></tr>`;
@@ -144,7 +145,7 @@ export function buildAnnexesHtml(balance: BalanceLine[], notesData: Record<strin
         </tr></thead><tbody>`;
         for (const [k, v] of entries) {
           const label = k.replace(note.manualPrefix!, '').replace(/_/g, ' ');
-          html += `<tr><td style="font-family:monospace;font-size:9px;">${label}</td><td>${v}</td></tr>`;
+          html += `<tr><td style="font-family:monospace;font-size:9px;">${escapeHtml(label)}</td><td>${escapeHtml(v)}</td></tr>`;
         }
         html += `</tbody></table>`;
       }
