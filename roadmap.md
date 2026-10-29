@@ -3,6 +3,7 @@ Mise à jour : 29 octobre 2026
 
 ## Checklist des éléments restants — modules santé
 Suivi de la liste transmise le 29/10. Une case cochée indique un élément finalisé et déjà vérifié ; les validations réelles non obtenues restent ouvertes. Cette mise à jour du suivi ne constitue pas une nouvelle recette ni une certification.
+- [ ] Demande du 29/10 à 00:25 : terminer les éléments techniques ouverts, successivement ; compléter d’abord les tests des conventions tiers payant puis les parcours du portail et des e-mails. Domaine notify.g-sante.app encore en attente de configuration DNS, confirmé le 29/10 ; les données et visas métier réels ne doivent pas être inventés.
 
 ### Structure, sites et équipe
 - [x] Créer les espaces réels SOLABSEN SARL et LE MEDICAL KAMAANO SUARL et leurs comptes administrateurs compatibles.
