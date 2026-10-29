@@ -1,5 +1,66 @@
 # Plan de livraison G-Santé ERP
-Mise à jour : 28 octobre 2026
+Mise à jour : 29 octobre 2026
+
+## Checklist des éléments restants — modules santé
+Suivi de la liste transmise le 29/10. Une case cochée indique un élément finalisé et déjà vérifié ; les validations réelles non obtenues restent ouvertes. Cette mise à jour du suivi ne constitue pas une nouvelle recette ni une certification.
+
+### Structure, sites et équipe
+- [x] Créer les espaces réels SOLABSEN SARL et LE MEDICAL KAMAANO SUARL et leurs comptes administrateurs compatibles.
+- [x] Sauvegarder automatiquement la configuration, reprendre après connexion et vérifier l’isolation des deux entreprises.
+- [ ] Faire terminer la configuration réelle par chaque administrateur : coordonnées, mentions légales et paramètres.
+- [ ] Confirmer les fonctions des collaborateurs et attribuer leurs rôles réels ; activer la MFA des administrateurs.
+
+### Dossiers patients
+- [x] Vérifier création, modification, fusion/restauration, documents et consentement signé.
+- [ ] Obtenir les textes de consentement validés et les règles de conservation approuvées.
+
+### Agenda et consultations
+- [x] Vérifier rendez-vous, anti-chevauchement, sauvegarde/clôture et addendum.
+- [ ] Faire valider les documents et pratiques par les soignants.
+
+### Laboratoire et catalogue réel
+- [x] Vérifier le parcours jusqu’à la remise, les résultats typés et les corrections historisées.
+- [ ] Renseigner le catalogue, les tarifs et les références biologiques réels.
+- [ ] Obtenir la validation du biologiste sur ces données et le parcours réel.
+
+### Catalogue Labotest
+- [x] Intégrer les 192 lignes de démonstration, la recherche et les quatre grilles en lecture seule, sans modifier les catalogues réels.
+- [ ] Valider séparément le catalogue réel du laboratoire ; la démonstration ne remplace pas cette validation.
+
+### Qualité et réactifs
+- [x] Vérifier réception, consommation concurrente, péremption, contrôle qualité, EEQ et clôture des non-conformités.
+- [ ] Faire approuver les paramètres et procédures par le laboratoire.
+
+### Facturation et caisse
+- [x] Vérifier facture, encaissement, avoir, remboursement, comptabilisation et clôture sans écart.
+- [ ] Confirmer les tarifs réels, mentions légales et règles fiscales avec la structure et son conseil.
+
+### Tiers payant
+- [x] Vérifier organismes, couverture, ventilation patient/organisme, règlements partiels et historique.
+- [x] Partager les ajouts au répertoire entre SOLABSEN et KAMAANO sans partager conventions, patients ou finances.
+- [x] Renforcer les rejets, exclure les factures annulées des bordereaux et tester la bascule du reliquat vers le patient.
+- [ ] Terminer la recette exhaustive des conventions réelles, exclusions, plafonds et rejets.
+
+### Import des règlements organismes
+- [x] Vérifier import, rapprochement, confirmation explicite, enregistrement atomique et réimport sans doublon à l’écran.
+- [ ] Tester les formats de relevés réellement utilisés par les organismes clients.
+
+### Balance âgée
+- [x] Vérifier les tranches 0–30, 31–60, 61–90 et plus de 90 jours, les totaux et le classement des cinq principaux débiteurs.
+- [ ] Faire rapprocher les soldes d’ouverture et créances réelles par le responsable financier.
+
+### Portail patient et e-mails
+- [x] Tester lien à usage unique, expiration, session et révocation des liens et sessions ; renforcer le contrôle de remise en ligne.
+- [x] Vérifier le journal des e-mails réservé aux administrateurs de leur structure.
+- [ ] Compléter la recette finale de remise en ligne avec les conditions métier réelles.
+- [ ] Vérifier la validation du domaine notify.g-sante.app, raccorder les notifications métier et prouver leur réception réelle.
+
+### Plannings, gardes et rétrocessions
+- [x] Vérifier les gardes intermois, refus de chevauchement concurrent et forfaits FCFA entiers.
+- [x] Tester calcul, validation, paiement, refus du double paiement et annulation d’une rétrocession validée non payée.
+- [ ] Terminer la recette complète avec les règles réelles de garde, rémunération et annulation approuvées par la structure.
+
+Les modules avec des cases ouvertes ne sont pas finalisés pour une mise en service réelle. Twilio/SMS et abonnements commerciaux restent exclus.
 
 ## Livraison module par module — périmètre décidé par Ibou le 28/10
 Twilio/SMS et l’option commerciale abonnement sont exclus de la livraison. Les écritures récurrentes comptables restent dans le périmètre. Aucun historique financier ni droit d’accès ne doit être supprimé pour masquer ces options.
