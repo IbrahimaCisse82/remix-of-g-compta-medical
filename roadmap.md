@@ -3,7 +3,7 @@ Mise à jour : 29 octobre 2026
 
 ## Checklist des éléments restants — modules santé
 Suivi de la liste transmise le 29/10. Une case cochée indique un élément finalisé et déjà vérifié ; les validations réelles non obtenues restent ouvertes. Cette mise à jour du suivi ne constitue pas une nouvelle recette ni une certification.
-- [ ] Demande du 29/10 à 00:25 : terminer les éléments techniques ouverts, successivement ; compléter d’abord les tests des conventions tiers payant puis les parcours du portail et des e-mails. Domaine notify.g-sante.app encore en attente de configuration DNS, confirmé le 29/10 ; les données et visas métier réels ne doivent pas être inventés.
+- [ ] Demande du 29/10 à 00:25 (relancée le 30/10) : conventions tiers payant terminées et testées le 30/10. Reste les e-mails métier : domaine notify.g-sante.app toujours « en attente » DNS au 30/10 13:15 — attend l'ajout des enregistrements DNS chez le fournisseur du domaine, puis le choix des notifications à envoyer.
 
 ### Structure, sites et équipe
 - [x] Créer les espaces réels SOLABSEN SARL et LE MEDICAL KAMAANO SUARL et leurs comptes administrateurs compatibles.
@@ -40,7 +40,8 @@ Suivi de la liste transmise le 29/10. Une case cochée indique un élément fina
 - [x] Vérifier organismes, couverture, ventilation patient/organisme, règlements partiels et historique.
 - [x] Partager les ajouts au répertoire entre SOLABSEN et KAMAANO sans partager conventions, patients ou finances.
 - [x] Renforcer les rejets, exclure les factures annulées des bordereaux et tester la bascule du reliquat vers le patient.
-- [ ] Terminer la recette exhaustive des conventions réelles, exclusions, plafonds et rejets.
+- [x] Recette technique des conventions (30/10) : conventions expirées ou futures n'appliquent plus leur franchise/plafond, exclusion, combinaison franchise + plafond + remise + plafond assurance, assurance expirée refusée, bon de prise en charge verrouillé contre deux factures simultanées et bon épuisé ne couvrant plus rien. 6 tests API + 19 tests de non-régression réussis.
+- [ ] Recette avec les conventions réelles des organismes clients (taux, plafonds, exclusions) — attend leurs conventions signées.
 
 ### Import des règlements organismes
 - [x] Vérifier import, rapprochement, confirmation explicite, enregistrement atomique et réimport sans doublon à l’écran.
