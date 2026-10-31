@@ -13,7 +13,7 @@ Plan détaillé : https://claude.ai/artifact/LgypZNrvjZCinpMdBUxv1W
 - [ ] Lot 5 — Comptabilité SYSCOHADA : visa expert-comptable.
 - [ ] Lot 6 — Mise en service (DNS e-mails, préproduction, sauvegarde/restauration, publication, formation, PV, CDP).
   - [x] Export de sauvegarde v2 (49 rubriques : tiers payant, caisse, paramétrage labo, consentements, membres) et procédure `docs/livraison/sauvegarde-restauration.md` (migration 0082).
-  - [ ] Essai de restauration en préproduction ; isolement des données de test ; publication — attendent une décision.
+  - [ ] Décisions du 31/10 : données de test laissées en l'état (invisibles des clients) ; préproduction et essai de restauration reportés ; redéploiement des fonctions serveur (g-sante.app) à lancer par Ibrahima dans Lovable ; publication après recette.
 
 ## Checklist des éléments restants — modules santé
 Suivi de la liste transmise le 29/10. Une case cochée indique un élément finalisé et déjà vérifié ; les validations réelles non obtenues restent ouvertes. Cette mise à jour du suivi ne constitue pas une nouvelle recette ni une certification.
