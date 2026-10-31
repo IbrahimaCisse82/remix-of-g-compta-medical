@@ -44,7 +44,9 @@ export const VISIBILITE_MODULES: Partial<Record<PageId, RegleVisibilite>> = {
   // ─── Clinique & soins ───
   sante_patients: { roles: EQUIPE_CLINIQUE },
   sante_agenda: { structures: CLINIQUE, roles: ['admin_structure', 'medecin', 'secretaire'] },
-  stocks: { structures: CLINIQUE, roles: ['admin_structure', 'medecin', 'secretaire'] },
+  // Gestion du stock (articles, entrées, inventaire) : écriture comptable du dossier. Médecin et secrétaire voient
+  // le stock disponible au moment de la délivrance, dans la consultation.
+  stocks: { structures: CLINIQUE, roles: ['admin_structure', 'comptable'] },
   sante_plannings: {}, // tout membre consulte les plannings ; l'écriture reste réservée côté serveur
   sante_retrocessions: { structures: CLINIQUE, roles: ['admin_structure', 'medecin', 'comptable'] },
 
