@@ -80,7 +80,7 @@ export default function ProvisionsPage() {
     const lines = lignesDotationProvision(p, ctx)
       .map(l => ({ ...l, piece: `${l.piece}-${exercice.annee}` }));
     try {
-      await enregistrerLignesJournal(lines as any, { origine: 'provision' });
+      await enregistrerLignesJournal(lines as any, { origine: 'provision', pieceUnique: true });
       toast.success(`Dotation ${fmt(p.montant_actuel)} comptabilisée (${lines[0].piece})`);
     } catch (e) { toast.error((e as Error).message); }
   };

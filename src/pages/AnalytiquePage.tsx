@@ -55,7 +55,10 @@ export default function AnalytiquePage() {
     if (!entreprise || !exercice || !selectedAxe || !ventEntryId || !ventCentre) return;
     const entry = journal.find(j => j.id === ventEntryId);
     if (!entry) return;
-    const montant = ((entry.debit || 0) - (entry.credit || 0)) * ventPct / 100;
+    if (!(ventPct > 0 && ventPct <= 100)) return void toast.error('Le pourcentage doit être compris entre 0 et 100.');
+    const deja = ventilations.filter(v => v.journal_entry_id === ventEntryId && v.axe_id === selectedAxe).reduce((t, v) => t + Number(v.pourcentage || 0), 0);
+    if (deja + ventPct > 100.0001) return void toast.error(`Cette ligne est déjà ventilée à ${deja.toLocaleString('fr-FR')} % sur cet axe : il reste ${(100 - deja).toLocaleString('fr-FR')} %.`);
+    const montant = Math.round(((entry.debit || 0) - (entry.credit || 0)) * ventPct) / 100;
     const { error } = await supabase.from('ventilations_analytiques').insert({
       entreprise_id: entreprise.id, exercice_id: exercice.id,
       journal_entry_id: ventEntryId, axe_id: selectedAxe,

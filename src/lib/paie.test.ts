@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_PAIE_PARAMS, calculerPaie, calculerIRAnnuelParPart,
-  calculerTRIMF, getTauxAnciennete, type Employee,
+  calculerTRIMF, getTauxAnciennete, genererEcrituresPaie, type Employee,
 } from './paie';
 
 const emp = (over: Partial<Employee> = {}): Employee => ({
@@ -83,5 +83,27 @@ describe('primes de garde (lien G-Santé › Personnel)', () => {
     expect(avec.brut - sans.brut).toBe(20000);
     expect(avec.ipres_rg_s).toBeGreaterThan(sans.ipres_rg_s);
     expect(calculerPaie({ ...emp, prime_gardes: -5 }, DEFAULT_PAIE_PARAMS).prime_gardes).toBe(0);
+  });
+});
+
+describe('Paie — écriture du journal PA (SYSCOHADA révisé)', () => {
+  const ref = new Date('2026-02-28');
+  const lot = [calculerPaie(emp({ salaire_base: 312345 }), DEFAULT_PAIE_PARAMS, ref), calculerPaie(emp({ statut: 'cadres', salaire_base: 987654, enfants: 2 }), DEFAULT_PAIE_PARAMS, ref)];
+  const lignes = genererEcrituresPaie(lot, '2026-02', 'x', 'e');
+
+  it('est équilibrée, en FCFA entiers et datée de la fin du mois', () => {
+    const d = lignes.reduce((s, l) => s + l.debit, 0), c = lignes.reduce((s, l) => s + l.credit, 0);
+    expect(d).toBe(c);
+    expect(lignes.every(l => Number.isInteger(l.debit) && Number.isInteger(l.credit))).toBe(true);
+    expect(new Set(lignes.map(l => l.date_ecriture))).toEqual(new Set(['2026-02-28']));
+  });
+  it('impute sur les comptes du plan révisé', () => {
+    const comptes = new Set(lignes.map(l => l.compte));
+    for (const x of ['6611', '6634', '6641', '6413', '4471', '4313', '4311', '4312', '4472', '422']) expect(comptes.has(x)).toBe(true);
+    for (const x of ['421000', '648000', '432100', '431100', '664200']) expect(comptes.has(x)).toBe(false);
+  });
+  it('fait apparaître le net dû à quelques francs près du total des bulletins', () => {
+    const net = lignes.find(l => l.compte === '422')!.credit;
+    expect(Math.abs(net - lot.reduce((s, b) => s + b.net_payer, 0))).toBeLessThanOrEqual(5);
   });
 });

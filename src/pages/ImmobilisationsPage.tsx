@@ -116,7 +116,7 @@ export default function ImmobilisationsPage() {
       },
     ];
     try {
-      await enregistrerLignesJournal(lines as any, { origine: 'immobilisation' });
+      await enregistrerLignesJournal(lines as any, { origine: 'immobilisation', pieceUnique: true });
       toast.success(`Dotation ${fmt(row.dotation)} comptabilisée (pièce ${piece})`);
     } catch (e) { toast.error((e as Error).message); }
   };
@@ -162,7 +162,7 @@ export default function ImmobilisationsPage() {
         debit: 0, credit: Math.round(prix) },
     ];
     try {
-      await enregistrerLignesJournal(lines as any, { origine: 'cession_immo' });
+      await enregistrerLignesJournal(lines as any, { origine: 'cession_immo', pieceUnique: true });
     } catch (e) { toast.error((e as Error).message); return; }
     await supabase.from('immobilisations').update({ statut: 'cede' }).eq('id', it.id);
     const pmv = prix - vnc;
