@@ -1,5 +1,14 @@
 # Plan de livraison G-Santé ERP
-Mise à jour : 29 octobre 2026
+Mise à jour : 31 octobre 2026
+
+## Plan de finalisation (31/10) — livraison cible 30/11/2026
+Plan détaillé : https://claude.ai/artifact/LgypZNrvjZCinpMdBUxv1W
+- [x] Lot 1 — Catalogue SOLABSEN : fiche analyse branchée sur Catalogue & tarifs (paramètres, valeurs de référence, case « résultat sensible »), avancement de la validation et filtres (PR #12). Reste : saisie et activation par le biologiste.
+- [x] Lot 2 — Écrans manquants reconstruits (PR #13) : délivrance en consultation, alertes de stock et consommation de réactifs par analyse, plannings rattachés aux salariés + primes de garde dans le bulletin, supervision/journal/export + alerte de passage d'année.
+- [ ] Lot 3 — Paramétrage réel SOLABSEN et KAMAANO (données clients).
+- [ ] Lot 4 — Recette métier avec les utilisateurs réels.
+- [ ] Lot 5 — Comptabilité SYSCOHADA : visa expert-comptable.
+- [ ] Lot 6 — Mise en service (DNS e-mails, préproduction, sauvegarde/restauration, publication, formation, PV, CDP).
 
 ## Checklist des éléments restants — modules santé
 Suivi de la liste transmise le 29/10. Une case cochée indique un élément finalisé et déjà vérifié ; les validations réelles non obtenues restent ouvertes. Cette mise à jour du suivi ne constitue pas une nouvelle recette ni une certification.
@@ -95,7 +104,7 @@ Un module n’est clos qu’après correction et vérification de ses parcours ;
 - [x] Environnement unique Santé + compta ; conformité SYSCOHADA complète non démontrée (audit du 28/10)
 - [x] Sécurité P0–P3 (MFA, cloisonnement, bris de glace, laboratoire)
 - [x] P4 : allergies, doses pédiatriques, portail lien unique, résultats sensibles masqués, fusion deux temps, consentement signé
-- [x] P5 : stocks pharmacie/réactifs, plannings/gardes/paie, rétrocessions, supervision, sauvegarde
+- [x] P5 : stocks pharmacie/réactifs, plannings/gardes/paie, rétrocessions, supervision, sauvegarde (écrans effacés par la synchronisation du 22/10, reconstruits le 31/10 — PR #13)
 - [x] Tablette/ordinateur, accès serveur restreint à g-sante.app, guide utilisateur
 - [x] Création atomique structure + patient (22/10)
 
@@ -142,7 +151,7 @@ Un module n’est clos qu’après correction et vérification de ses parcours ;
 - [ ] Formation réalisée, guide remis et procès-verbal de recette signé par le client
 - [ ] Autorisation CDP et revue juridique avant toute mise en service avec de vrais patients — statut actuel à confirmer avec la structure (la note de conformité ne prouve pas l'obtention)
 
-- [ ] Passage d'année : ouvrir l'exercice suivant au 1er janvier (sinon la compta santé se met en attente)
+- [ ] Passage d'année : ouvrir l'exercice 2027 avant le 1er janvier (alerte affichée dans Paramètres › supervision depuis le 31/10)
 
 ## Remise en conformité SYSCOHADA — demande du 28 octobre 2026
 - [x] Corrections chiffrées résultat et bilan, rabais, signes, amortissements, 6812 ; premiers correctifs TFT sans réécriture historique. Tests de non-régression ajoutés.
