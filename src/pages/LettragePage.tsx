@@ -1,6 +1,7 @@
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { chargerTout } from '@/lib/pagination';
 import { cleTiers, controlerSelection, pairesAutomatiques, prochainCode } from '@/lib/lettrage';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,9 +42,10 @@ export default function LettragePage() {
   // Load existing lettrages
   const loadLettrages = useCallback(async () => {
     if (!entreprise || !exercice) return;
-    const { data } = await supabase.from('lettrage').select('*')
-      .eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id);
-    if (data) setLettrages(data as any[]);
+    try {
+      setLettrages(await chargerTout<LettrageEntry>((de, a) => supabase.from('lettrage').select('*')
+        .eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id).order('id').range(de, a)));
+    } catch (e) { toast.error((e as Error).message); }
   }, [entreprise, exercice]);
 
   useEffect(() => { void loadLettrages(); }, [loadLettrages]);
