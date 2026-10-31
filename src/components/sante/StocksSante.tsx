@@ -115,10 +115,10 @@ export function ReactifsParAnalyse({ structureId }: { structureId: string }) {
       <h2 className="font-semibold">Consommation automatique par analyse</h2>
       <p className="text-xs text-fg3">À chaque validation technique, les quantités ci-dessous sont déduites des lots (le plus proche de la péremption d’abord). Un manque de stock est signalé mais ne bloque jamais la validation.</p>
       <form onSubmit={ajouter} className="grid grid-cols-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,1fr)_auto] gap-2">
-        <select aria-label="Analyse" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.analyse_id} onChange={e => setF({ ...f, analyse_id: e.target.value })}>
+        <select aria-label="Analyse" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.analyse_id} onFocus={() => void load()} onChange={e => setF({ ...f, analyse_id: e.target.value })}>
           <option value="">Analyse…</option>{analyses.map(a => <option key={a.id} value={a.id}>{a.code} · {a.libelle}</option>)}
         </select>
-        <select aria-label="Réactif" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.reactif_id} onChange={e => setF({ ...f, reactif_id: e.target.value })}>
+        <select aria-label="Réactif" className="h-10 w-full min-w-0 bg-bg3 border border-border rounded-md px-2 text-sm" value={f.reactif_id} onFocus={() => void load()} onChange={e => setF({ ...f, reactif_id: e.target.value })}>
           <option value="">Réactif…</option>{reactifs.map(r => <option key={r.id} value={r.id}>{r.nom} ({r.unite})</option>)}
         </select>
         <Input aria-label="Quantité par test" inputMode="decimal" value={f.q} onChange={e => setF({ ...f, q: e.target.value })} />
