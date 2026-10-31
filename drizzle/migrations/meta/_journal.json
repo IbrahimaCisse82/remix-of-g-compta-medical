@@ -617,6 +617,20 @@
       "when": 1793464000000,
       "tag": "0087_sante_factures_ouvertes_organisme",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1793465000088,
+      "tag": "0088_role_comptable_membres_sante",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1793465000089,
+      "tag": "0089_sante_praticien_relier_moi",
+      "breakpoints": true
     }
   ]
 }

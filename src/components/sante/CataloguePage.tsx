@@ -45,7 +45,8 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const addPr = async (e: React.FormEvent) => { e.preventDefault(); const m = pr.email.trim().toLowerCase(); if (m && !VALID_MAIL.test(m)) return toast.error('Adresse e-mail invalide');
     const uid = pr.moi ? (await supabase.auth.getUser()).data.user?.id ?? null : null;
     if (ok((await supabase.from('sante_praticiens').insert({ structure_id: structureId, nom: pr.nom, specialite: pr.specialite, numero_ordre: pr.numero_ordre, email: m || null, user_id: uid })).error, 'Praticien ajouté')) setPr({ nom: '', specialite: '', numero_ordre: '', email: '', moi: false }); };
-  const lierMoi = async (id: string) => { const uid = (await supabase.auth.getUser()).data.user?.id; if (uid) ok((await supabase.from('sante_praticiens').update({ user_id: uid }).eq('id', id)).error, 'Fiche reliée à votre compte'); };
+  // Fonction serveur : un médecin ou un biologiste non administrateur peut relier sa propre fiche (la mise à jour directe lui est interdite).
+  const lierMoi = async (id: string) => { if (ok((await supabase.rpc('sante_praticien_relier_moi', { _praticien_id: id })).error, 'Fiche reliée à votre compte')) await load(); };
   const addAn = async (e: React.FormEvent) => {
     e.preventDefault(); if (analyseBusy) return;
     const t = Number(an.tarif), d = Number(an.delai);

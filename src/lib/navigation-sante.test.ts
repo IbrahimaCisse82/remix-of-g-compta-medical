@@ -36,7 +36,9 @@ describe('filtrage du menu — type de structure', () => {
     expect(visible('sante_laboratoire', 'mixte', ['biologiste'])).toBe(true);
     expect(visible('sante_qualite', 'mixte', ['biologiste'])).toBe(true);
     expect(visible('sante_retrocessions', 'mixte', ['medecin'])).toBe(true);
-    expect(visible('stocks', 'mixte', ['medecin'])).toBe(true);
+    // Gestion du stock réservée à l'administrateur et au comptable (le médecin voit le stock en délivrant).
+    expect(visible('stocks', 'mixte', ['comptable'])).toBe(true);
+    expect(visible('stocks', 'mixte', ['medecin'])).toBe(false);
   });
 
   it("l'accueil santé et les plannings restent visibles pour tout type et tout rôle", () => {

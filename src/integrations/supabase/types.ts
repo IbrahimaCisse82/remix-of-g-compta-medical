@@ -8356,6 +8356,10 @@ export type Database = {
         Args: { _entreprise_id: string; _secteur: string }
         Returns: undefined
       }
+      sante_praticien_relier_moi: {
+        Args: { _praticien_id: string }
+        Returns: undefined
+      }
       stock_enregistrer_mouvement: {
         Args: {
           _article_id: string
