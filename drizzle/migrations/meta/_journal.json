@@ -603,6 +603,20 @@
       "when": 1793462000000,
       "tag": "0085_stock_mouvement_serveur",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1793463000000,
+      "tag": "0086_suppression_lecture_anonyme_demo",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1793464000000,
+      "tag": "0087_sante_factures_ouvertes_organisme",
+      "breakpoints": true
     }
   ]
 }

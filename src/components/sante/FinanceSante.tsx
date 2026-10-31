@@ -13,6 +13,7 @@ import { MODES_PAIEMENT } from '@/domain/sante/tiers-payant';
 import { imputationsValides, conventionValide } from '@/lib/tiers-payant-saisie';
 import ImportReglements from './ImportReglements';
 import { classerDebiteurs, totauxBalance } from '@/lib/reglements-import';
+import { chargerTout } from '@/lib/pagination';
 const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
@@ -119,21 +120,14 @@ export function ReglementOrganismeCard({ structureId, refresh = 0, onChanged }: 
     if (!o) return;
     setLoading(true);
     try {
+      // Factures restant à régler, calculées en base (imputations et rejets définitifs déduits), toutes pages lues.
       const [f, h] = await Promise.all([
-        db.from('sante_factures').select('id, numero, part_organisme, organisme, statut_tiers, created_at').eq('structure_id', structureId).eq('organisme', o).eq('type', 'facture').eq('annulee', false).gt('part_organisme', 0).order('created_at').limit(1000),
+        chargerTout((de, a) => db.rpc('sante_factures_ouvertes_organisme', { _structure_id: structureId, _organisme: o }).range(de, a)),
         db.from('sante_reglements_organisme').select('id,montant,mode,reference,created_at').eq('structure_id', structureId).eq('organisme', o).order('created_at', { ascending: false }).limit(20),
       ]);
-      if (f.error || h.error) throw f.error ?? h.error;
-      const ids = (f.data ?? []).map((x: any) => x.id);
-      const [im, re] = ids.length ? await Promise.all([
-        db.from('sante_reglement_imputations').select('facture_id,montant').eq('structure_id', structureId).in('facture_id', ids),
-        db.from('sante_tiers_rejets').select('facture_id,montant,type').eq('structure_id', structureId).in('facture_id', ids),
-      ]) : [{ data: [], error: null }, { data: [], error: null }];
-      if (im.error || re.error) throw im.error ?? re.error;
+      if (h.error) throw h.error;
       if (ticket !== request.current) return;
-      const avecReste = (f.data ?? []).map((x: any) => ({ ...x, reste: Number(x.part_organisme) - (im.data ?? []).filter((i: any) => i.facture_id === x.id).reduce((s: number, i: any) => s + Number(i.montant), 0) - (re.data ?? []).filter((i: any) => i.facture_id === x.id && ['perte','non_prise_en_charge'].includes(i.type)).reduce((s: number, i: any) => s + Number(i.montant), 0) }));
-      setFactures(avecReste.filter((x: any) => x.reste > 0)); setHistory(h.data ?? []);
-      if ((f.data ?? []).length === 1000) setError('Affichage limité aux 1 000 premières factures.');
+      setFactures(f.map((x: any) => ({ ...x, reste: Number(x.reste) }))); setHistory(h.data ?? []);
     } catch (e) { if (ticket === request.current) setError((e as Error).message); }
     finally { if (ticket === request.current) setLoading(false); }
   };
