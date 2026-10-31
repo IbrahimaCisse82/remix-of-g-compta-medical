@@ -24,6 +24,7 @@ import EquipeCard from '@/components/sante/EquipeCard';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
 import BibliothequeConsentements from '@/components/sante/BibliothequeConsentements';
+import ExploitationPage from '@/components/sante/ExploitationPage';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
@@ -48,7 +49,7 @@ const VUES: { v: HealthView; label: string; Icon: typeof LayoutDashboard }[] = [
 export type HealthView = 'accueil' | 'pilotage' | 'patients' | 'agenda' | 'laboratoire' | 'qualite' | 'facturation' | 'catalogue' | 'plannings' | 'retrocessions' | 'parametres';
 
 export default function HealthShell({ embeddedView }: { embeddedView?: HealthView } = {}) {
-  const { medicalStructure, medicalRoles, logout } = useApp();
+  const { medicalStructure, medicalRoles, logout, entreprise } = useApp();
   // Filtrage d'affichage selon le type de structure et les rôles du membre.
   const ctxNav: ContexteNavigation = { typeStructure: medicalStructure?.type ?? null, roles: medicalRoles };
   const vuesVisibles = VUES.filter(({ v }) => moduleVisible(`sante_${v}` as PageId, ctxNav));
@@ -169,6 +170,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               </div>
               {medicalStructure && medicalRoles.includes('admin_structure') && <EquipeCard structureId={medicalStructure.id} type={medicalStructure.type} />}
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <section className="mt-8"><ExploitationPage key={medicalStructure.id} structureId={medicalStructure.id} structureNom={medicalStructure.nom} entrepriseId={entreprise?.id ?? null} /></section>}
               {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={medicalStructure.id} structureId={medicalStructure.id} />}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { NonConformites, Eeq, Echantillons } from './QualiteLabo';
+import { AlertesStockCard, ReactifsParAnalyse } from './StocksSante';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ export default function QualitePage({ structureId }: { structureId: string }) {
     <div className="max-w-6xl space-y-6">
       <div><p className="text-xs font-mono uppercase text-primary mb-1">Laboratoire</p><h1 className="font-serif text-3xl">Qualité et réactifs</h1></div>
       <div className="flex flex-wrap gap-1">{tabs.map(([k, l]) => <Button key={k} size="sm" variant={onglet === k ? 'secondary' : 'ghost'} onClick={() => setOnglet(k)}>{l}</Button>)}</div>
-      {onglet === 'cq' ? <ControleQualite structureId={structureId} /> : onglet === 'reactifs' ? <Reactifs structureId={structureId} /> : onglet === 'nc' ? <NonConformites structureId={structureId} /> : onglet === 'eeq' ? <Eeq structureId={structureId} /> : <Echantillons structureId={structureId} />}
+      {onglet === 'cq' ? <ControleQualite structureId={structureId} /> : onglet === 'reactifs' ? <><AlertesStockCard structureId={structureId} /><Reactifs structureId={structureId} /><ReactifsParAnalyse structureId={structureId} /></> : onglet === 'nc' ? <NonConformites structureId={structureId} /> : onglet === 'eeq' ? <Eeq structureId={structureId} /> : <Echantillons structureId={structureId} />}
     </div>
   );
 }
