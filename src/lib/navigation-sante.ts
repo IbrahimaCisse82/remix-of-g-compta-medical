@@ -37,6 +37,7 @@ const LABO: TypeStructure[] = ['laboratoire', 'mixte'];
 
 const COMPTA_LECTURE: RoleMedical[] = ['admin_structure', 'comptable', 'lecteur'];
 const COMPTA_ECRITURE: RoleMedical[] = ['admin_structure', 'comptable'];
+// Le caissier consulte la trésorerie ; les écritures restent réservées à l'administrateur et au comptable (serveur).
 const TRESORERIE: RoleMedical[] = ['admin_structure', 'comptable', 'caissier'];
 const EQUIPE_CLINIQUE: RoleMedical[] = ['admin_structure', 'medecin', 'biologiste', 'technicien', 'preleveur', 'secretaire'];
 

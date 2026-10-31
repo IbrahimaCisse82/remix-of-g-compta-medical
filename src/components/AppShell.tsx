@@ -1,3 +1,4 @@
+import { useUserRole } from '@/hooks/use-user-role';
 import { useApp, type PageId } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect, useCallback } from 'react';
@@ -224,6 +225,16 @@ function ShortcutsModal({ open, onClose }: { open: boolean; onClose: () => void 
   );
 }
 
+// Pages comptables dont les boutons enregistrent des données : un profil en lecture seule (lecteur, caissier) est
+// prévenu au lieu de découvrir un refus du serveur. La base reste seule juge (RLS et fonctions serveur).
+const PAGES_ECRITURE = new Set(['mobile_money', 'lettrage', 'analytique', 'budget', 'provisions', 'paie', 'stocks', 'tva', 'echeancier', 'immobilisations', 'saisie', 'plan', 'exercices']);
+function BandeauConsultationSeule({ page }: { page: string }) {
+  const { isReadOnly, loading } = useUserRole();
+  const { demo } = useApp();
+  if (demo || loading || !isReadOnly || !PAGES_ECRITURE.has(page)) return null;
+  return <div role="status" className="mx-5 mt-3 rounded-md border border-border bg-bg2 px-3 py-2 text-xs text-fg2">Consultation seule : votre profil permet de lire ces données, pas de les modifier. Les enregistrements sont réservés à l’administrateur et au comptable.</div>;
+}
+
 export default function AppShell() {
   const { env, currentPage, setPage, entreprise, exercice, logout, demo, isExerciceCloture, medicalStructures, launchHealth, loading } = useApp();
   const { user } = useAuth();
@@ -370,6 +381,7 @@ export default function AppShell() {
         </aside>
 
         <main className="flex-1 overflow-y-auto">
+          {!healthView && moduleInDelivery(currentPage) && <BandeauConsultationSeule page={currentPage} />}
           {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell key={medicalStructure.id} embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent key={entreprise?.id ?? 'none'} />}
         </main>
       </div>
