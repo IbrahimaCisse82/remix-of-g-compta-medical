@@ -16,6 +16,7 @@ type Param = { id: string; code: string; libelle: string; unite: string | null; 
 const REF_VIDE: ReferenceSaisie = { sexe: '', ageMin: '0', ageMax: '150', bas: '', haut: '', critiqueBas: '', critiqueHaut: '' };
 const msg = (e: { message: string }) => e.message.includes('row-level') ? 'Réservé à l’administrateur ou au biologiste de la structure' : e.message;
 const ans = (j: number) => Math.round(j / 365.25);
+const fr = (v: number | string | null) => (v == null ? '—' : Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 4 }));
 
 /** Fiche analyse : identité, paramètres mesurés et valeurs de référence, saisis par le biologiste. Aucune valeur proposée par le logiciel. */
 export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved }: { structureId: string; analyseId: string | null; onClose: () => void; onSaved: () => void }) {
@@ -89,7 +90,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
               {p.type === 'numerique' && <>
                 {p.refs.length === 0 ? <p className="text-xs text-fg3">Aucune valeur de référence.</p> :
                   <ul className="space-y-1">{p.refs.map(r => <li key={r.id} className="flex items-center justify-between text-xs border border-border rounded px-2 py-1">
-                    <span>{r.sexe ?? 'Tous'} · {ans(r.age_min_jours)}–{ans(r.age_max_jours)} ans · normal {r.bas ?? '—'} à {r.haut ?? '—'}{(r.critique_bas != null || r.critique_haut != null) && <> · critique &lt; {r.critique_bas ?? '—'} / &gt; {r.critique_haut ?? '—'}</>}</span>
+                    <span>{r.sexe ?? 'Tous'} · {ans(r.age_min_jours)}–{ans(r.age_max_jours)} ans · normal {fr(r.bas)} à {fr(r.haut)}{(r.critique_bas != null || r.critique_haut != null) && <> · critique &lt; {fr(r.critique_bas)} / &gt; {fr(r.critique_haut)}</>}</span>
                     <Button size="sm" variant="ghost" aria-label="Supprimer la valeur de référence" disabled={busy} onClick={() => void delRef(r.id)}><Trash2 /></Button></li>)}</ul>}
                 <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 items-end">
                   <select aria-label={`Sexe ${p.code}`} className="h-9 rounded-md border border-border bg-background px-2 text-xs" value={f.sexe} onChange={e => set('sexe', e.target.value)}><option value="">Tous</option><option value="M">Homme</option><option value="F">Femme</option></select>
