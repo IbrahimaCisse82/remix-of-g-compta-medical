@@ -36,10 +36,13 @@ interface AppState {
   entreprises: Entreprise[];
   medicalStructure: MedicalStructure | null;
   medicalRoles: RoleMedical[];
+  /** Toutes les structures actives de l'utilisateur (sélecteur dans la barre du haut). */
+  medicalStructures: { id: string; nom: string; type: MedicalStructure['type'] }[];
   setPage: (page: PageId) => void;
   launchDemo: (env: EnvMode) => void;
   launchUser: (env: EnvMode) => void;
-  launchHealth: () => Promise<void>;
+  /** Ouvre l'espace Santé ; sans identifiant : dernière structure choisie, sinon la première par ordre alphabétique. */
+  launchHealth: (structureId?: string) => Promise<void>;
   completeHealthOnboarding: (structure: MedicalStructure) => void;
   setWorkspace: (workspace: Workspace) => void;
   logout: () => void;
@@ -131,6 +134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [medicalStructure, setMedicalStructure] = useState<MedicalStructure | null>(null);
   const [medicalRoles, setMedicalRoles] = useState<RoleMedical[]>([]);
+  const [medicalStructures, setMedicalStructures] = useState<AppState['medicalStructures']>([]);
 
   const isExerciceCloture = useCallback(() => {
     return exercice?.statut === 'cloture';
@@ -363,7 +367,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, [loadExerciceData]);
 
-  const launchHealth = useCallback(async () => {
+  const launchHealth = useCallback(async (structureId?: string) => {
     setLaunched(false);
     setMedicalStructure(null); setMedicalRoles([]);
     setEntreprise(null); setEntreprises([]); setExercice(null); setExercices([]);
@@ -378,14 +382,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-    const { data, error } = await supabase
+    const { data: adhesions, error } = await supabase
       .from('structure_memberships')
       .select('id, structure_id, structures(id, nom, type, theme_medical, entreprise_id)')
       .eq('user_id', user.id)
-      .eq('statut', 'actif')
-      .limit(1)
-      .maybeSingle();
+      .eq('statut', 'actif');
     if (error) { toast.error("Impossible de charger l’espace Santé."); setLoading(false); return; }
+    // Plusieurs structures possibles (ex. GROW HUB, comptable commun) : on retient le dernier choix de l'utilisateur.
+    const liste = (adhesions ?? []).filter(a => a.structures).sort((a, b) => String((a.structures as any).nom).localeCompare(String((b.structures as any).nom), 'fr'));
+    setMedicalStructures(liste.map(a => ({ id: (a.structures as any).id, nom: (a.structures as any).nom, type: (a.structures as any).type })));
+    const cleChoix = `gsante.structure.${user.id}`;
+    let prefere: string | null = structureId ?? null;
+    if (!prefere) { try { prefere = localStorage.getItem(cleChoix); } catch { prefere = null; } }
+    const data = liste.find(a => a.structure_id === prefere) ?? liste[0] ?? null;
+    if (data) { try { localStorage.setItem(cleChoix, data.structure_id); } catch { /* stockage indisponible : sans conséquence */ } }
     const structure = data?.structures as any;
     setMedicalStructure(structure ? {
       id: structure.id,
@@ -448,7 +458,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setJournal([]);
     setPlan([]);
     setCurrentPage('dashboard');
-    setMedicalStructure(null);
+    setMedicalStructure(null); setMedicalStructures([]);
     setMedicalRoles([]);
     await supabase.auth.signOut();
   }, []);
@@ -713,7 +723,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       workspace, env, demo, launched, loading, currentPage, entreprise, exercice, exercices,
-      balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles,
+      balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles, medicalStructures,
       setPage: setCurrentPage, launchDemo, launchUser, logout, addJournalEntry,
       launchHealth, completeHealthOnboarding, setWorkspace,
       deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte,
