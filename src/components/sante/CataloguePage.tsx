@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LabotestCatalogue from './LabotestCatalogue';
 import AnalyseDetail from './AnalyseDetail';
+import CatalogueTableur from './CatalogueTableur';
 import { aValider, avancementCatalogue, compterParametres, filtrerCatalogue, type FiltreCatalogue } from '@/domain/sante/catalogue-suivi';
 
 const VALID_MAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
@@ -111,6 +112,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
           <div className="border-t border-border pt-3 space-y-2">
             <p className="text-sm"><strong>Validation du catalogue :</strong> {avancement.actives} / {avancement.total} analyses prêtes à prescrire ({avancement.pourcentage} %) · <span className={avancement.a_valider ? 'text-destructive' : 'text-primary'}>{avancement.a_valider} à valider</span>{avancement.sans_parametre > 0 && <span className="text-fg3"> · {avancement.sans_parametre} sans paramètre mesuré</span>}</p>
             <div className="h-1.5 rounded-full bg-bg3 overflow-hidden" aria-hidden><div className="h-full bg-primary" style={{ width: `${avancement.pourcentage}%` }} /></div>
+            <CatalogueTableur structureId={structureId} analyses={analyses} completesInactives={avecParams.filter(a => !a.actif && a.nb_parametres > 0)} onDone={() => void load()} />
             <p className="text-xs text-fg3">Ouvrez une analyse pour vérifier sa section, son tube et son délai, saisir ses paramètres mesurés et leurs valeurs de référence, puis activez-la. Une analyse sans paramètre ne peut pas être activée.</p>
             <div className="grid grid-cols-1 sm:grid-cols-[auto_auto_1fr] gap-2">
               <select aria-label="Filtrer par statut" className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={suivi.filtre} onChange={e => setSuivi({ ...suivi, filtre: e.target.value as FiltreCatalogue })}><option value="toutes">Toutes ({avancement.total})</option><option value="a_valider">À valider ({avancement.a_valider})</option><option value="actives">Prêtes ({avancement.actives})</option></select>

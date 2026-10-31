@@ -7682,6 +7682,10 @@ export type Database = {
         }
         Returns: string
       }
+      sante_catalogue_importer_references: {
+        Args: { _lignes: Json; _structure_id: string }
+        Returns: Json
+      }
       sante_categorie_code: {
         Args: { _code: string; _structure_id: string }
         Returns: string
