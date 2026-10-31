@@ -200,7 +200,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         </dl>{medicalRoles.some(r => ['medecin','secretaire'].includes(r)) && <IdentitePatient patient={{...p,id}} onSaved={() => { void supabase.from('sante_patients').select('*').eq('id',id).single().then(({data}) => { if (data) setP(data); }); }} />}</div>
       ) : (
         <div className="space-y-3">
-          {onglet === 'Consentements' && <ConsentementPatient patientId={id} onSaved={loadItems} />}
+          {onglet === 'Consentements' && <ConsentementPatient patientId={id} structureId={p.structure_id} onSaved={loadItems} />}
           {onglet !== 'Consentements' && (
             <div className="flex flex-wrap gap-2 border border-border rounded-md p-3">
               <Input className="flex-1 min-w-40" placeholder={onglet === 'Assurances' ? 'Organisme' : 'Libellé'} value={ajout.a} onChange={e => setAjout(s => ({ ...s, a: e.target.value }))} />
