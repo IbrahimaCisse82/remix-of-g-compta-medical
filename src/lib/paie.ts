@@ -148,40 +148,43 @@ export function calculerPaie(emp: Employee, p: PaieParametres, refDate?: Date): 
 export const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 export const fmtMoney = (n: number) => new Intl.NumberFormat('fr-FR').format(Math.round(n || 0));
 
-// Génère les écritures comptables du journal PA (Paie) pour un lot de bulletins
+// Écriture du journal PA (Paie) pour un lot de bulletins, sur le plan SYSCOHADA révisé :
+// 6611 salaires bruts, 6634 indemnités de transport, 6641 charges sociales patronales, 6413 CFCE (taxe sur salaires) ;
+// 4471 IR et TRIMF retenus, 4313 IPRES (retraite), 4311 prestations familiales et 4312 accidents du travail (CSS),
+// 4472 CFCE à payer, 4333 IPM, 422 rémunérations dues.
+// Montants en FCFA entiers ; le net dû est la ligne d'équilibre (écart d'arrondi de quelques francs au plus).
+// L'écriture est datée du dernier jour du mois de paie.
 export function genererEcrituresPaie(bulletins: BulletinResult[], periode: string, exercice_id: string, entreprise_id: string) {
-  const tot = bulletins.reduce((a, b) => ({
-    brut: a.brut + b.brut,
-    net:  a.net  + b.net_payer,
-    ir:   a.ir   + b.ir + b.trimf,
-    ipres_s: a.ipres_s + b.ipres_rg_s + b.ipres_rc_s,
-    ipres_p: a.ipres_p + b.ipres_rg_p + b.ipres_rc_p,
-    css:  a.css  + b.css_af + b.css_at,
-    cfce: a.cfce + b.cfce,
-    ipm_s: a.ipm_s + b.ipm_s,
-    ipm_p: a.ipm_p + b.ipm_p,
-    transport: a.transport + b.transport,
-  }), { brut:0, net:0, ir:0, ipres_s:0, ipres_p:0, css:0, cfce:0, ipm_s:0, ipm_p:0, transport:0 });
-
-  const date = new Date().toISOString().slice(0,10);
-  const piece = `PAIE-${periode}`;
-  const libelle = `Salaires ${periode}`;
-  const base = { date_ecriture: date, piece, journal_code: 'PA', libelle, exercice_id, entreprise_id };
-
-  const lignes: any[] = [];
+  const r = (n: number) => Math.round(n || 0);
+  const somme = (f: (b: BulletinResult) => number) => r(bulletins.reduce((s, b) => s + (f(b) || 0), 0));
+  const tot = {
+    brut: somme(b => b.brut), transport: somme(b => b.transport),
+    ir: somme(b => b.ir + b.trimf),
+    ipres_s: somme(b => b.ipres_rg_s + b.ipres_rc_s), ipres_p: somme(b => b.ipres_rg_p + b.ipres_rc_p),
+    css_af: somme(b => b.css_af), css_at: somme(b => b.css_at), cfce: somme(b => b.cfce),
+    ipm_s: somme(b => b.ipm_s), ipm_p: somme(b => b.ipm_p),
+  };
+  const [an, mo] = periode.split('-').map(Number);
+  const date = `${periode}-${String(new Date(an, mo, 0).getDate()).padStart(2, '0')}`;
+  const base = { date_ecriture: date, piece: `PAIE-${periode}`, journal_code: 'PA', libelle: `Salaires ${periode}`, exercice_id, entreprise_id };
+  const lignes: { date_ecriture: string; piece: string; journal_code: string; libelle: string; exercice_id: string; entreprise_id: string; compte: string; intitule: string; debit: number; credit: number }[] = [];
+  const d = (compte: string, intitule: string, m: number) => { if (m > 0) lignes.push({ ...base, compte, intitule, debit: m, credit: 0 }); };
+  const c = (compte: string, intitule: string, m: number) => { if (m > 0) lignes.push({ ...base, compte, intitule, debit: 0, credit: m }); };
   // Charges
-  lignes.push({ ...base, compte: '661100', intitule: 'Salaires bruts', debit: tot.brut, credit: 0 });
-  lignes.push({ ...base, compte: '648000', intitule: 'Indemnité transport', debit: tot.transport, credit: 0 });
-  lignes.push({ ...base, compte: '664100', intitule: 'Charges IPRES patronales', debit: tot.ipres_p, credit: 0 });
-  lignes.push({ ...base, compte: '664200', intitule: 'Charges CSS patronales', debit: tot.css, credit: 0 });
-  lignes.push({ ...base, compte: '664300', intitule: 'CFCE patronale', debit: tot.cfce, credit: 0 });
-  if (tot.ipm_p > 0) lignes.push({ ...base, compte: '664400', intitule: 'IPM patronale', debit: tot.ipm_p, credit: 0 });
-  // Retenues & dettes
-  lignes.push({ ...base, compte: '447100', intitule: 'IRPP & TRIMF à payer', debit: 0, credit: tot.ir });
-  lignes.push({ ...base, compte: '431100', intitule: 'IPRES à payer', debit: 0, credit: tot.ipres_s + tot.ipres_p });
-  lignes.push({ ...base, compte: '432100', intitule: 'CSS à payer', debit: 0, credit: tot.css });
-  lignes.push({ ...base, compte: '447200', intitule: 'CFCE à payer', debit: 0, credit: tot.cfce });
-  if (tot.ipm_s + tot.ipm_p > 0) lignes.push({ ...base, compte: '433100', intitule: 'IPM à payer', debit: 0, credit: tot.ipm_s + tot.ipm_p });
-  lignes.push({ ...base, compte: '421000', intitule: 'Personnel - rémunérations dues', debit: 0, credit: tot.net });
+  d('6611', 'Appointements, salaires et commissions', tot.brut);
+  d('6634', 'Indemnités de transport', tot.transport);
+  d('6641', 'Charges sociales patronales — IPRES', tot.ipres_p);
+  d('6641', 'Charges sociales patronales — CSS', tot.css_af + tot.css_at);
+  d('6641', 'Charges sociales patronales — IPM', tot.ipm_p);
+  d('6413', 'CFCE (contribution forfaitaire employeur)', tot.cfce);
+  // Retenues et dettes sociales et fiscales
+  c('4471', 'IR et TRIMF retenus à la source', tot.ir);
+  c('4313', 'IPRES — retraite (parts salariale et patronale)', tot.ipres_s + tot.ipres_p);
+  c('4311', 'CSS — prestations familiales', tot.css_af);
+  c('4312', 'CSS — accidents du travail', tot.css_at);
+  c('4472', 'CFCE à payer', tot.cfce);
+  c('4333', 'IPM (parts salariale et patronale)', tot.ipm_s + tot.ipm_p);
+  const debit = lignes.reduce((s, l) => s + l.debit, 0), credit = lignes.reduce((s, l) => s + l.credit, 0);
+  c('422', 'Personnel, rémunérations dues', debit - credit);
   return lignes;
 }

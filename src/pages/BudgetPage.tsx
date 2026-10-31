@@ -51,10 +51,11 @@ export default function BudgetPage() {
 
   const addBudget = async () => {
     if (!entreprise || !exercice || !newCompte) return;
+    if (budgets.some(b => b.compte === newCompte.trim())) return void toast.error(`Le compte ${newCompte.trim()} a déjà un budget pour cet exercice : supprimez-le avant de le ressaisir.`);
     setLoading(true);
     const inserts = newMontants.map((m, i) => ({
       entreprise_id: entreprise.id, exercice_id: exercice.id,
-      compte: newCompte, intitule: newIntitule, mois: i + 1, montant_budget: m,
+      compte: newCompte.trim(), intitule: newIntitule, mois: i + 1, montant_budget: Math.round(m),
     })).filter(x => x.montant_budget !== 0);
     const { error } = await supabase.from('budgets').insert(inserts);
     if (error) toast.error(error.message);

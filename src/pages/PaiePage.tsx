@@ -131,12 +131,16 @@ export default function PaiePage() {
 
   async function comptabiliserPaie() {
     if (!entreprise || !exercice) return;
+    const { data: deja, error: errDeja } = await supabase.from('bulletins_paie').select('id, comptabilise').eq('entreprise_id', entreprise.id).eq('periode', periode);
+    if (errDeja) return toast.error(errDeja.message);
+    if (!deja?.length) return toast.error(`Générez d’abord les bulletins de ${MOIS[mois - 1]} ${annee}.`);
+    if (deja.some(b => b.comptabilise)) return toast.error(`La paie de ${MOIS[mois - 1]} ${annee} est déjà comptabilisée : contre-passez l’écriture avant de recommencer.`);
     const lignes = genererEcrituresPaie(bulletins.map(b => b.paie), periode, exercice.id, entreprise.id);
     const totDebit = lignes.reduce((s, l) => s + l.debit, 0);
     const totCredit = lignes.reduce((s, l) => s + l.credit, 0);
     if (Math.abs(totDebit - totCredit) > 1) return toast.error(`Écriture déséquilibrée: D=${fmtMoney(totDebit)} C=${fmtMoney(totCredit)}`);
     try {
-      await enregistrerLignesJournal(lignes as any, { origine: 'paie' });
+      await enregistrerLignesJournal(lignes as any, { origine: 'paie', pieceUnique: true });
     } catch (e) { return toast.error((e as Error).message); }
     await supabase.from('bulletins_paie').update({ comptabilise: true }).eq('entreprise_id', entreprise.id).eq('periode', periode);
     toast.success(`Écritures journal PA générées (${fmtMoney(totDebit)} FCFA)`);

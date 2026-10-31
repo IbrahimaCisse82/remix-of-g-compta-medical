@@ -8356,6 +8356,19 @@ export type Database = {
         Args: { _entreprise_id: string; _secteur: string }
         Returns: undefined
       }
+      stock_enregistrer_mouvement: {
+        Args: {
+          _article_id: string
+          _date: string
+          _exercice_id?: string
+          _notes?: string
+          _prix_unitaire: number
+          _quantite: number
+          _reference?: string
+          _type: string
+        }
+        Returns: Json
+      }
       structure_module_actif: {
         Args: { _module: string; _structure_id: string }
         Returns: boolean

@@ -589,6 +589,20 @@
       "when": 1793460000000,
       "tag": "0083_plan_comptable_unicite",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1793461000000,
+      "tag": "0084_lettrage_unicite",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1793462000000,
+      "tag": "0085_stock_mouvement_serveur",
+      "breakpoints": true
     }
   ]
 }
