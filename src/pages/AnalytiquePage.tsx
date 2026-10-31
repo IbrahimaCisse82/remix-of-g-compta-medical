@@ -3,6 +3,7 @@ import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { chargerTout } from '@/lib/pagination';
 
 interface Axe { id: string; code: string; libelle: string; actif: boolean; }
 interface Ventilation { id: string; journal_entry_id: string; axe_id: string; centre: string; montant: number; pourcentage: number; }
@@ -26,7 +27,7 @@ export default function AnalytiquePage() {
     setLoading(true);
     const [axeRes, ventRes] = await Promise.all([
       supabase.from('axes_analytiques').select('*').eq('entreprise_id', entreprise.id),
-      supabase.from('ventilations_analytiques').select('*').eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id),
+      chargerTout((de, a) => supabase.from('ventilations_analytiques').select('*').eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id).order('id').range(de, a)).then(data => ({ data }), () => ({ data: null })),
     ]);
     if (axeRes.data) setAxes(axeRes.data as any[]);
     if (ventRes.data) setVentilations(ventRes.data as any[]);

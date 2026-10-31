@@ -2,7 +2,7 @@ import { comptesManquants } from '@/lib/plan-reference';
 import { accountReference, REFERENCE_VERSION } from '@/lib/syscohada-reference';
 import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { exportCsv } from '@/lib/csv-export';
 
@@ -25,6 +25,8 @@ export default function PlanComptablePage() {
   const [filter, setFilter] = useState('');
   const [showInactif, setShowInactif] = useState(false);
   const [classeFilter, setClasseFilter] = useState<string>('');
+  const [limite, setLimite] = useState(200);
+  useEffect(() => { setLimite(200); }, [filter, classeFilter]);
   const [toggling, setToggling] = useState<Set<string>>(new Set());
   const [showForm, setShowForm] = useState(false);
   const [newNumero, setNewNumero] = useState('');
@@ -173,7 +175,7 @@ export default function PlanComptablePage() {
                 ))}
               </tr></thead>
               <tbody>
-                {rows.map(r => {
+                {rows.slice(0, limite).map(r => {
                   const isParent = r.numero.length <= 3;
                   return (
                     <tr key={r.id} className={`hover:bg-[rgba(56,189,248,.02)] transition-opacity ${r.actif === false ? 'opacity-35' : ''} ${isParent ? 'bg-bg3/30' : ''}`}>
@@ -206,6 +208,13 @@ export default function PlanComptablePage() {
                 })}
               </tbody>
             </table>
+            {rows.length > limite && (
+              <div className="p-3 text-center border-t border-border">
+                <button onClick={() => setLimite(l => l + 200)} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-border text-fg2 hover:bg-bg3">
+                  Afficher plus ({(rows.length - limite).toLocaleString('fr-FR')} compte(s) restant(s) ; filtrez par classe ou recherchez un numéro)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

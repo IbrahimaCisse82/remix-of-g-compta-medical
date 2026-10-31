@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { BalanceLine, JournalLine, PlanCompte, Entreprise, Exercice } from '@/lib/accounting';
 import { supabase } from '@/integrations/supabase/client';
 import { lotsInstallation } from '@/lib/plan-reference';
+import { chargerTout } from '@/lib/pagination';
 import { DEMO_ENTREPRISE, DEMO_EXERCICE, DEMO_LBH_BALANCE, DEMO_LBH_JOURNAL, buildPlan } from '@/lib/demo-data';
 import { creerEcriture, contrepasserEcriture, enregistrerLignesJournal, getBalanceDerivee } from '@/lib/ecritures';
 import { toast } from 'sonner';
@@ -119,6 +120,11 @@ function mapPlan(data: any[]): PlanCompte[] {
   }));
 }
 
+const lirePlan = (entrepriseId: string) =>
+  chargerTout((de, a) => supabase.from('plan_comptable').select('*').eq('entreprise_id', entrepriseId).order('numero').order('id').range(de, a));
+const lireJournal = (exerciceId: string) =>
+  chargerTout((de, a) => supabase.from('journal').select('*').eq('exercice_id', exerciceId).order('date_ecriture').order('id').range(de, a));
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [workspace, setWorkspace] = useState<Workspace>('compta');
   const [env, setEnv] = useState<EnvMode>('entreprise');
@@ -148,8 +154,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const [derivee, ouverture, accountTargets] = await Promise.all([
         getBalanceDerivee(entrepriseId, exerciceId),
-        supabase.from('journal').select('compte,debit,credit').eq('entreprise_id', entrepriseId).eq('exercice_id', exerciceId).eq('journal_code','AN').eq('statut_validation','valide'),
-        supabase.from('plan_comptable').select('numero,poste_cible').eq('entreprise_id',entrepriseId),
+        chargerTout((de, a) => supabase.from('journal').select('compte,debit,credit').eq('entreprise_id', entrepriseId).eq('exercice_id', exerciceId).eq('journal_code','AN').eq('statut_validation','valide').order('id').range(de, a)).then(data => ({ data })),
+        chargerTout((de, a) => supabase.from('plan_comptable').select('numero,poste_cible').eq('entreprise_id',entrepriseId).order('numero').range(de, a)).then(data => ({ data })),
       ]);
       const opening = new Map<string, number>();
       for (const line of ouverture.data ?? []) opening.set(line.compte, (opening.get(line.compte) ?? 0) + Number(line.debit) - Number(line.credit));
@@ -184,10 +190,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadExerciceData = useCallback(async (excId: string, allExercices: Exercice[], exc: Exercice) => {
     const [bal, jourRes] = await Promise.all([
       chargerBalance(exc.entreprise_id, excId),
-      supabase.from('journal').select('*').eq('exercice_id', excId).order('date_ecriture'),
+      lireJournal(excId),
     ]);
     setBalance(bal);
-    if (jourRes.data) setJournal(mapJournal(jourRes.data));
+    setJournal(mapJournal(jourRes));
     await loadBalanceN1(allExercices, exc);
   }, [loadBalanceN1, chargerBalance]);
 
@@ -305,7 +311,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Plan comptable SYSCOHADA révisé (référentiel 2019)
         for (const lot of lotsInstallation(ent.id, [])) await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
 
-        const { data: userPlan } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
+        const userPlan = await lirePlan(ent.id);
 
         setEntreprise(ent);
         setExercice(exc);
@@ -347,7 +353,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await loadExerciceData(currentExc.id, allExcs, currentExc);
       }
 
-      const { data: planData } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
+      const planData = await lirePlan(ent.id);
       setPlan(planData ? mapPlan(planData) : []);
 
       setLaunched(true);
@@ -424,7 +430,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setExercices(allExcs);
             await loadExerciceData(currentExc.id, allExcs, currentExc);
           }
-          const { data: planData } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
+          const planData = await lirePlan(ent.id);
           setPlan(planData ? mapPlan(planData) : []);
         }
       } catch { /* l'espace santé reste utilisable sans la comptabilité */ }
@@ -624,8 +630,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (error) throw new Error(error.message.includes('row-level') ? 'Réservé à l’administrateur ou au comptable du dossier.' : error.message);
       n += lot.length;
     }
-    const { data } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', entreprise.id).order('numero');
-    if (data) setPlan(mapPlan(data));
+    setPlan(mapPlan(await lirePlan(entreprise.id)));
     return n;
   }, [entreprise, demo, plan]);
 
@@ -687,7 +692,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const [excsRes, planRes] = await Promise.all([
         supabase.from('exercices').select('*').eq('entreprise_id', entrepriseId).order('annee', { ascending: false }),
-        supabase.from('plan_comptable').select('*').eq('entreprise_id', entrepriseId).order('numero'),
+        lirePlan(entrepriseId).then(data => ({ data })),
       ]);
       const allExcs = (excsRes.data || []).map(mapExercice);
       const currentExc = allExcs.find(e => e.statut === 'en_cours') || allExcs[0];
