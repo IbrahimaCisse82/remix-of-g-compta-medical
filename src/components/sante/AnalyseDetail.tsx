@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { referenceValide, type ReferenceSaisie } from '@/lib/catalogue-analyse';
 
 const SECTIONS = ['biochimie', 'hematologie', 'serologie', 'bacteriologie', 'parasitologie', 'hormonologie', 'urines'];
-type Analyse = { id: string; code: string; libelle: string; section: string; tube: string | null; echantillon: string | null; delai_heures: number; jeune: boolean };
+type Analyse = { id: string; code: string; libelle: string; section: string; tube: string | null; echantillon: string | null; delai_heures: number; jeune: boolean; sensible: boolean };
 type Ref = { id: string; sexe: string | null; age_min_jours: number; age_max_jours: number; bas: number | null; haut: number | null; critique_bas: number | null; critique_haut: number | null };
 type Param = { id: string; code: string; libelle: string; unite: string | null; type: string; decimales: number; ordre: number; refs: Ref[] };
 
@@ -28,7 +28,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
   const load = useCallback(async () => {
     if (!analyseId) return;
     const [x, p] = await Promise.all([
-      supabase.from('sante_analyses').select('id, code, libelle, section, tube, echantillon, delai_heures, jeune').eq('id', analyseId).single(),
+      supabase.from('sante_analyses').select('id, code, libelle, section, tube, echantillon, delai_heures, jeune, sensible').eq('id', analyseId).single(),
       supabase.from('sante_analyse_parametres').select('id, code, libelle, unite, type, decimales, ordre, refs:sante_valeurs_reference(id, sexe, age_min_jours, age_max_jours, bas, haut, critique_bas, critique_haut)').eq('analyse_id', analyseId).order('ordre'),
     ]);
     if (x.error || p.error) { toast.error('Fiche analyse indisponible. Réessayez.'); return; }
@@ -46,7 +46,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
     e.preventDefault(); if (!a) return;
     if (!a.libelle.trim()) return toast.error('Libellé obligatoire');
     if (!Number.isSafeInteger(a.delai_heures) || a.delai_heures <= 0) return toast.error('Délai de rendu positif obligatoire');
-    await run(async () => supabase.from('sante_analyses').update({ libelle: a.libelle.trim(), section: a.section, tube: a.tube?.trim() || null, echantillon: a.echantillon?.trim() || null, delai_heures: a.delai_heures, jeune: a.jeune }).eq('id', a.id), 'Analyse mise à jour');
+    await run(async () => supabase.from('sante_analyses').update({ libelle: a.libelle.trim(), section: a.section, tube: a.tube?.trim() || null, echantillon: a.echantillon?.trim() || null, delai_heures: a.delai_heures, jeune: a.jeune, sensible: a.sensible }).eq('id', a.id), 'Analyse mise à jour');
   };
   const addParam = async (e: React.FormEvent) => {
     e.preventDefault(); if (!a) return;
@@ -76,6 +76,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
           <div><Label htmlFor="an-tube">Tube</Label><Input id="an-tube" value={a.tube ?? ''} onChange={e => setA({ ...a, tube: e.target.value })} /></div>
           <div><Label htmlFor="an-echantillon">Échantillon</Label><Input id="an-echantillon" value={a.echantillon ?? ''} onChange={e => setA({ ...a, echantillon: e.target.value })} /></div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={a.jeune} onChange={e => setA({ ...a, jeune: e.target.checked })} />À jeun requis</label>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={a.sensible} onChange={e => setA({ ...a, sensible: e.target.checked })} /><span>Résultat sensible<br /><span className="text-xs text-fg3">Jamais publié sur le portail patient : remise en main propre uniquement (ex. VIH, grossesse). À confirmer par le biologiste.</span></span></label>
           <div className="sm:col-span-2"><Button type="submit" size="sm" disabled={busy}>Enregistrer l’analyse</Button></div>
         </form>
 
