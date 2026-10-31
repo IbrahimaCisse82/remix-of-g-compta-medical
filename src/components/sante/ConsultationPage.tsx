@@ -10,6 +10,7 @@ import { alertesConstantes, classeImc, imc, validerOrdonnance, type LigneOrdonna
 import { libelleAge } from '@/domain/sante/patient';
 import { imprimerOrdonnance } from './print-ordonnance';
 import CertificatsAnalyses from './CertificatsAnalyses';
+import { DelivranceConsultation } from './StocksSante';
 import { saveBeforeClosing } from '@/lib/consultation-workflow';
 
 const CHAMPS = [['motif', 'Motif'], ['anamnese', 'Anamnèse'], ['examen', 'Examen clinique'], ['diagnostic', 'Diagnostic'], ['conduite', 'Conduite à tenir']] as const;
@@ -179,6 +180,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
               </div>
             ))}
           </section>
+          <DelivranceConsultation consultationId={id} structureId={c.structure_id} />
           <CertificatsAnalyses consultation={c} />
         </div>
 
