@@ -34,7 +34,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   // garderSaisie : après une mesure, une ordonnance ou un addendum, on rafraîchit tout sauf les notes cliniques
   // en cours de frappe (sinon le texte non encore enregistré était remplacé par la version de la base).
   const load = useCallback(async (garderSaisie = false) => {
-    const { data } = await supabase.from('sante_consultations').select('*').eq('id', id).maybeSingle();
+    const { data } = await supabase.from('sante_consultations').select('*, praticien:sante_praticiens(nom)').eq('id', id).maybeSingle();
     if (!data) { toast.error('Consultation non accessible'); return onBack(); }
     setC(prev => garderSaisie && prev && prev.id === data.id && data.statut !== 'cloturee'
       ? { ...data, motif: prev.motif, anamnese: prev.anamnese, examen: prev.examen, diagnostic: prev.diagnostic, conduite: prev.conduite }

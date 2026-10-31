@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { formaterResultat } from '@/domain/sante/droits';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
 import { LIBELLE_DRAPEAU, type Drapeau } from '@/domain/sante/reference';
@@ -59,8 +60,8 @@ export async function imprimerCompteRendu(demandeId: string) {
     const lignes = [...a.parametres].sort((u: any, v: any) => u.ordre - v.ordre).map((pa: any) => {
       const r: any = byParam.get(pa.id);
       const f = (r?.drapeau ?? 'N') as Drapeau;
-      const val = r?.valeur_num != null ? Number(r.valeur_num).toFixed(pa.decimales) : esc(r?.valeur_texte ?? '—');
-      const ref = r?.ref_bas != null || r?.ref_haut != null ? `${r.ref_bas ?? ''} – ${r.ref_haut ?? ''}` : '';
+      const val = r?.valeur_num != null ? formaterResultat(Number(r.valeur_num), pa.decimales) : esc(r?.valeur_texte ?? '—');
+      const ref = r?.ref_bas != null || r?.ref_haut != null ? `${r.ref_bas != null ? formaterResultat(Number(r.ref_bas), pa.decimales) : ''} – ${r.ref_haut != null ? formaterResultat(Number(r.ref_haut), pa.decimales) : ''}` : '';
       // Après validation, on imprime les libellés/unités figés : un changement de catalogue ne modifie pas un compte rendu émis
       const lib = definitif && r?.libelle_fige ? r.libelle_fige : pa.libelle;
       const unite = definitif && r?.libelle_fige ? r.unite_fige : pa.unite;
