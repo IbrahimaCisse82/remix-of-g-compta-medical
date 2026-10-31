@@ -153,7 +153,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
             <div className="max-w-5xl">
               <p className="text-xs font-mono uppercase text-primary mb-2">Configuration</p>
               <h1 className="font-serif text-3xl mb-2">Sites et équipe</h1>
-              {medicalStructure && medicalRoles.includes('admin_structure') && <ConfigurationEntreprise key={medicalStructure.id} structureId={medicalStructure.id} />}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <ConfigurationEntreprise key={`config-${medicalStructure.id}`} structureId={medicalStructure.id} />}
               {settingsError && <div role="alert" className="mb-5 text-destructive"><p>{settingsError}</p><Button variant="outline" onClick={() => void refreshSettings()}>Réessayer</Button></div>}
               <p className="text-sm text-fg2 mb-8">Ajoutez vos lieux d’exercice et préparez les accès de chaque collaborateur.</p>
               <div className="grid gap-8 lg:grid-cols-2">
@@ -175,12 +175,12 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               {medicalStructure && medicalRoles.includes('admin_structure') && <ImportEquipe structureId={medicalStructure.id} type={medicalStructure.type} enAttente={invitations} onDone={() => void refreshSettings()} />}
               {medicalStructure && medicalRoles.includes('admin_structure') && <EquipeCard structureId={medicalStructure.id} type={medicalStructure.type} />}
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
-              {medicalStructure && medicalRoles.includes('admin_structure') && <section className="mt-8"><ExploitationPage key={medicalStructure.id} structureId={medicalStructure.id} structureNom={medicalStructure.nom} entrepriseId={entreprise?.id ?? null} /></section>}
-              {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={medicalStructure.id} structureId={medicalStructure.id} />}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <section key={`exploitation-${medicalStructure.id}`} className="mt-8"><ExploitationPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} entrepriseId={entreprise?.id ?? null} /></section>}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={`journal-${medicalStructure.id}`} structureId={medicalStructure.id} />}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
               {medicalStructure && <ConformiteCard structureId={medicalStructure.id} />}
-              {medicalStructure && medicalRoles.includes('admin_structure') && <BibliothequeConsentements key={medicalStructure.id} structureId={medicalStructure.id} />}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <BibliothequeConsentements key={`consentements-${medicalStructure.id}`} structureId={medicalStructure.id} />}
               {medicalStructure && <ParametresFinanceCard structureId={medicalStructure.id} />}
               {medicalStructure && <FiscalSecoursCard structureId={medicalStructure.id} />}
             </div>
