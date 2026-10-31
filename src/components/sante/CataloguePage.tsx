@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LabotestCatalogue from './LabotestCatalogue';
 import AnalyseDetail from './AnalyseDetail';
 import CatalogueTableur from './CatalogueTableur';
+import { ImportActes } from './ImportsStructure';
 import { aValider, avancementCatalogue, compterParametres, filtrerCatalogue, type FiltreCatalogue } from '@/domain/sante/catalogue-suivi';
 
 const VALID_MAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
@@ -89,6 +90,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
         </section>
         <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
           <h2 className="font-semibold">Actes facturables</h2>
+          <ImportActes structureId={structureId} onDone={() => void load()} />
           <form onSubmit={addAc} className="grid grid-cols-[1fr_3fr_1fr_auto] gap-2"><Input required aria-label="Code" placeholder="Code" value={ac.code} onChange={e => setAc({ ...ac, code: e.target.value })} /><Input required aria-label="Libellé" placeholder="Libellé" value={ac.libelle} onChange={e => setAc({ ...ac, libelle: e.target.value })} /><Input required aria-label="Tarif" inputMode="numeric" placeholder="FCFA" value={ac.tarif} onChange={e => setAc({ ...ac, tarif: e.target.value })} /><Button size="icon" aria-label="Ajouter"><Plus /></Button></form>
           {actes.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_actes', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle}</span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_actes', a.id, e.target.value)} /></Ligne>)}
         </section>

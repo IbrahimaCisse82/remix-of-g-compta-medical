@@ -25,6 +25,7 @@ import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
 import BibliothequeConsentements from '@/components/sante/BibliothequeConsentements';
 import ExploitationPage from '@/components/sante/ExploitationPage';
+import { ImportEquipe } from '@/components/sante/ImportsStructure';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
@@ -168,6 +169,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
                   <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p>{item.statut === 'en_attente' && <div className="flex flex-wrap gap-2 mt-2"><Button size="sm" variant="outline" onClick={() => void copyInvitation(item.id)}>Copier le lien d’invitation</Button><Button size="sm" variant="ghost" onClick={() => void revokeInvitation(item.id)}>Révoquer</Button></div>}</div>)}</div>
                 </section>
               </div>
+              {medicalStructure && medicalRoles.includes('admin_structure') && <ImportEquipe structureId={medicalStructure.id} type={medicalStructure.type} enAttente={invitations} onDone={() => void refreshSettings()} />}
               {medicalStructure && medicalRoles.includes('admin_structure') && <EquipeCard structureId={medicalStructure.id} type={medicalStructure.type} />}
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
               {medicalStructure && medicalRoles.includes('admin_structure') && <section className="mt-8"><ExploitationPage key={medicalStructure.id} structureId={medicalStructure.id} structureNom={medicalStructure.nom} entrepriseId={entreprise?.id ?? null} /></section>}

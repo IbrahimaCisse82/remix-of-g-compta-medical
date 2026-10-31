@@ -568,6 +568,13 @@
       "when": 1793413113171,
       "tag": "0080_sante_catalogue_import_references",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1793413714513,
+      "tag": "0081_sante_invitation_controles",
+      "breakpoints": true
     }
   ]
 }
