@@ -52,7 +52,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
     e.preventDefault(); if (!a) return;
     const d = Number(np.decimales);
     if (!np.code.trim() || !np.libelle.trim()) return toast.error('Code et libellé du paramètre obligatoires');
-    if (!Number.isInteger(d) || d < 0 || d > 6) return toast.error('Décimales entre 0 et 6');
+    if (!Number.isInteger(d) || d < 0 || d > 4) return toast.error('Décimales entre 0 et 4');
     const ordre = params.reduce((m, p) => Math.max(m, p.ordre), 0) + 1;
     if (await run(async () => supabase.from('sante_analyse_parametres').insert({ structure_id: structureId, analyse_id: a.id, code: np.code.trim().toUpperCase(), libelle: np.libelle.trim(), unite: np.unite.trim() || null, type: np.type, decimales: d, ordre }), 'Paramètre ajouté'))
       setNp({ code: '', libelle: '', unite: '', type: 'numerique', decimales: '1' });
