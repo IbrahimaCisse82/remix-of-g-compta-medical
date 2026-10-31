@@ -225,7 +225,7 @@ function ShortcutsModal({ open, onClose }: { open: boolean; onClose: () => void 
 }
 
 export default function AppShell() {
-  const { env, currentPage, setPage, entreprise, exercice, logout, demo, isExerciceCloture } = useApp();
+  const { env, currentPage, setPage, entreprise, exercice, logout, demo, isExerciceCloture, medicalStructures, launchHealth, loading } = useApp();
   const { user } = useAuth();
   const { resolved, toggle } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -288,6 +288,13 @@ export default function AppShell() {
             <span className="px-2.5 py-1 text-accent font-mono font-bold">Ex. {exercice?.annee || '—'}</span>
             {locked && <span className="px-2 py-0.5 text-[9px] text-destructive font-bold">🔒</span>}
           </div>
+          {medicalStructure && medicalStructures.length > 1 && (
+            <select aria-label="Structure de santé" title="Changer de structure" disabled={loading}
+              className="h-8 max-w-[220px] bg-bg3 border border-border rounded-full px-3 text-[11px] text-foreground"
+              value={medicalStructure.id} onChange={e => void launchHealth(e.target.value)}>
+              {medicalStructures.map(s => <option key={s.id} value={s.id}>{s.nom} · {s.type}</option>)}
+            </select>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <NotificationsBell />
