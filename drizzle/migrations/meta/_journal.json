@@ -547,6 +547,13 @@
       "when": 1793366014442,
       "tag": "0077_tiers_conventions_dates_bon_verrou",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793410515688,
+      "tag": "0078_analyse_activation_parametre",
+      "breakpoints": true
     }
   ]
 }
