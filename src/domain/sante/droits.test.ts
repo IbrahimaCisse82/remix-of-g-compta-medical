@@ -18,6 +18,11 @@ describe('peut', () => {
     expect(peut(['caissier'], 'analyse_chiffre_affaires')).toBe(false);
     expect(peut(['comptable'], 'analyse_chiffre_affaires')).toBe(true);
   });
+  it('distingue la lecture labo et la vue accueil', () => {
+    expect(peut(['secretaire'], 'lire_demandes_labo')).toBe(false);
+    expect(peut(['secretaire'], 'accueil_labo')).toBe(true);
+    expect(peut(['admin_structure', 'biologiste'], 'lire_demandes_labo')).toBe(true);
+  });
   it('refuse tout sans rôle', () => {
     expect(peut([], 'creer_facture')).toBe(false);
   });

@@ -15,9 +15,12 @@ import { useApp } from '@/stores/app-store';
 import { formaterResultat, peut } from '@/domain/sante/droits';
 
 const PAGE = 25;
-type Demande = { id: string; numero: string; statut: StatutDemande; urgence: boolean; created_at: string; patient: { nom: string; prenoms: string; numero_dossier: string } | null };
+type Demande = { id: string; numero: string; statut: StatutDemande; urgence: boolean; created_at: string; patient_id?: string; patient: { nom: string; prenoms: string; numero_dossier: string } | null };
 
 export default function LaboratoirePage({ structureId }: { structureId: string }) {
+  const { medicalRoles } = useApp();
+  // Accueil (secrétaire, administrateur sans rôle de laboratoire) : liste administrative seulement, sans analyses ni résultats.
+  const vueAccueil = !peut(medicalRoles, 'lire_demandes_labo') && peut(medicalRoles, 'accueil_labo');
   const [rows, setRows] = useState<Demande[]>([]);
   const [page, setPage] = useState(0);
   const [statut, setStatut] = useState<string>('actives');
@@ -25,15 +28,25 @@ export default function LaboratoirePage({ structureId }: { structureId: string }
   const [nouvelle, setNouvelle] = useState(false);
 
   const load = useCallback(async () => {
+    if (vueAccueil) {
+      const { data, error } = await supabase.rpc('sante_demandes_accueil' as never, { _structure_id: structureId, _statut: statut, _limit: PAGE, _offset: page * PAGE } as never);
+      if (error) return toast.error((error as { message: string }).message);
+      setRows(((data ?? []) as any[]).map(x => ({ id: x.id, numero: x.numero, statut: x.statut, urgence: x.urgence, created_at: x.created_at, patient_id: x.patient_id, patient: { nom: x.patient_nom, prenoms: x.patient_prenoms, numero_dossier: x.numero_dossier } })));
+      return;
+    }
     let q = supabase.from('sante_demandes_labo').select('id, numero, statut, urgence, created_at, patient:sante_patients(nom, prenoms, numero_dossier)')
       .eq('structure_id', structureId).order('urgence', { ascending: false }).order('created_at', { ascending: false }).range(page * PAGE, page * PAGE + PAGE - 1);
     if (statut === 'actives') q = q.not('statut', 'in', '(validee,rejetee)'); else if (statut !== 'toutes') q = q.eq('statut', statut);
     const { data, error } = await q;
     if (error) return toast.error(error.message);
     setRows((data ?? []) as unknown as Demande[]);
-  }, [structureId, page, statut]);
+  }, [structureId, page, statut, vueAccueil]);
   useEffect(() => { void load(); }, [load]);
 
+  if (ouverte && vueAccueil) {
+    const d = rows.find(r => r.id === ouverte);
+    if (d) return <DemandeAccueil demande={d} structureId={structureId} onBack={() => { setOuverte(null); void load(); }} />;
+  }
   if (ouverte) return <DemandeDetail id={ouverte} onBack={() => { setOuverte(null); void load(); }} />;
   if (nouvelle) return <NouvelleDemande structureId={structureId} onDone={id => { setNouvelle(false); if (id) setOuverte(id); else void load(); }} />;
 
@@ -118,6 +131,25 @@ export function NouvelleDemande({ structureId, patientId, consultationId, prescr
         <div className="sm:col-span-2"><Label htmlFor="rc">Renseignements cliniques</Label><Textarea id="rc" value={rc} onChange={e => setRc(e.target.value)} /></div>
       </section>
       <div className="flex gap-2">{patientId && <Button variant="ghost" disabled={busy} onClick={() => onDone(null)}>Annuler</Button>}<Button onClick={creer} disabled={busy || !choix.length}><FlaskConical />Enregistrer la demande</Button></div>
+    </div>
+  );
+}
+
+/** Vue accueil d'une demande : statut et remise du compte rendu, sans les analyses ni les résultats. */
+function DemandeAccueil({ demande, structureId, onBack }: { demande: Demande; structureId: string; onBack: () => void }) {
+  const p = demande.patient;
+  return (
+    <div className="max-w-5xl space-y-4">
+      <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft />Demandes</Button>
+      <div className="border border-border bg-bg2 rounded-md p-4">
+        <p className="font-mono text-xs text-primary">{demande.numero}{demande.urgence && <span className="ml-2 text-destructive">URGENT</span>}</p>
+        <h1 className="font-serif text-2xl">{p?.nom} {p?.prenoms}</h1>
+        <p className="text-sm text-fg2">{p?.numero_dossier} · {STATUTS_DEMANDE[demande.statut]}</p>
+      </div>
+      {demande.statut === 'validee'
+        ? <RemiseMainPropre demande={{ id: demande.id, structure_id: structureId, patient_id: demande.patient_id }} />
+        : <p className="text-sm text-fg3">Le compte rendu pourra être remis au patient une fois les résultats validés par le biologiste.</p>}
+      <p className="text-xs text-fg3">Les analyses demandées et les résultats sont réservés au laboratoire et au médecin prescripteur.</p>
     </div>
   );
 }

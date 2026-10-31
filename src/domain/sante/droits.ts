@@ -6,6 +6,8 @@ import type { RoleMedical } from '@/lib/navigation-sante';
  * serait refusé. La base reste seule décisionnaire.
  */
 export const DROITS_SANTE = {
+  lire_demandes_labo: ['biologiste', 'technicien', 'preleveur', 'medecin'],
+  accueil_labo: ['admin_structure', 'secretaire'],
   prelever: ['preleveur', 'technicien', 'biologiste'],
   traiter_echantillon: ['technicien', 'biologiste'],
   saisir_resultat: ['technicien', 'biologiste'],
