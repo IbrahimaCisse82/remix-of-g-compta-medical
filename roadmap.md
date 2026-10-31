@@ -21,7 +21,8 @@ Suivi de la liste transmise le 29/10. Une case cochée indique un élément fina
 
 ### Laboratoire et catalogue réel
 - [x] Vérifier le parcours jusqu’à la remise, les résultats typés et les corrections historisées.
-- [ ] Renseigner le catalogue, les tarifs et les références biologiques réels.
+- [x] 31/10 : nomenclature SOLABSEN 2022 importée dans le catalogue réel de SOLABSEN (192 analyses désactivées « à valider », tarif particulier + 576 tarifs des grilles 2022 Société/Assurance, IPM, Hôpital ; section provisoire biochimie, aucun paramètre ni référence inventés).
+- [ ] Confirmer les tarifs 2022, corriger sections, ajouter paramètres/unités/valeurs de référence/tubes, puis activer les analyses validées ; rattacher les grilles aux vrais organismes.
 - [ ] Obtenir la validation du biologiste sur ces données et le parcours réel.
 
 ### Catalogue Labotest
