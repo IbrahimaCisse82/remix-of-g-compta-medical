@@ -575,6 +575,13 @@
       "when": 1793413714513,
       "tag": "0081_sante_invitation_controles",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1793414304191,
+      "tag": "0082_sante_export_structure_v2",
+      "breakpoints": true
     }
   ]
 }

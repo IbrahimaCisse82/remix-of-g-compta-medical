@@ -12,6 +12,8 @@ Plan détaillé : https://claude.ai/artifact/LgypZNrvjZCinpMdBUxv1W
 - [ ] Lot 4 — Recette métier avec les utilisateurs réels. Cahier de recette (29 scénarios, fiche d'anomalie, PV) : https://claude.ai/artifact/WVqxYZJgx3j5CKMMqCsGuq
 - [ ] Lot 5 — Comptabilité SYSCOHADA : visa expert-comptable.
 - [ ] Lot 6 — Mise en service (DNS e-mails, préproduction, sauvegarde/restauration, publication, formation, PV, CDP).
+  - [x] Export de sauvegarde v2 (49 rubriques : tiers payant, caisse, paramétrage labo, consentements, membres) et procédure `docs/livraison/sauvegarde-restauration.md` (migration 0082).
+  - [ ] Essai de restauration en préproduction ; isolement des données de test ; publication — attendent une décision.
 
 ## Checklist des éléments restants — modules santé
 Suivi de la liste transmise le 29/10. Une case cochée indique un élément finalisé et déjà vérifié ; les validations réelles non obtenues restent ouvertes. Cette mise à jour du suivi ne constitue pas une nouvelle recette ni une certification.
