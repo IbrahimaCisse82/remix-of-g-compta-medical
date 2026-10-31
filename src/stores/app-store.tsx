@@ -2,6 +2,7 @@ import { controlesSyscohada } from '@/lib/conformite-syscohada';
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { BalanceLine, JournalLine, PlanCompte, Entreprise, Exercice } from '@/lib/accounting';
 import { supabase } from '@/integrations/supabase/client';
+import { lotsInstallation } from '@/lib/plan-reference';
 import { DEMO_ENTREPRISE, DEMO_EXERCICE, DEMO_LBH_BALANCE, DEMO_LBH_JOURNAL, buildPlan } from '@/lib/demo-data';
 import { creerEcriture, contrepasserEcriture, enregistrerLignesJournal, getBalanceDerivee } from '@/lib/ecritures';
 import { toast } from 'sonner';
@@ -53,6 +54,7 @@ interface AppState {
   addCompte: (c: PlanCompte) => Promise<void>;
   deleteCompte: (id: string) => Promise<void>;
   toggleCompte: (id: string) => void;
+  installerPlanReference: () => Promise<number>;
   addExercice: (e: Omit<Exercice, 'id'>) => Promise<void>;
   deleteExercice: (id: string) => Promise<void>;
   openExercice: (id: string) => void;
@@ -300,20 +302,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         const exc = mapExercice(newExc);
         
-        // Copy default SYSCOHADA plan comptable
-        const { data: demoPlan } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', DEMO_ENTREPRISE_ID).order('numero');
-        if (demoPlan && demoPlan.length > 0) {
-          const planInserts = demoPlan.map(p => ({
-            entreprise_id: ent.id,
-            numero: p.numero,
-            intitule: p.intitule,
-            classe: p.classe,
-            sens: p.sens,
-            type_compte: p.type_compte,
-            actif: p.actif,
-          }));
-          await supabase.from('plan_comptable').insert(planInserts);
-        }
+        // Plan comptable SYSCOHADA révisé (référentiel 2019)
+        for (const lot of lotsInstallation(ent.id, [])) await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
 
         const { data: userPlan } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
 
@@ -625,6 +615,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toast.success('Compte supprimé');
   }, []);
 
+  /** Ajoute au dossier les comptes du référentiel SYSCOHADA absents ; ne modifie ni ne supprime rien. */
+  const installerPlanReference = useCallback(async () => {
+    if (!entreprise || demo) return 0;
+    let n = 0;
+    for (const lot of lotsInstallation(entreprise.id, plan.map(p => p.numero))) {
+      const { error } = await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
+      if (error) throw new Error(error.message.includes('row-level') ? 'Réservé à l’administrateur ou au comptable du dossier.' : error.message);
+      n += lot.length;
+    }
+    const { data } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', entreprise.id).order('numero');
+    if (data) setPlan(mapPlan(data));
+    return n;
+  }, [entreprise, demo, plan]);
+
   const toggleCompte = useCallback(async (id: string) => {
     const compte = plan.find(p => p.id === id);
     if (!compte) return;
@@ -726,7 +730,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles, medicalStructures,
       setPage: setCurrentPage, launchDemo, launchUser, logout, addJournalEntry,
       launchHealth, completeHealthOnboarding, setWorkspace,
-      deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte,
+      deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte, installerPlanReference,
       addExercice, deleteExercice, openExercice, updateEntreprise,
       clotureExercice, isExerciceCloture, switchEntreprise,
     }}>
