@@ -253,7 +253,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft />Demandes</Button>
       <div className="border border-border bg-bg2 rounded-md p-4 flex flex-wrap justify-between gap-3">
         <div><p className="font-mono text-xs text-primary">{d.numero}{d.urgence && <span className="ml-2 text-destructive">URGENT</span>}</p><h1 className="font-serif text-2xl">{p.nom} {p.prenoms}</h1><p className="text-sm text-fg2">{p.numero_dossier} · {p.sexe === 'F' ? 'Féminin' : 'Masculin'} · Prescripteur : {d.prescripteur ?? '—'}</p>{d.renseignements && <p className="text-xs text-fg3 mt-1">{d.renseignements}</p>}</div>
-        <div className="text-right"><p className="text-sm font-semibold">{STATUTS_DEMANDE[st]}</p>{d.motif_rejet && <p className="text-xs text-destructive">{d.motif_rejet}</p>}
+        <div className="text-right"><p className="text-sm font-semibold">{STATUTS_DEMANDE[st]}</p>{d.motif_rejet && <p className="text-xs text-destructive">{libelleMotifRejet(d.motif_rejet)}</p>}
           <div className="flex gap-2 justify-end mt-2"><Button size="sm" variant="outline" onClick={() => imprimerEtiquettes(id)}><Printer />Étiquettes</Button><Button size="sm" variant="outline" onClick={() => imprimerCompteRendu(id)}><Printer />Compte rendu{d.version > 1 ? ` v${d.version}` : ''}</Button></div></div>
       </div>
 
@@ -282,7 +282,7 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
               {saisieOuverte && <td className="p-2"><Input aria-label={`Saisie ${pa.libelle}`} className="h-8 w-28" inputMode={pa.type === 'numerique' ? 'decimal' : 'text'} value={saisie[pa.id] ?? ''} onChange={e => setSaisie(s => ({ ...s, [pa.id]: e.target.value }))} onBlur={() => enregistrer(pa)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void enregistrer(pa); } }} /></td>}
               <td className="p-2 text-xs">{r && (r.ref_bas != null || r.ref_haut != null) ? `${r.ref_bas != null ? formaterResultat(Number(r.ref_bas), pa.decimales) : ''} – ${r.ref_haut != null ? formaterResultat(Number(r.ref_haut), pa.decimales) : ''}` : ''}</td>
               <td className="p-2 text-xs">{LIBELLE_DRAPEAU[f]}{r && estCritique(f) && (r.critique_acquitte_le ? <span className="block text-fg3">acquitté</span> : !droit('saisir_resultat') ? <span className="block text-destructive">à acquitter</span> : <Button size="sm" variant="destructive" className="ml-2 h-7" onClick={() => acquitter(r.id)}><AlertTriangle />Acquitter</Button>)}</td>
-              <td className="p-2 text-xs">{(() => { const a = anterieurs.get(pa.id); if (a === undefined) return '—'; const dc = r?.valeur_num != null ? deltaCheck(Number(r.valeur_num), a) : null; return <span className={dc?.alerte ? 'text-destructive font-semibold' : ''}>{formaterResultat(a, pa.decimales)}{dc ? ` (${dc.variation > 0 ? '+' : ''}${dc.variation} %)` : ''}{dc?.alerte ? ' Δ' : ''}</span>; })()}</td>
+              <td className="p-2 text-xs">{(() => { const a = anterieurs.get(pa.id); if (a === undefined) return '—'; const dc = r?.valeur_num != null ? deltaCheck(Number(r.valeur_num), a) : null; return <span className={dc?.alerte ? 'text-destructive font-semibold' : ''}>{formaterResultat(a, pa.decimales)}{dc ? ` (${dc.variation > 0 ? '+' : ''}${dc.variation.toLocaleString('fr-FR')} %)` : ''}{dc?.alerte ? ' Δ' : ''}</span>; })()}</td>
               {rectifiable && <td className="p-2">{r && <Button size="sm" variant="ghost" onClick={() => setRect({ parametre: pa.id, valeur: '', motif: '', traitement: false })}>Rectifier</Button>}</td>}
             </tr>;
           })}</tbody>
@@ -294,13 +294,15 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={rect.traitement} disabled={rectBusy} onChange={e => setRect({ ...rect, traitement: e.target.checked })} />Un traitement a déjà été prescrit</label>
         <div className="grid sm:grid-cols-[1fr_3fr_auto_auto] gap-2"><Input aria-label="Nouvelle valeur" placeholder="Nouvelle valeur" disabled={rectBusy} value={rect.valeur} onChange={e => setRect({ ...rect, valeur: e.target.value })} /><Input aria-label="Motif" placeholder="Motif obligatoire" disabled={rectBusy} value={rect.motif} onChange={e => setRect({ ...rect, motif: e.target.value })} /><Button variant="ghost" disabled={rectBusy} onClick={() => setRect(null)}>Annuler</Button><Button variant="destructive" disabled={rectBusy || !rect.valeur.trim() || rect.motif.trim().length < 5} onClick={rectifier}>Émettre</Button></div>
       </section>}
-      {rectifs.length > 0 && <section className="border border-border bg-bg2 rounded-md p-4 text-sm"><h2 className="font-semibold mb-2">Historique des rectifications</h2>{rectifs.map(x => <p key={x.id} className="text-xs border-t border-border py-1">v{x.version} · {new Date(x.le).toLocaleString('fr-FR')} · {params.find(p => p.id === x.parametre_id)?.libelle} : {x.ancienne_valeur_num ?? x.ancienne_valeur_texte} → {x.nouvelle_valeur_num ?? x.nouvelle_valeur_texte} · {x.motif}</p>)}</section>}
+      {rectifs.length > 0 && <section className="border border-border bg-bg2 rounded-md p-4 text-sm"><h2 className="font-semibold mb-2">Historique des rectifications</h2>{rectifs.map(x => <p key={x.id} className="text-xs border-t border-border py-1">v{x.version} · {new Date(x.le).toLocaleString('fr-FR')} · {params.find(p => p.id === x.parametre_id)?.libelle} : {x.ancienne_valeur_num != null ? formaterResultat(Number(x.ancienne_valeur_num), 0) : x.ancienne_valeur_texte} → {x.nouvelle_valeur_num != null ? formaterResultat(Number(x.nouvelle_valeur_num), 0) : x.nouvelle_valeur_texte} · {x.motif}</p>)}</section>}
       <p className="text-xs text-fg3">La validation technique doit être faite par une autre personne que celle qui a saisi les résultats ; la validation biologique est réservée au biologiste. Un résultat validé ne peut plus être modifié.</p>
     </div>
   );
 }
 
 const MOTIFS_REJET: Record<string, string> = { hemolyse: 'Hémolyse', volume_insuffisant: 'Volume insuffisant', tube_errone: 'Tube erroné', etiquette_illisible: 'Étiquette illisible', delai_depasse: 'Délai d’acheminement dépassé', coagule: 'Échantillon coagulé', autre: 'Autre' };
+/** « hemolyse : commentaire » → « Hémolyse : commentaire » (le code est conservé en base). */
+export const libelleMotifRejet = (m: string) => m.replace(/^([a-z_]+)/, c => MOTIFS_REJET[c] ?? c);
 
 /** Prélèvement : identification positive du patient (au moins 2 identifiants vérifiés, imposé par la base). */
 function Prelevement({ id, onDone }: { id: string; onDone: () => void }) {
