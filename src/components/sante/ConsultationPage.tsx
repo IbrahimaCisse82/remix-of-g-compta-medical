@@ -30,10 +30,14 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
   const [medocs, setMedocs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
+  // garderSaisie : après une mesure, une ordonnance ou un addendum, on rafraîchit tout sauf les notes cliniques
+  // en cours de frappe (sinon le texte non encore enregistré était remplacé par la version de la base).
+  const load = useCallback(async (garderSaisie = false) => {
     const { data } = await supabase.from('sante_consultations').select('*').eq('id', id).maybeSingle();
     if (!data) { toast.error('Consultation non accessible'); return onBack(); }
-    setC(data);
+    setC(prev => garderSaisie && prev && prev.id === data.id && data.statut !== 'cloturee'
+      ? { ...data, motif: prev.motif, anamnese: prev.anamnese, examen: prev.examen, diagnostic: prev.diagnostic, conduite: prev.conduite }
+      : data);
     const [p, h, k, a, o, m] = await Promise.all([
       supabase.from('sante_patients').select('*').eq('id', data.patient_id).maybeSingle(),
       supabase.from('sante_consultations').select('id, created_at, motif, diagnostic, statut').eq('patient_id', data.patient_id).neq('id', id).order('created_at', { ascending: false }).limit(10),
@@ -45,7 +49,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
     setPatient(p.data); setHistorique(h.data ?? []); setConstantes(k.data ?? []); setAddenda(a.data ?? []); setOrdonnances(o.data ?? []);
     setMedocs((m.data ?? []).map(x => [x.dci, x.nom_commercial && `(${x.nom_commercial})`, x.forme, x.dosage].filter(Boolean).join(' ')));
   }, [id]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   if (!c || !patient) return <div className="text-sm text-fg3">Chargement…</div>;
   const verrou = c.statut === 'cloturee';
@@ -74,14 +78,14 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
     if (Object.keys(row).length === 2) return;
     const { error } = await supabase.from('sante_constantes').insert(row as any);
     if (error) return toast.error('Valeur hors limites ou consultation clôturée');
-    setCst({}); load();
+    setCst({}); void load(true);
   };
   const ajouterAddendum = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return toast.error('Veuillez vous reconnecter.');
     const { error } = await supabase.from('sante_consultation_addenda').insert({ consultation_id: id, patient_id: c.patient_id, texte: addendum, auteur: user.id });
     if (error) return toast.error('Addendum refusé (5 caractères minimum)');
-    setAddendum(''); load();
+    setAddendum(''); void load(true);
   };
   const emettre = async () => {
     const errs = validerOrdonnance(lignes);
@@ -103,7 +107,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
     if (error) return toast.error(error.message);
     toast.success('Ordonnance émise');
     setLignes([{ medicament: '', posologie: '', duree: '', quantite: '' }]); setReco('');
-    await load();
+    await load(true);
     imprimerOrdonnance(data as string);
   };
 
@@ -137,7 +141,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
             {constantes.map(k => {
               const al = alertesConstantes(k);
               return <div key={k.id} className="text-sm mt-2 border-t border-border pt-2">
-                {new Date(k.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} — {CONST.filter(([f]) => k[f] != null).map(([f, l]) => `${l} ${k[f]}`).join(' · ')}
+                {new Date(k.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} — {CONST.filter(([f]) => k[f] != null).map(([f, l]) => `${l} ${Number(k[f]).toLocaleString('fr-FR')}`).join(' · ')}
                 {al.length > 0 && <span className="ml-2 text-destructive text-xs">{al.join(', ')}</span>}
               </div>;
             })}
