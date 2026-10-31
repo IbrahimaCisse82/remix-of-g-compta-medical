@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -91,7 +92,7 @@ export default function PaiePage() {
   }
 
   async function deleteEmp(id: string) {
-    if (!confirm('Supprimer cet employé ?')) return;
+    if (!(await confirmer('Supprimer cet employé ?'))) return;
     const { error } = await supabase.from('employees').delete().eq('id', id);
     if (error) return toast.error(error.message);
     setEmployees(s => s.filter(x => x.id !== id));

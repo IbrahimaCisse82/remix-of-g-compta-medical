@@ -237,7 +237,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
       </section>
       <RemboursementsCard structureId={structureId} refresh={refresh} onChanged={() => { void load(); setRefresh(v => v + 1); }} />
       <SaisieSecoursCard structureId={structureId} />
-      <AnalytiqueSanteCard structureId={structureId} />
+      <AnalytiqueSanteCard structureId={structureId} refresh={refresh} />
       <OutboxCard key={refresh} structureId={structureId} />
       <BordereauCompta structureId={structureId} />
       </>}

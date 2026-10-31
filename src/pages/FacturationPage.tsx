@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -107,7 +108,7 @@ export default function FacturationPage() {
   };
 
   const deleteClient = async (id: string) => {
-    if (!canDelete || !confirm('Supprimer ce client ?')) return;
+    if (!canDelete || !(await confirmer('Supprimer ce client ?'))) return;
     const { error } = await supabase.from('clients').delete().eq('id', id);
     if (error) toast.error(error.message); else { toast.success('Supprimé'); load(); }
   };
@@ -262,7 +263,7 @@ export default function FacturationPage() {
   };
 
   const deleteFacture = async (id: string) => {
-    if (!canDelete || !confirm('Supprimer cette facture ?')) return;
+    if (!canDelete || !(await confirmer('Supprimer cette facture ?'))) return;
     const { error } = await supabase.from('factures').delete().eq('id', id);
     if (error) toast.error(error.message); else { toast.success('Supprimée'); load(); }
   };

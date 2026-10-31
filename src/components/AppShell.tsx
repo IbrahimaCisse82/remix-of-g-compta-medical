@@ -1,7 +1,7 @@
 import { useUserRole } from '@/hooks/use-user-role';
 import { useApp, type PageId } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '@/hooks/use-theme';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import NotificationsBell from '@/components/NotificationsBell';
@@ -267,6 +267,19 @@ export default function AppShell() {
 
   const { medicalStructure, medicalRoles, workspace } = useApp();
   const healthView = currentPage.startsWith('sante_') ? currentPage.slice(6) as HealthView : null;
+  // En arrivant sur un écran comptable, on relit journal et balance (au plus toutes les 15 s) : les opérations de
+  // l'espace santé (factures, encaissements, délivrances) y sont passées entre-temps côté serveur.
+  const { rafraichirComptabilite } = useApp();
+  const dernierRafraichissement = useRef(Date.now());
+  const venaitDeLaSante = useRef(false);
+  useEffect(() => {
+    if (healthView) { venaitDeLaSante.current = true; return; }
+    if (demo) return;
+    if (!venaitDeLaSante.current && Date.now() - dernierRafraichissement.current < 15000) return;
+    venaitDeLaSante.current = false;
+    dernierRafraichissement.current = Date.now();
+    void rafraichirComptabilite();
+  }, [currentPage, healthView, demo, rafraichirComptabilite]);
   const PageComponent = currentPage === 'clients' ? ClientsPage : (PAGES[currentPage] || Dashboard);
 
   // Filtrage d'affichage du menu : type de structure + rôles médicaux.

@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -194,7 +195,7 @@ export default function StocksPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Supprimer cet article ?')) return;
+    if (!(await confirmer('Supprimer cet article ?'))) return;
     const { error } = await supabase.from('articles').delete().eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('Supprimé'); load(); }

@@ -402,14 +402,14 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
 }
 
 /** Chiffre d'affaires par axe analytique (catégorie, section, praticien, site). */
-export function AnalytiqueSanteCard({ structureId }: { structureId: string }) {
+export function AnalytiqueSanteCard({ structureId, refresh = 0 }: { structureId: string; refresh?: number }) {
   const [axe, setAxe] = useState('categorie');
   const [mois, setMois] = useState(new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState<{ axe: string; montant: number; nb: number }[]>([]);
   useEffect(() => {
     const d = new Date(`${mois}-01`); const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
     db.rpc('sante_ca_analytique', { _structure_id: structureId, _debut: `${mois}-01`, _fin: fin, _axe: axe }).then(({ data, error }: any) => setRows(error ? [] : data ?? []));
-  }, [structureId, axe, mois]);
+  }, [structureId, axe, mois, refresh]);
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
       <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold flex-1">Analyse du chiffre d'affaires</h3>
