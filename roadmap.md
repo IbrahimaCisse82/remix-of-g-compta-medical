@@ -7,6 +7,7 @@ Plan détaillé : https://claude.ai/artifact/LgypZNrvjZCinpMdBUxv1W
 - [x] Lot 2 — Écrans manquants reconstruits (PR #13) : délivrance en consultation, alertes de stock et consommation de réactifs par analyse, plannings rattachés aux salariés + primes de garde dans le bulletin, supervision/journal/export + alerte de passage d'année.
 - [ ] Lot 3 — Paramétrage réel SOLABSEN et KAMAANO (données clients).
   - [x] Outil : import tableur des paramètres et valeurs de référence du catalogue + activation groupée (PR #15, migration 0080).
+  - [x] Outils : invitations de l'équipe et actes/tarifs importables depuis un tableur ; invitations contrôlées en base (MFA, rôle compatible, sans doublon — PR #17, migration 0081).
   - [ ] Données : rôles réels, MFA, catalogues, références biologiques, organismes, consentements.
 - [ ] Lot 4 — Recette métier avec les utilisateurs réels. Cahier de recette (29 scénarios, fiche d'anomalie, PV) : https://claude.ai/artifact/WVqxYZJgx3j5CKMMqCsGuq
 - [ ] Lot 5 — Comptabilité SYSCOHADA : visa expert-comptable.
