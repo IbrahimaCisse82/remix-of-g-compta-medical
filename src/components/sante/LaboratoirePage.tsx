@@ -11,6 +11,8 @@ import { imprimerCompteRendu, imprimerEtiquettes } from './print-sante';
 import { deltaCheck } from '@/domain/sante/reference';
 import { parseAutomate } from '@/domain/sante/automate';
 import { valeurResultat } from '@/lib/laboratoire-resultat';
+import { useApp } from '@/stores/app-store';
+import { formaterResultat, peut } from '@/domain/sante/droits';
 
 const PAGE = 25;
 type Demande = { id: string; numero: string; statut: StatutDemande; urgence: boolean; created_at: string; patient: { nom: string; prenoms: string; numero_dossier: string } | null };
@@ -121,6 +123,8 @@ export function NouvelleDemande({ structureId, patientId, consultationId, prescr
 }
 
 function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
+  const { medicalRoles } = useApp();
+  const droit = (a: Parameters<typeof peut>[1]) => peut(medicalRoles, a);
   const [d, setD] = useState<Record<string, any> | null>(null);
   const [params, setParams] = useState<{ id: string; code: string; libelle: string; unite: string | null; type: string; decimales: number; analyse: string }[]>([]);
   const [res, setRes] = useState<Map<string, Record<string, any>>>(new Map());
@@ -209,6 +213,8 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   };
   const st = d.statut as StatutDemande;
   const p = d.patient;
+  const saisieOuverte = st === 'en_analyse' && droit('saisir_resultat');
+  const rectifiable = st === 'validee' && droit('rectifier_resultat');
 
   return (
     <div className="max-w-5xl space-y-4">
@@ -220,32 +226,32 @@ function DemandeDetail({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
-        {st === 'prelevee' && <Button size="sm" onClick={() => avancer('recue')}>Échantillon reçu conforme</Button>}
-        {st === 'recue' && <Button size="sm" onClick={() => avancer('en_analyse')}>Mettre en analyse</Button>}
-        {st === 'en_analyse' && <Button size="sm" onClick={() => valider('technique')}><CheckCircle2 />Validation technique</Button>}
-        {st === 'validee_technique' && <><Button size="sm" onClick={() => valider('biologique')}><CheckCircle2 />Validation biologique</Button></>}
+        {st === 'prelevee' && droit('traiter_echantillon') && <Button size="sm" onClick={() => avancer('recue')}>Échantillon reçu conforme</Button>}
+        {st === 'recue' && droit('traiter_echantillon') && <Button size="sm" onClick={() => avancer('en_analyse')}>Mettre en analyse</Button>}
+        {st === 'en_analyse' && droit('valider_technique') && <Button size="sm" onClick={() => valider('technique')}><CheckCircle2 />Validation technique</Button>}
+        {st === 'validee_technique' && droit('valider_biologique') && <><Button size="sm" onClick={() => valider('biologique')}><CheckCircle2 />Validation biologique</Button></>}
         {d.demande_origine_id && <span className="text-xs text-fg3">Nouveau prélèvement suite à un rejet</span>}
       </div>
-      {st === 'enregistree' && <Prelevement id={id} onDone={load} />}
-      {['prelevee', 'recue'].includes(st) && <RejetEchantillon id={id} onDone={load} />}
-      {st === 'en_analyse' && <ImportAutomate id={id} params={params} onDone={load} />}
-      {['prelevee', 'recue', 'en_analyse'].includes(st) && <SousTraitance id={id} analyses={lesAnalyses} />}
-      {['en_analyse', 'validee_technique', 'validee'].includes(st) && <Microbiologie id={id} editable={st === 'en_analyse'} />}
+      {st === 'enregistree' && droit('prelever') && <Prelevement id={id} onDone={load} />}
+      {['prelevee', 'recue'].includes(st) && droit('traiter_echantillon') && <RejetEchantillon id={id} onDone={load} />}
+      {st === 'en_analyse' && droit('saisir_resultat') && <ImportAutomate id={id} params={params} onDone={load} />}
+      {['prelevee', 'recue', 'en_analyse'].includes(st) && droit('traiter_echantillon') && <SousTraitance id={id} analyses={lesAnalyses} />}
+      {['en_analyse', 'validee_technique', 'validee'].includes(st) && <Microbiologie id={id} editable={st === 'en_analyse' && droit('saisir_resultat')} />}
       {st === 'validee' && <RemiseMainPropre demande={d} />}
 
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-xs text-fg3 text-left"><tr><th className="p-2">Analyse</th><th className="p-2">Paramètre</th><th className="p-2">Résultat</th><th className="p-2">Réf.</th><th className="p-2">Drapeau</th><th className="p-2">Antérieur</th>{st === 'validee' && <th className="p-2"></th>}{st === 'en_analyse' && <th className="p-2">Saisie</th>}</tr></thead>
+          <thead className="text-xs text-fg3 text-left"><tr><th className="p-2">Analyse</th><th className="p-2">Paramètre</th><th className="p-2">Résultat</th><th className="p-2">Réf.</th><th className="p-2">Drapeau</th><th className="p-2">Antérieur</th>{rectifiable && <th className="p-2"></th>}{saisieOuverte && <th className="p-2">Saisie</th>}</tr></thead>
           <tbody className="divide-y divide-border">{params.map(pa => {
             const r = res.get(pa.id); const f = (r?.drapeau ?? 'N') as Drapeau;
             return <tr key={pa.id}>
               <td className="p-2 text-xs text-fg3">{pa.analyse}</td><td className="p-2">{pa.libelle} <span className="text-xs text-fg3">{pa.unite}</span></td>
-              <td className={`p-2 font-mono ${f === 'N' ? '' : 'font-bold'} ${estCritique(f) ? 'text-destructive' : ''}`}>{r ? (r.valeur_num != null ? Number(r.valeur_num).toFixed(pa.decimales) : r.valeur_texte) : '—'}</td>
-              <td className="p-2 text-xs">{r && (r.ref_bas != null || r.ref_haut != null) ? `${r.ref_bas ?? ''} – ${r.ref_haut ?? ''}` : ''}</td>
-              <td className="p-2 text-xs">{LIBELLE_DRAPEAU[f]}{r && estCritique(f) && (r.critique_acquitte_le ? <span className="block text-fg3">acquitté</span> : <Button size="sm" variant="destructive" className="ml-2 h-7" onClick={() => acquitter(r.id)}><AlertTriangle />Acquitter</Button>)}</td>
-              <td className="p-2 text-xs">{(() => { const a = anterieurs.get(pa.id); if (a === undefined) return '—'; const dc = r?.valeur_num != null ? deltaCheck(Number(r.valeur_num), a) : null; return <span className={dc?.alerte ? 'text-destructive font-semibold' : ''}>{a}{dc ? ` (${dc.variation > 0 ? '+' : ''}${dc.variation} %)` : ''}{dc?.alerte ? ' Δ' : ''}</span>; })()}</td>
-              {st === 'validee' && <td className="p-2">{r && <Button size="sm" variant="ghost" onClick={() => setRect({ parametre: pa.id, valeur: '', motif: '', traitement: false })}>Rectifier</Button>}</td>}
-              {st === 'en_analyse' && <td className="p-2"><Input aria-label={`Saisie ${pa.libelle}`} className="h-8 w-28" inputMode={pa.type === 'numerique' ? 'decimal' : 'text'} value={saisie[pa.id] ?? ''} onChange={e => setSaisie(s => ({ ...s, [pa.id]: e.target.value }))} onBlur={() => enregistrer(pa)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void enregistrer(pa); } }} /></td>}
+              <td className={`p-2 font-mono ${f === 'N' ? '' : 'font-bold'} ${estCritique(f) ? 'text-destructive' : ''}`}>{r ? (r.valeur_num != null ? formaterResultat(Number(r.valeur_num), pa.decimales) : r.valeur_texte) : '—'}</td>
+              <td className="p-2 text-xs">{r && (r.ref_bas != null || r.ref_haut != null) ? `${r.ref_bas != null ? formaterResultat(Number(r.ref_bas), pa.decimales) : ''} – ${r.ref_haut != null ? formaterResultat(Number(r.ref_haut), pa.decimales) : ''}` : ''}</td>
+              <td className="p-2 text-xs">{LIBELLE_DRAPEAU[f]}{r && estCritique(f) && (r.critique_acquitte_le ? <span className="block text-fg3">acquitté</span> : !droit('saisir_resultat') ? <span className="block text-destructive">à acquitter</span> : <Button size="sm" variant="destructive" className="ml-2 h-7" onClick={() => acquitter(r.id)}><AlertTriangle />Acquitter</Button>)}</td>
+              <td className="p-2 text-xs">{(() => { const a = anterieurs.get(pa.id); if (a === undefined) return '—'; const dc = r?.valeur_num != null ? deltaCheck(Number(r.valeur_num), a) : null; return <span className={dc?.alerte ? 'text-destructive font-semibold' : ''}>{formaterResultat(a, pa.decimales)}{dc ? ` (${dc.variation > 0 ? '+' : ''}${dc.variation} %)` : ''}{dc?.alerte ? ' Δ' : ''}</span>; })()}</td>
+              {rectifiable && <td className="p-2">{r && <Button size="sm" variant="ghost" onClick={() => setRect({ parametre: pa.id, valeur: '', motif: '', traitement: false })}>Rectifier</Button>}</td>}
+              {saisieOuverte && <td className="p-2"><Input aria-label={`Saisie ${pa.libelle}`} className="h-8 w-28" inputMode={pa.type === 'numerique' ? 'decimal' : 'text'} value={saisie[pa.id] ?? ''} onChange={e => setSaisie(s => ({ ...s, [pa.id]: e.target.value }))} onBlur={() => enregistrer(pa)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void enregistrer(pa); } }} /></td>}
             </tr>;
           })}</tbody>
         </table>
