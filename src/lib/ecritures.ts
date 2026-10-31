@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { chargerTout } from '@/lib/pagination';
 
 /**
  * Couche d'accès aux écritures comptables.
@@ -123,12 +124,12 @@ export async function rouvrirExercice(exerciceId: string, motif: string): Promis
 
 /** Balance dérivée du journal et des écritures validées (vue matérialisée). */
 export async function getBalanceDerivee(entrepriseId: string, exerciceId: string): Promise<BalanceDeriveeLine[]> {
-  const { data, error } = await supabase.rpc('fn_balance', {
+  // Une ligne par compte mouvementé ; lue page par page (l'API plafonne chaque réponse à 1 000 lignes).
+  const data = await chargerTout<any>((de, a) => supabase.rpc('fn_balance', {
     _entreprise_id: entrepriseId,
     _exercice_id: exerciceId,
-  } as any);
-  if (error) throw new Error(error.message);
-  return ((data as any[]) || []).map(d => ({
+  } as any).order('compte').range(de, a));
+  return (data || []).map(d => ({
     compte: d.compte,
     intitule: d.intitule ?? '',
     md: Number(d.md) || 0,
