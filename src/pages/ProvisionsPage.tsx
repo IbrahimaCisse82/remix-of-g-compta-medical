@@ -1,4 +1,4 @@
-import { confirmer } from '@/components/Confirmation';
+import { confirmer, saisir } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -179,8 +179,8 @@ export default function ProvisionsPage() {
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">💾 Doter</button>
                       {p.statut !== 'reprise_totale' && (
                         <>
-                          <button onClick={() => {
-                            const m = prompt(`Montant à reprendre (max ${fmt(p.montant_actuel)}) :`, String(p.montant_actuel));
+                          <button onClick={async () => {
+                            const m = (await saisir(`Montant à reprendre (max ${fmt(p.montant_actuel)}) :`, String(p.montant_actuel)));
                             if (m) reprendre(p, Number(m), Number(m) >= p.montant_actuel);
                           }} title="Reprendre la provision"
                             className="text-[10px] px-2 py-1 rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/10">↩ Reprise</button>

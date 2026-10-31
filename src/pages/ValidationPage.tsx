@@ -1,3 +1,4 @@
+import { saisir } from '@/components/Confirmation';
 import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
@@ -171,8 +172,8 @@ export default function ValidationPage() {
                     <>
                       <button onClick={() => changeStatus(piece, 'valide')}
                         className="px-2 py-1 rounded text-[10px] bg-primary text-primary-foreground font-bold">✓ Valider</button>
-                      <button onClick={() => {
-                        const m = prompt('Motif du refus :');
+                      <button onClick={async () => {
+                        const m = (await saisir('Motif du refus :'));
                         if (m) changeStatus(piece, 'refuse', m);
                       }} className="px-2 py-1 rounded text-[10px] border border-destructive/30 text-destructive">✕ Refuser</button>
                     </>

@@ -1,4 +1,4 @@
-import { confirmer } from '@/components/Confirmation';
+import { confirmer, saisir } from '@/components/Confirmation';
 import { useApp } from '@/stores/app-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { fmt } from '@/lib/accounting';
@@ -85,8 +85,8 @@ export default function JournalPage() {
                           type="button"
                           aria-label={`Extourner l'écriture ${r.piece || ''}`}
                           title="Contre-passation (l'écriture validée reste conservée)"
-                          onClick={() => {
-                            const motif = window.prompt('Motif de l\u2019extourne (5 caractères minimum) :');
+                          onClick={async () => {
+                            const motif = (await saisir('Motif de l\u2019extourne (5 caractères minimum) :'));
                             if (!motif) return;
                             if (motif.trim().length < 5) { toast.error('Motif trop court'); return; }
                             extournerEcriture(r.id, motif.trim());

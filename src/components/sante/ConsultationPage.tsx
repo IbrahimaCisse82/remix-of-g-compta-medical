@@ -1,4 +1,4 @@
-import { confirmer } from '@/components/Confirmation';
+import { confirmer, saisir } from '@/components/Confirmation';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Lock, Plus, Printer, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -94,13 +94,13 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
     let envoi: any[] = lignes.filter(l => l.medicament.trim());
     let { data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco });
     if (error?.message?.startsWith('ALLERGIE')) {
-      const just = window.prompt(`${error.message.replace('ALLERGIE: ', '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`);
+      const just = (await saisir(`${error.message.replace('ALLERGIE: ', '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`));
       if (!just || just.trim().length < 15) return toast.error('Prescription annulée : justification de 15 caractères minimum requise');
       envoi = envoi.map(l => ({ ...l, justification_allergie: just.trim() }));
       ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));
     }
     if (error?.message?.startsWith('PEDIATRIE')) {
-      const just = window.prompt(`${error.message.replace(/^PEDIATRIE_\w+: /, '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`);
+      const just = (await saisir(`${error.message.replace(/^PEDIATRIE_\w+: /, '')}\n\nSaisissez la justification médicale pour maintenir la prescription :`));
       if (!just || just.trim().length < 15) return toast.error('Prescription annulée : justification de 15 caractères minimum requise');
       envoi = envoi.map(l => ({ ...l, justification_pediatrie: just.trim() }));
       ({ data, error } = await supabase.rpc('sante_emettre_ordonnance', { _consultation_id: id, _lignes: envoi as any, _recommandations: reco }));

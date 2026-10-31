@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { estDestructive, libelleAction } from './Confirmation';
+import { describe, expect, it, vi } from 'vitest';
+import { estDestructive, libelleAction, saisir } from './Confirmation';
 
 describe('confirmation intégrée', () => {
   it('nomme le bouton selon l’action demandée', () => {
@@ -12,5 +12,12 @@ describe('confirmation intégrée', () => {
     expect(estDestructive('Supprimer cette facture ?')).toBe(true);
     expect(estDestructive('Révoquer l’accès de x ?')).toBe(true);
     expect(estDestructive('Clôturer la consultation ?')).toBe(false);
+  });
+  it('saisie : repli sur le navigateur sans hôte monté, null si annulé', async () => {
+    const espion = vi.spyOn(window, 'prompt').mockReturnValueOnce('motif valable').mockReturnValueOnce(null);
+    await expect(saisir('Motif :', 'x')).resolves.toBe('motif valable');
+    await expect(saisir('Motif :')).resolves.toBeNull();
+    expect(espion).toHaveBeenCalledWith('Motif :', 'x');
+    espion.mockRestore();
   });
 });

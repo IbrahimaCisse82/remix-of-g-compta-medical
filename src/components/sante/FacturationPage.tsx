@@ -1,3 +1,4 @@
+import { saisir } from '@/components/Confirmation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -217,7 +218,28 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
       </section>}
 
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
-        <table className="w-full text-sm"><thead className="text-xs text-fg3 text-left"><tr><th className="p-3">N°</th><th>Patient</th><th>Total</th><th>Patient / reste</th><th>Tiers-payant</th><th className="p-3">Actions</th></tr></thead>
+        {/* Écran étroit : une carte par facture, les actions restent visibles sans défilement horizontal */}
+        <div className="sm:hidden divide-y divide-border">{factures.length === 0 ? <p className="p-4 text-sm text-fg3">Aucune facture.</p> : factures.map(f => {
+          const reste = resteDu(f.part_patient, f.encaisse); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
+          return <div key={f.id} className="p-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-2"><span className="font-mono">{f.numero}{f.annulee && <span className="block text-xs text-destructive">Annulée</span>}</span><span>{fcfa(f.total)}</span></div>
+            <div className="flex justify-between gap-2"><span>{f.patient?.nom} {f.patient?.prenoms}</span><span className="text-xs text-fg3">reste {fcfa(reste)}</span></div>
+            {f.organisme && <div className="text-xs">{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}{f.envoye_tiers_le ? ` · envoyé le ${new Date(f.envoye_tiers_le).toLocaleDateString("fr-FR")}` : ""}</span>
+                {f.statut_tiers === 'a_facturer' || f.statut_tiers === 'rejete' ? <Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'envoye' }, 'Envoyé.')}>Envoyer</Button> : null}
+                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'rejete' }, 'Rejet noté.')}>Rejeté</Button></>}
+              </> : '—'}</div>}
+            <div className="space-y-1">
+                {f.type === 'facture' && !f.annulee && reste > 0 && droit('gerer_caisse') && <div className="flex flex-wrap gap-1">
+                  <Select value={p.mode} onValueChange={v => setPaiement({ ...paiement, [f.id]: { ...p, mode: v } })}><SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger><SelectContent>{MODES_PAIEMENT.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select>
+                  <Input aria-label={`Montant ${f.numero}`} className="h-8 w-24" type="number" value={p.montant} onChange={e => setPaiement({ ...paiement, [f.id]: { ...p, montant: e.target.value } })} />
+                  <Button size="sm" disabled={busy || !!loadError} onClick={() => encaisser(f, p)}>Encaisser</Button>
+                </div>}
+                <div className="flex gap-1"><Button size="sm" variant="outline" onClick={() => imprimer(f)}>Reçu</Button>
+                  {f.type === 'facture' && !f.annulee && droit('annuler_facture') && <Button size="sm" variant="ghost" onClick={async () => { const m = (await saisir("Motif d'annulation (un avoir sera émis)")); if (m) void run('sante_annuler_facture', { _facture_id: f.id, _motif: m }, 'Avoir émis.'); }}>Annuler</Button>}</div>
+              </div>
+          </div>;
+        })}</div>
+        <table className="w-full text-sm hidden sm:table"><thead className="text-xs text-fg3 text-left"><tr><th className="p-3">N°</th><th>Patient</th><th>Total</th><th>Patient / reste</th><th>Tiers-payant</th><th className="p-3">Actions</th></tr></thead>
           <tbody>{factures.length === 0 ? <tr><td colSpan={6} className="p-4 text-fg3">Aucune facture.</td></tr> : factures.map(f => {
             const reste = resteDu(f.part_patient, f.encaisse); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
             return <tr key={f.id} className="border-t border-border align-top">
@@ -236,7 +258,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
                   <Button size="sm" disabled={busy || !!loadError} onClick={() => encaisser(f, p)}>Encaisser</Button>
                 </div>}
                 <div className="flex gap-1"><Button size="sm" variant="outline" onClick={() => imprimer(f)}>Reçu</Button>
-                  {f.type === 'facture' && !f.annulee && droit('annuler_facture') && <Button size="sm" variant="ghost" onClick={() => { const m = prompt("Motif d'annulation (un avoir sera émis)"); if (m) void run('sante_annuler_facture', { _facture_id: f.id, _motif: m }, 'Avoir émis.'); }}>Annuler</Button>}</div>
+                  {f.type === 'facture' && !f.annulee && droit('annuler_facture') && <Button size="sm" variant="ghost" onClick={async () => { const m = (await saisir("Motif d'annulation (un avoir sera émis)")); if (m) void run('sante_annuler_facture', { _facture_id: f.id, _motif: m }, 'Avoir émis.'); }}>Annuler</Button>}</div>
               </td>
             </tr>;
           })}</tbody></table>

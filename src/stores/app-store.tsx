@@ -1,5 +1,5 @@
 import { controlesSyscohada } from '@/lib/conformite-syscohada';
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import type { BalanceLine, JournalLine, PlanCompte, Entreprise, Exercice } from '@/lib/accounting';
 import { supabase } from '@/integrations/supabase/client';
 import { lotsInstallation } from '@/lib/plan-reference';
@@ -132,6 +132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [demo, setDemo] = useState(false);
   const [launched, setLaunched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const lancementEnCours = useRef(false);
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
   const [entreprise, setEntreprise] = useState<Entreprise | null>(null);
   const [exercice, setExercice] = useState<Exercice | null>(null);
@@ -365,6 +366,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadExerciceData]);
 
   const launchHealth = useCallback(async (structureId?: string) => {
+    // Un clic pendant le chargement relançait tout depuis le début : on ignore les clics répétés.
+    if (lancementEnCours.current) return;
+    lancementEnCours.current = true;
+    try {
     setLaunched(false);
     setMedicalStructure(null); setMedicalRoles([]);
     setEntreprise(null); setEntreprises([]); setExercice(null); setExercices([]);
@@ -438,6 +443,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     setLaunched(true);
     setLoading(false);
+    } finally { lancementEnCours.current = false; }
   }, [loadExerciceData]);
 
   const completeHealthOnboarding = useCallback((structure: MedicalStructure) => {
