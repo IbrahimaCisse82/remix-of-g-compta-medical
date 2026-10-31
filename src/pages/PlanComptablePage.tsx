@@ -1,3 +1,4 @@
+import { comptesManquants } from '@/lib/plan-reference';
 import { accountReference, REFERENCE_VERSION } from '@/lib/syscohada-reference';
 import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
@@ -12,7 +13,15 @@ const SENS_AUTO: Record<string, string> = { '1': 'C', '2': 'D', '3': 'D', '4': '
 const TYPE_AUTO: Record<string, string> = { '1': 'Bilan', '2': 'Bilan', '3': 'Bilan', '4': 'Bilan', '5': 'Bilan', '6': 'Résultat', '7': 'Résultat', '8': 'HAO' };
 
 export default function PlanComptablePage() {
-  const { plan, toggleCompte, addCompte, deleteCompte, demo } = useApp();
+  const { plan, toggleCompte, addCompte, deleteCompte, demo, installerPlanReference } = useApp();
+  const manquants = useMemo(() => comptesManquants(plan.map(p => p.numero)).length, [plan]);
+  const [installation, setInstallation] = useState(false);
+  const installer = async () => {
+    setInstallation(true);
+    try { const n = await installerPlanReference(); toast.success(`${n.toLocaleString('fr-FR')} compte(s) du référentiel ajouté(s).`); }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Installation impossible.'); }
+    finally { setInstallation(false); }
+  };
   const [filter, setFilter] = useState('');
   const [showInactif, setShowInactif] = useState(false);
   const [classeFilter, setClasseFilter] = useState<string>('');
@@ -88,6 +97,16 @@ export default function PlanComptablePage() {
       </div>
       <div className="p-5">
         <p className="text-xs text-muted-foreground mb-3">Référentiel {REFERENCE_VERSION} — 1 422 comptes, classes 1 à 9 ; mappings en attente de visa.</p>
+        {!demo && manquants > 0 && (
+          <div className="border border-border bg-bg2 rounded-lg p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-fg2 max-w-2xl">{plan.length === 0
+              ? 'Ce dossier n’a pas encore de plan comptable : la saisie manuelle et le rapprochement bancaire en ont besoin. Installez le plan SYSCOHADA révisé (classes 1 à 8).'
+              : `${manquants.toLocaleString('fr-FR')} compte(s) du référentiel SYSCOHADA ne figurent pas dans ce plan. Les ajouter ne modifie ni ne supprime aucun compte existant.`}</p>
+            <button disabled={installation} onClick={() => void installer()} className="px-3 py-1.5 rounded-md text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              {installation ? 'Installation…' : plan.length === 0 ? 'Installer le plan SYSCOHADA' : `Ajouter les ${manquants.toLocaleString('fr-FR')} comptes`}
+            </button>
+          </div>
+        )}
         {/* Add form */}
         {showForm && (
           <div className="bg-bg2 border border-border rounded-lg p-4 mb-4">
