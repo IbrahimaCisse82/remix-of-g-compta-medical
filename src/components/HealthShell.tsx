@@ -26,6 +26,7 @@ import ConformiteCard from '@/components/sante/ConformiteCard';
 import BibliothequeConsentements from '@/components/sante/BibliothequeConsentements';
 import ExploitationPage from '@/components/sante/ExploitationPage';
 import { ImportEquipe } from '@/components/sante/ImportsStructure';
+import { roleCompatible } from '@/domain/sante/imports-structure';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
@@ -96,6 +97,8 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
   };
 
   useEffect(() => { void refreshSettings(); }, [medicalStructure?.id]);
+  // Rôle proposé par défaut compatible avec le type de structure (pas de médecin dans un laboratoire).
+  useEffect(() => { if (medicalStructure && !roleCompatible(inviteRole, medicalStructure.type)) setInviteRole('secretaire'); }, [medicalStructure?.type]);
 
   const changePalette = async (next: MedicalPalette) => {
     setPalette(next);
@@ -124,7 +127,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
       const { error } = await supabase.rpc('create_medical_invitation', { _structure_id: medicalStructure.id, _email: inviteEmail.trim(), _role: inviteRole });
       if (error) throw error;
       setInviteEmail(''); toast.success('Invitation enregistrée.'); await refreshSettings();
-    } catch { toast.error('Invitation non enregistrée. Vérifiez votre accès puis réessayez.'); }
+    } catch (e) { toast.error((e as { message?: string })?.message || 'Invitation non enregistrée. Vérifiez votre accès puis réessayez.'); }
     finally { setInviteBusy(false); }
   };
 
@@ -163,7 +166,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
                   <div className="flex items-center gap-2 mb-5"><Users className="text-primary" /><h2 className="font-semibold">Invitations</h2></div>
                   <form onSubmit={invite} className="space-y-3 mb-5">
                     <div><Label htmlFor="invite-email" className="sr-only">Email</Label><Input id="invite-email" type="email" required value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="collaborateur@structure.sn" /></div>
-                    <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['medecin','biologiste','technicien','preleveur','secretaire','caissier','tiers_payant','comptable','lecteur'].map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
+                    <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(['medecin','biologiste','technicien','preleveur','secretaire','caissier','tiers_payant','comptable','lecteur'] as const).filter(role => !medicalStructure || roleCompatible(role, medicalStructure.type)).map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
                     <Button type="submit" disabled={inviteBusy} className="w-full"><Send />Enregistrer l’invitation</Button>
                   </form>
                   <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p>{item.statut === 'en_attente' && <div className="flex flex-wrap gap-2 mt-2"><Button size="sm" variant="outline" onClick={() => void copyInvitation(item.id)}>Copier le lien d’invitation</Button><Button size="sm" variant="ghost" onClick={() => void revokeInvitation(item.id)}>Révoquer</Button></div>}</div>)}</div>
