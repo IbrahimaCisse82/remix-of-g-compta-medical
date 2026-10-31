@@ -23,6 +23,7 @@ import EmailJournal from '@/components/sante/EmailJournal';
 import EquipeCard from '@/components/sante/EquipeCard';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
+import BibliothequeConsentements from '@/components/sante/BibliothequeConsentements';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
@@ -172,6 +173,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
               {medicalStructure && <ConformiteCard structureId={medicalStructure.id} />}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <BibliothequeConsentements key={medicalStructure.id} structureId={medicalStructure.id} />}
               {medicalStructure && <ParametresFinanceCard structureId={medicalStructure.id} />}
               {medicalStructure && <FiscalSecoursCard structureId={medicalStructure.id} />}
             </div>

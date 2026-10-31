@@ -13,7 +13,8 @@ Suivi de la liste transmise le 29/10. Une case cochée indique un élément fina
 
 ### Dossiers patients
 - [x] Vérifier création, modification, fusion/restauration, documents et consentement signé.
-- [ ] Obtenir les textes de consentement validés et les règles de conservation approuvées.
+- [x] Bibliothèque des textes de consentement (31/10, migration 0079) : l’administrateur (MFA) enregistre une fois chaque texte validé et versionné, sans modification possible ensuite (archivage + nouvelle version) ; le soignant choisit le texte dans une liste, type/version/texte/empreinte repris du modèle par le serveur ; saisie libre conservée seulement si la bibliothèque est vide. 16 cas vérifiés en base (transaction annulée), 6 tests API écrits, 7 tests unitaires.
+- [ ] Obtenir les textes de consentement validés et les règles de conservation approuvées. — à saisir ensuite dans Paramètres › Bibliothèque des textes de consentement.
 
 ### Agenda et consultations
 - [x] Vérifier rendez-vous, anti-chevauchement, sauvegarde/clôture et addendum.

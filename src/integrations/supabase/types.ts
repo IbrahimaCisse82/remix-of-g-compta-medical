@@ -3602,11 +3602,68 @@ export type Database = {
           },
         ]
       }
+      sante_consentement_modeles: {
+        Row: {
+          actif: boolean
+          archive_le: string | null
+          archive_par: string | null
+          created_at: string
+          cree_par: string | null
+          id: string
+          structure_id: string
+          texte: string
+          texte_sha256: string
+          titre: string
+          type: string
+          valide_par: string | null
+          version: string
+        }
+        Insert: {
+          actif?: boolean
+          archive_le?: string | null
+          archive_par?: string | null
+          created_at?: string
+          cree_par?: string | null
+          id?: string
+          structure_id: string
+          texte: string
+          texte_sha256: string
+          titre: string
+          type: string
+          valide_par?: string | null
+          version: string
+        }
+        Update: {
+          actif?: boolean
+          archive_le?: string | null
+          archive_par?: string | null
+          created_at?: string
+          cree_par?: string | null
+          id?: string
+          structure_id?: string
+          texte?: string
+          texte_sha256?: string
+          titre?: string
+          type?: string
+          valide_par?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_consentement_modeles_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_consentements: {
         Row: {
           accorde: boolean
           created_at: string
           id: string
+          modele_id: string | null
           patient_id: string
           preuve: string | null
           recueilli_par: string | null
@@ -3623,6 +3680,7 @@ export type Database = {
           accorde: boolean
           created_at?: string
           id?: string
+          modele_id?: string | null
           patient_id: string
           preuve?: string | null
           recueilli_par?: string | null
@@ -3639,6 +3697,7 @@ export type Database = {
           accorde?: boolean
           created_at?: string
           id?: string
+          modele_id?: string | null
           patient_id?: string
           preuve?: string | null
           recueilli_par?: string | null
@@ -7977,6 +8036,21 @@ export type Database = {
         Args: { _facture_id: string }
         Returns: Json
       }
+      sante_modele_consentement_archiver: {
+        Args: { _modele_id: string }
+        Returns: undefined
+      }
+      sante_modele_consentement_creer: {
+        Args: {
+          _structure_id: string
+          _texte: string
+          _titre: string
+          _type: string
+          _valide_par?: string
+          _version: string
+        }
+        Returns: string
+      }
       sante_mouvement_reactif: {
         Args: {
           _lot_id?: string
@@ -8219,6 +8293,17 @@ export type Database = {
           _texte: string
           _type: string
           _version: string
+        }
+        Returns: string
+      }
+      sante_signer_consentement_modele: {
+        Args: {
+          _accorde: boolean
+          _modele_id: string
+          _patient_id: string
+          _signataire_nom: string
+          _signataire_qualite: string
+          _signature_png: string
         }
         Returns: string
       }
