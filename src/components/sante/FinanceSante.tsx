@@ -1,3 +1,4 @@
+import { saisir as demanderTexte } from '@/components/Confirmation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -377,8 +378,8 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
     load();
   };
   const provisionner = async (o: string, total: number) => {
-    const m = Number(prompt('Montant à provisionner :', String(total))); if (!m) return;
-    const motif = prompt('Motif (créance douteuse) :'); if (!motif) return;
+    const m = Number((await demanderTexte('Montant à provisionner :', String(total)))); if (!m) return;
+    const motif = (await demanderTexte('Motif (créance douteuse) :')); if (!motif) return;
     const { error } = await db.rpc('sante_provisionner_creance', { _structure_id: structureId, _organisme: o, _montant: m, _motif: motif });
     if (error) toast.error(error.message); else toast.success('Provision enregistrée (module Provisions + écriture)');
   };
@@ -443,8 +444,8 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
     if (error) toast.error(error.message); else toast.success('Réglages enregistrés');
   };
   const reserver = async () => {
-    const poste = prompt('Nom du poste (ex. Accueil) :'); if (!poste) return;
-    const taille = Number(prompt('Nombre de numéros à réserver (10 à 500) :', '50'));
+    const poste = (await demanderTexte('Nom du poste (ex. Accueil) :')); if (!poste) return;
+    const taille = Number((await demanderTexte('Nombre de numéros à réserver (10 à 500) :', '50')));
     const { error } = await db.rpc('sante_reserver_bloc', { _structure_id: structureId, _poste: poste, _taille: taille });
     if (error) toast.error(error.message); else void load();
   };

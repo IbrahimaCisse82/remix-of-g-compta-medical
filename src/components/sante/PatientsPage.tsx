@@ -1,4 +1,4 @@
-import { confirmer } from '@/components/Confirmation';
+import { confirmer, saisir } from '@/components/Confirmation';
 import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
@@ -257,7 +257,7 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
     toast.success('Dossiers fusionnés'); onDone();
   };
   const annuler = async (id: string) => {
-    const m = prompt('Motif d’annulation (10 caractères minimum) — réservé à l’administrateur :');
+    const m = (await saisir('Motif d’annulation (10 caractères minimum) — réservé à l’administrateur :'));
     if (!m) return;
     const { error } = await supabase.rpc('sante_annuler_fusion', { _fusion_id: id, _motif: m });
     if (error) return toast.error(error.message);

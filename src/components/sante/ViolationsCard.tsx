@@ -1,3 +1,4 @@
+import { saisir } from '@/components/Confirmation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,9 +40,9 @@ export default function ViolationsCard({ structureId }: { structureId: string })
   };
 
   const avancer = async (id: string, statut: string, question: string) => {
-    const texte = window.prompt(question) ?? '';
+    const texte = (await saisir(question)) ?? '';
     if (!texte.trim()) return;
-    const gravite = statut === 'qualifiee' ? (window.prompt('Gravité (faible / moyenne / élevée) :', 'moyenne') ?? 'moyenne') : null;
+    const gravite = statut === 'qualifiee' ? ((await saisir('Gravité (faible / moyenne / élevée) :', 'moyenne')) ?? 'moyenne') : null;
     const { error } = await supabase.rpc('sante_avancer_violation', { _id: id, _statut: statut, _texte: texte, _gravite: gravite as string });
     if (error) toast.error(error.message); else load();
   };
