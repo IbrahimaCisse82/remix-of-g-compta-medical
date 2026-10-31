@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
@@ -244,13 +245,13 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
     const { data } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: numero.trim(), _limit: 2 });
     const cible = (data ?? []).find(d => d.numero_dossier === numero.trim().toUpperCase());
     if (!cible || cible.id === patientId) return toast.error('Dossier en double introuvable');
-    if (!confirm(`Proposer la fusion de ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ?\nLa fusion ne sera appliquée qu'après confirmation par un autre médecin ou secrétaire.`)) return;
+    if (!(await confirmer(`Proposer la fusion de ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ?\nLa fusion ne sera appliquée qu'après confirmation par un autre médecin ou secrétaire.`))) return;
     const { error } = await supabase.rpc('sante_proposer_fusion', { _conserve: patientId, _fusionne: cible.id, _motif: motif });
     if (error) return toast.error(error.message);
     toast.success('Fusion proposée — confirmation par une autre personne requise'); setNumero(''); setMotif(''); void charger();
   };
   const confirmer = async (id: string) => {
-    if (!confirm('Confirmer la fusion ? Les antécédents, assurances et consentements du dossier en double seront transférés.')) return;
+    if (!(await confirmer('Confirmer la fusion ? Les antécédents, assurances et consentements du dossier en double seront transférés.'))) return;
     const { error } = await supabase.rpc('sante_confirmer_fusion', { _fusion_id: id });
     if (error) return toast.error(error.message);
     toast.success('Dossiers fusionnés'); onDone();

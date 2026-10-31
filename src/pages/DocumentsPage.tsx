@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
@@ -97,7 +98,7 @@ export default function DocumentsPage() {
   };
 
   const remove = async (d: Doc) => {
-    if (!confirm(`Supprimer « ${d.nom} » ?`)) return;
+    if (!(await confirmer(`Supprimer « ${d.nom} » ?`))) return;
     await supabase.storage.from('ged').remove([d.storage_path]);
     await supabase.from('documents').delete().eq('id', d.id);
     toast.success('Supprimé');

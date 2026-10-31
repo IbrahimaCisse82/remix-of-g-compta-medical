@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Lock, Plus, Printer, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -64,7 +65,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
     if (busy) return;
     setBusy(true);
     try {
-      await saveBeforeClosing(enregistrer, () => confirm('Clôturer la consultation ? Elle ne pourra plus être modifiée (addendum uniquement).'), async () => {
+      await saveBeforeClosing(enregistrer, () => confirmer('Clôturer la consultation ? Elle ne pourra plus être modifiée (addendum uniquement).'), async () => {
         const { error } = await supabase.rpc('sante_cloturer_consultation', { _consultation_id: id });
         if (error) { toast.error(error.message); return; }
         toast.success('Consultation clôturée'); await load();

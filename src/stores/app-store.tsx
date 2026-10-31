@@ -56,6 +56,7 @@ interface AppState {
   deleteCompte: (id: string) => Promise<void>;
   toggleCompte: (id: string) => void;
   installerPlanReference: () => Promise<number>;
+  rafraichirComptabilite: () => Promise<void>;
   addExercice: (e: Omit<Exercice, 'id'>) => Promise<void>;
   deleteExercice: (id: string) => Promise<void>;
   openExercice: (id: string) => void;
@@ -621,6 +622,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toast.success('Compte supprimé');
   }, []);
 
+  /** Recharge journal et balance de l'exercice affiché : les factures, encaissements et délivrances de l'espace
+   *  santé passent en comptabilité côté serveur, sans que l'écran comptable en soit prévenu. */
+  const rafraichirComptabilite = useCallback(async () => {
+    if (!exercice || demo) return;
+    await loadExerciceData(exercice.id, exercices, exercice);
+  }, [exercice, exercices, demo, loadExerciceData]);
+
   /** Ajoute au dossier les comptes du référentiel SYSCOHADA absents ; ne modifie ni ne supprime rien. */
   const installerPlanReference = useCallback(async () => {
     if (!entreprise || demo) return 0;
@@ -735,7 +743,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles, medicalStructures,
       setPage: setCurrentPage, launchDemo, launchUser, logout, addJournalEntry,
       launchHealth, completeHealthOnboarding, setWorkspace,
-      deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte, installerPlanReference,
+      deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte, installerPlanReference, rafraichirComptabilite,
       addExercice, deleteExercice, openExercice, updateEntreprise,
       clotureExercice, isExerciceCloture, switchEntreprise,
     }}>

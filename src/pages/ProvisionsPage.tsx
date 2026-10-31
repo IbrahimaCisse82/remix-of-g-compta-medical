@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -105,7 +106,7 @@ export default function ProvisionsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Supprimer cette provision ?')) return;
+    if (!(await confirmer('Supprimer cette provision ?'))) return;
     const { error } = await supabase.from('provisions').delete().eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('Supprimée'); load(); }

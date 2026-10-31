@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -82,7 +83,7 @@ export default function ImmobilisationsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!canDelete || !confirm('Supprimer cette immobilisation ?')) return;
+    if (!canDelete || !(await confirmer('Supprimer cette immobilisation ?'))) return;
     const { error } = await supabase.from('immobilisations').delete().eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('Supprimée'); load(); }

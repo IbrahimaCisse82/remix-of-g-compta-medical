@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useApp } from '@/stores/app-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { fmt } from '@/lib/accounting';
@@ -17,7 +18,7 @@ export default function JournalPage() {
   const td = rows.reduce((s, r) => s + (r.debit || 0), 0);
   const tc = rows.reduce((s, r) => s + (r.credit || 0), 0);
 
-  const handleExportFec = () => {
+  const handleExportFec = async () => {
     if (!entreprise || !exercice) return;
     const rapport = controlerFec(journal as any);
     const lignes = [
@@ -31,8 +32,8 @@ export default function JournalPage() {
       'Télécharger le FEC ?',
     ];
     if (!rapport.equilibre || rapport.comptesSansLibelle.length > 0) {
-      if (!window.confirm(lignes.join('\n') + '\n\n⚠️ Des anomalies ont été détectées.')) return;
-    } else if (!window.confirm(lignes.join('\n'))) return;
+      if (!(await confirmer(lignes.join('\n') + '\n\n⚠️ Des anomalies ont été détectées.'))) return;
+    } else if (!(await confirmer(lignes.join('\n')))) return;
     const content = buildFec(journal as any, {
       entrepriseNom: entreprise.nom,
       ninea: entreprise.ninea || '',
