@@ -3,7 +3,6 @@ import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { chargerTout } from '@/lib/pagination';
 
 interface Axe { id: string; code: string; libelle: string; actif: boolean; }
 interface Ventilation { id: string; journal_entry_id: string; axe_id: string; centre: string; montant: number; pourcentage: number; }
@@ -27,7 +26,7 @@ export default function AnalytiquePage() {
     setLoading(true);
     const [axeRes, ventRes] = await Promise.all([
       supabase.from('axes_analytiques').select('*').eq('entreprise_id', entreprise.id),
-      chargerTout((de, a) => supabase.from('ventilations_analytiques').select('*').eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id).order('id').range(de, a)).then(data => ({ data }), () => ({ data: null })),
+      supabase.from('ventilations_analytiques').select('*').eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id),
     ]);
     if (axeRes.data) setAxes(axeRes.data as any[]);
     if (ventRes.data) setVentilations(ventRes.data as any[]);
@@ -56,10 +55,7 @@ export default function AnalytiquePage() {
     if (!entreprise || !exercice || !selectedAxe || !ventEntryId || !ventCentre) return;
     const entry = journal.find(j => j.id === ventEntryId);
     if (!entry) return;
-    if (!(ventPct > 0 && ventPct <= 100)) return void toast.error('Le pourcentage doit être compris entre 0 et 100.');
-    const deja = ventilations.filter(v => v.journal_entry_id === ventEntryId && v.axe_id === selectedAxe).reduce((t, v) => t + Number(v.pourcentage || 0), 0);
-    if (deja + ventPct > 100.0001) return void toast.error(`Cette ligne est déjà ventilée à ${deja.toLocaleString('fr-FR')} % sur cet axe : il reste ${(100 - deja).toLocaleString('fr-FR')} %.`);
-    const montant = Math.round(((entry.debit || 0) - (entry.credit || 0)) * ventPct) / 100;
+    const montant = ((entry.debit || 0) - (entry.credit || 0)) * ventPct / 100;
     const { error } = await supabase.from('ventilations_analytiques').insert({
       entreprise_id: entreprise.id, exercice_id: exercice.id,
       journal_entry_id: ventEntryId, axe_id: selectedAxe,

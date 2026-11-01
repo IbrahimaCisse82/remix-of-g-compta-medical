@@ -1,4 +1,3 @@
-import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '@/stores/app-store';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,7 +63,7 @@ export default function PortailPage() {
   };
 
   const remove = async (a: Acces) => {
-    if (!(await confirmer(`Révoquer l'accès de ${a.email} ?`))) return;
+    if (!confirm(`Révoquer l'accès de ${a.email} ?`)) return;
     await supabase.from('portail_acces').delete().eq('id', a.id);
     toast.success('Accès révoqué');
     load();

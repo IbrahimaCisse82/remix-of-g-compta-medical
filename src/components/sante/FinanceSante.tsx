@@ -1,4 +1,3 @@
-import { saisir as demanderTexte } from '@/components/Confirmation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +13,6 @@ import { MODES_PAIEMENT } from '@/domain/sante/tiers-payant';
 import { imputationsValides, conventionValide } from '@/lib/tiers-payant-saisie';
 import ImportReglements from './ImportReglements';
 import { classerDebiteurs, totauxBalance } from '@/lib/reglements-import';
-import { chargerTout } from '@/lib/pagination';
 const db = supabase as any;
 
 /** Indicateur « écritures en attente » + recomptabilisation idempotente. */
@@ -121,14 +119,21 @@ export function ReglementOrganismeCard({ structureId, refresh = 0, onChanged }: 
     if (!o) return;
     setLoading(true);
     try {
-      // Factures restant à régler, calculées en base (imputations et rejets définitifs déduits), toutes pages lues.
       const [f, h] = await Promise.all([
-        chargerTout((de, a) => db.rpc('sante_factures_ouvertes_organisme', { _structure_id: structureId, _organisme: o }).range(de, a)),
+        db.from('sante_factures').select('id, numero, part_organisme, organisme, statut_tiers, created_at').eq('structure_id', structureId).eq('organisme', o).eq('type', 'facture').eq('annulee', false).gt('part_organisme', 0).order('created_at').limit(1000),
         db.from('sante_reglements_organisme').select('id,montant,mode,reference,created_at').eq('structure_id', structureId).eq('organisme', o).order('created_at', { ascending: false }).limit(20),
       ]);
-      if (h.error) throw h.error;
+      if (f.error || h.error) throw f.error ?? h.error;
+      const ids = (f.data ?? []).map((x: any) => x.id);
+      const [im, re] = ids.length ? await Promise.all([
+        db.from('sante_reglement_imputations').select('facture_id,montant').eq('structure_id', structureId).in('facture_id', ids),
+        db.from('sante_tiers_rejets').select('facture_id,montant,type').eq('structure_id', structureId).in('facture_id', ids),
+      ]) : [{ data: [], error: null }, { data: [], error: null }];
+      if (im.error || re.error) throw im.error ?? re.error;
       if (ticket !== request.current) return;
-      setFactures(f.map((x: any) => ({ ...x, reste: Number(x.reste) }))); setHistory(h.data ?? []);
+      const avecReste = (f.data ?? []).map((x: any) => ({ ...x, reste: Number(x.part_organisme) - (im.data ?? []).filter((i: any) => i.facture_id === x.id).reduce((s: number, i: any) => s + Number(i.montant), 0) - (re.data ?? []).filter((i: any) => i.facture_id === x.id && ['perte','non_prise_en_charge'].includes(i.type)).reduce((s: number, i: any) => s + Number(i.montant), 0) }));
+      setFactures(avecReste.filter((x: any) => x.reste > 0)); setHistory(h.data ?? []);
+      if ((f.data ?? []).length === 1000) setError('Affichage limité aux 1 000 premières factures.');
     } catch (e) { if (ticket === request.current) setError((e as Error).message); }
     finally { if (ticket === request.current) setLoading(false); }
   };
@@ -378,8 +383,8 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
     load();
   };
   const provisionner = async (o: string, total: number) => {
-    const m = Number((await demanderTexte('Montant à provisionner :', String(total)))); if (!m) return;
-    const motif = (await demanderTexte('Motif (créance douteuse) :')); if (!motif) return;
+    const m = Number(prompt('Montant à provisionner :', String(total))); if (!m) return;
+    const motif = prompt('Motif (créance douteuse) :'); if (!motif) return;
     const { error } = await db.rpc('sante_provisionner_creance', { _structure_id: structureId, _organisme: o, _montant: m, _motif: motif });
     if (error) toast.error(error.message); else toast.success('Provision enregistrée (module Provisions + écriture)');
   };
@@ -403,14 +408,14 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
 }
 
 /** Chiffre d'affaires par axe analytique (catégorie, section, praticien, site). */
-export function AnalytiqueSanteCard({ structureId, refresh = 0 }: { structureId: string; refresh?: number }) {
+export function AnalytiqueSanteCard({ structureId }: { structureId: string }) {
   const [axe, setAxe] = useState('categorie');
   const [mois, setMois] = useState(new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState<{ axe: string; montant: number; nb: number }[]>([]);
   useEffect(() => {
     const d = new Date(`${mois}-01`); const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
     db.rpc('sante_ca_analytique', { _structure_id: structureId, _debut: `${mois}-01`, _fin: fin, _axe: axe }).then(({ data, error }: any) => setRows(error ? [] : data ?? []));
-  }, [structureId, axe, mois, refresh]);
+  }, [structureId, axe, mois]);
   return (
     <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
       <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold flex-1">Analyse du chiffre d'affaires</h3>
@@ -444,8 +449,8 @@ export function FiscalSecoursCard({ structureId }: { structureId: string }) {
     if (error) toast.error(error.message); else toast.success('Réglages enregistrés');
   };
   const reserver = async () => {
-    const poste = (await demanderTexte('Nom du poste (ex. Accueil) :')); if (!poste) return;
-    const taille = Number((await demanderTexte('Nombre de numéros à réserver (10 à 500) :', '50')));
+    const poste = prompt('Nom du poste (ex. Accueil) :'); if (!poste) return;
+    const taille = Number(prompt('Nombre de numéros à réserver (10 à 500) :', '50'));
     const { error } = await db.rpc('sante_reserver_bloc', { _structure_id: structureId, _poste: poste, _taille: taille });
     if (error) toast.error(error.message); else void load();
   };

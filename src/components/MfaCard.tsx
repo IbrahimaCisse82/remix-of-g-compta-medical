@@ -1,4 +1,3 @@
-import { confirmer as demanderConfirmation } from '@/components/Confirmation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,7 @@ export default function MfaCard() {
     setEnrol(null); setCode(''); charger();
   }
   async function retirer(id: string) {
-    if (!(await demanderConfirmation('Désactiver la double authentification sur ce compte ?'))) return;
+    if (!confirm('Désactiver la double authentification sur ce compte ?')) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
     if (error) toast.error(error.message); else { toast.success('Désactivée'); charger(); }
   }

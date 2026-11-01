@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { formaterResultat } from '@/domain/sante/droits';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
 import { LIBELLE_DRAPEAU, type Drapeau } from '@/domain/sante/reference';
@@ -60,8 +59,8 @@ export async function imprimerCompteRendu(demandeId: string) {
     const lignes = [...a.parametres].sort((u: any, v: any) => u.ordre - v.ordre).map((pa: any) => {
       const r: any = byParam.get(pa.id);
       const f = (r?.drapeau ?? 'N') as Drapeau;
-      const val = r?.valeur_num != null ? formaterResultat(Number(r.valeur_num), pa.decimales) : esc(r?.valeur_texte ?? '—');
-      const ref = r?.ref_bas != null || r?.ref_haut != null ? `${r.ref_bas != null ? formaterResultat(Number(r.ref_bas), pa.decimales) : ''} – ${r.ref_haut != null ? formaterResultat(Number(r.ref_haut), pa.decimales) : ''}` : '';
+      const val = r?.valeur_num != null ? Number(r.valeur_num).toFixed(pa.decimales) : esc(r?.valeur_texte ?? '—');
+      const ref = r?.ref_bas != null || r?.ref_haut != null ? `${r.ref_bas ?? ''} – ${r.ref_haut ?? ''}` : '';
       // Après validation, on imprime les libellés/unités figés : un changement de catalogue ne modifie pas un compte rendu émis
       const lib = definitif && r?.libelle_fige ? r.libelle_fige : pa.libelle;
       const unite = definitif && r?.libelle_fige ? r.unite_fige : pa.unite;
@@ -81,7 +80,7 @@ ${g.ab?.length ? `<table><thead><tr><th>Antibiotique</th><th>CMI</th><th>Interpr
 <div style="display:flex;justify-content:space-between;margin:14px 0"><div><strong>${esc(p.nom)} ${esc(p.prenoms)}</strong><br><small>Dossier ${esc(p.numero_dossier)} · ${p.sexe === 'F' ? 'Féminin' : 'Masculin'}${p.date_naissance ? ' · né(e) le ' + new Date(p.date_naissance).toLocaleDateString('fr-FR') : ''}</small></div>
 <div style="text-align:right"><small>Prescripteur : ${esc(d.prescripteur ?? '—')}<br>Prélevé le : ${d.preleve_le ? new Date(d.preleve_le).toLocaleString('fr-FR') : '—'}${dd.prelev_site ? ' (' + esc(dd.prelev_site) + ')' : ''}<br>Rendu le : ${d.validee_le ? new Date(d.validee_le).toLocaleString('fr-FR') : '—'}</small></div></div>
 ${mentions}${blocs}${micro}
-<div class="sig">${definitif ? `Validé biologiquement le ${new Date(d.validee_le).toLocaleString('fr-FR')}<br>${dd.signataire_nom ? `<strong>${esc(dd.signataire_nom)}</strong>${dd.signataire_ordre ? ` · n° d’ordre ${esc(dd.signataire_ordre)}` : ''}<br>` : ''}Signature électronique du biologiste${dd.cr_hash ? `<br><small style="font-family:monospace">Empreinte ${esc(String(dd.cr_hash).slice(0, 16))}… · vérifiable par le QR code</small>` : ''}` : '<em>Compte rendu non encore validé biologiquement</em>'}</div>${pied(s)}`);
+<div class="sig">${definitif ? `Validé biologiquement le ${new Date(d.validee_le).toLocaleString('fr-FR')}<br>Signature électronique du biologiste${dd.cr_hash ? `<br><small style="font-family:monospace">Empreinte ${esc(String(dd.cr_hash).slice(0, 16))}… · vérifiable par le QR code</small>` : ''}` : '<em>Compte rendu non encore validé biologiquement</em>'}</div>${pied(s)}`);
 }
 
 /** Étiquettes code-barres (Code 128) : une par tube/contenant distinct de la demande. */

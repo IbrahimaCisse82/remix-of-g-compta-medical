@@ -1,9 +1,7 @@
 import { controlesSyscohada } from '@/lib/conformite-syscohada';
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { BalanceLine, JournalLine, PlanCompte, Entreprise, Exercice } from '@/lib/accounting';
 import { supabase } from '@/integrations/supabase/client';
-import { lotsInstallation } from '@/lib/plan-reference';
-import { chargerTout } from '@/lib/pagination';
 import { DEMO_ENTREPRISE, DEMO_EXERCICE, DEMO_LBH_BALANCE, DEMO_LBH_JOURNAL, buildPlan } from '@/lib/demo-data';
 import { creerEcriture, contrepasserEcriture, enregistrerLignesJournal, getBalanceDerivee } from '@/lib/ecritures';
 import { toast } from 'sonner';
@@ -38,13 +36,10 @@ interface AppState {
   entreprises: Entreprise[];
   medicalStructure: MedicalStructure | null;
   medicalRoles: RoleMedical[];
-  /** Toutes les structures actives de l'utilisateur (sélecteur dans la barre du haut). */
-  medicalStructures: { id: string; nom: string; type: MedicalStructure['type'] }[];
   setPage: (page: PageId) => void;
   launchDemo: (env: EnvMode) => void;
   launchUser: (env: EnvMode) => void;
-  /** Ouvre l'espace Santé ; sans identifiant : dernière structure choisie, sinon la première par ordre alphabétique. */
-  launchHealth: (structureId?: string) => Promise<void>;
+  launchHealth: () => Promise<void>;
   completeHealthOnboarding: (structure: MedicalStructure) => void;
   setWorkspace: (workspace: Workspace) => void;
   logout: () => void;
@@ -55,8 +50,6 @@ interface AppState {
   addCompte: (c: PlanCompte) => Promise<void>;
   deleteCompte: (id: string) => Promise<void>;
   toggleCompte: (id: string) => void;
-  installerPlanReference: () => Promise<number>;
-  rafraichirComptabilite: () => Promise<void>;
   addExercice: (e: Omit<Exercice, 'id'>) => Promise<void>;
   deleteExercice: (id: string) => Promise<void>;
   openExercice: (id: string) => void;
@@ -121,18 +114,12 @@ function mapPlan(data: any[]): PlanCompte[] {
   }));
 }
 
-const lirePlan = (entrepriseId: string) =>
-  chargerTout((de, a) => supabase.from('plan_comptable').select('*').eq('entreprise_id', entrepriseId).order('numero').order('id').range(de, a));
-const lireJournal = (exerciceId: string) =>
-  chargerTout((de, a) => supabase.from('journal').select('*').eq('exercice_id', exerciceId).order('date_ecriture').order('id').range(de, a));
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [workspace, setWorkspace] = useState<Workspace>('compta');
   const [env, setEnv] = useState<EnvMode>('entreprise');
   const [demo, setDemo] = useState(false);
   const [launched, setLaunched] = useState(false);
   const [loading, setLoading] = useState(false);
-  const lancementEnCours = useRef(false);
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
   const [entreprise, setEntreprise] = useState<Entreprise | null>(null);
   const [exercice, setExercice] = useState<Exercice | null>(null);
@@ -144,7 +131,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [medicalStructure, setMedicalStructure] = useState<MedicalStructure | null>(null);
   const [medicalRoles, setMedicalRoles] = useState<RoleMedical[]>([]);
-  const [medicalStructures, setMedicalStructures] = useState<AppState['medicalStructures']>([]);
 
   const isExerciceCloture = useCallback(() => {
     return exercice?.statut === 'cloture';
@@ -156,8 +142,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const [derivee, ouverture, accountTargets] = await Promise.all([
         getBalanceDerivee(entrepriseId, exerciceId),
-        chargerTout((de, a) => supabase.from('journal').select('compte,debit,credit').eq('entreprise_id', entrepriseId).eq('exercice_id', exerciceId).eq('journal_code','AN').eq('statut_validation','valide').order('id').range(de, a)).then(data => ({ data })),
-        chargerTout((de, a) => supabase.from('plan_comptable').select('numero,poste_cible').eq('entreprise_id',entrepriseId).order('numero').range(de, a)).then(data => ({ data })),
+        supabase.from('journal').select('compte,debit,credit').eq('entreprise_id', entrepriseId).eq('exercice_id', exerciceId).eq('journal_code','AN').eq('statut_validation','valide'),
+        supabase.from('plan_comptable').select('numero,poste_cible').eq('entreprise_id',entrepriseId),
       ]);
       const opening = new Map<string, number>();
       for (const line of ouverture.data ?? []) opening.set(line.compte, (opening.get(line.compte) ?? 0) + Number(line.debit) - Number(line.credit));
@@ -192,10 +178,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadExerciceData = useCallback(async (excId: string, allExercices: Exercice[], exc: Exercice) => {
     const [bal, jourRes] = await Promise.all([
       chargerBalance(exc.entreprise_id, excId),
-      lireJournal(excId),
+      supabase.from('journal').select('*').eq('exercice_id', excId).order('date_ecriture'),
     ]);
     setBalance(bal);
-    setJournal(mapJournal(jourRes));
+    if (jourRes.data) setJournal(mapJournal(jourRes.data));
     await loadBalanceN1(allExercices, exc);
   }, [loadBalanceN1, chargerBalance]);
 
@@ -310,10 +296,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         const exc = mapExercice(newExc);
         
-        // Plan comptable SYSCOHADA révisé (référentiel 2019)
-        for (const lot of lotsInstallation(ent.id, [])) await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
+        // Copy default SYSCOHADA plan comptable
+        const { data: demoPlan } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', DEMO_ENTREPRISE_ID).order('numero');
+        if (demoPlan && demoPlan.length > 0) {
+          const planInserts = demoPlan.map(p => ({
+            entreprise_id: ent.id,
+            numero: p.numero,
+            intitule: p.intitule,
+            classe: p.classe,
+            sens: p.sens,
+            type_compte: p.type_compte,
+            actif: p.actif,
+          }));
+          await supabase.from('plan_comptable').insert(planInserts);
+        }
 
-        const userPlan = await lirePlan(ent.id);
+        const { data: userPlan } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
 
         setEntreprise(ent);
         setExercice(exc);
@@ -355,7 +353,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await loadExerciceData(currentExc.id, allExcs, currentExc);
       }
 
-      const planData = await lirePlan(ent.id);
+      const { data: planData } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
       setPlan(planData ? mapPlan(planData) : []);
 
       setLaunched(true);
@@ -365,11 +363,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, [loadExerciceData]);
 
-  const launchHealth = useCallback(async (structureId?: string) => {
-    // Un clic pendant le chargement relançait tout depuis le début : on ignore les clics répétés.
-    if (lancementEnCours.current) return;
-    lancementEnCours.current = true;
-    try {
+  const launchHealth = useCallback(async () => {
     setLaunched(false);
     setMedicalStructure(null); setMedicalRoles([]);
     setEntreprise(null); setEntreprises([]); setExercice(null); setExercices([]);
@@ -384,20 +378,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-    const { data: adhesions, error } = await supabase
+    const { data, error } = await supabase
       .from('structure_memberships')
       .select('id, structure_id, structures(id, nom, type, theme_medical, entreprise_id)')
       .eq('user_id', user.id)
-      .eq('statut', 'actif');
+      .eq('statut', 'actif')
+      .limit(1)
+      .maybeSingle();
     if (error) { toast.error("Impossible de charger l’espace Santé."); setLoading(false); return; }
-    // Plusieurs structures possibles (ex. GROW HUB, comptable commun) : on retient le dernier choix de l'utilisateur.
-    const liste = (adhesions ?? []).filter(a => a.structures).sort((a, b) => String((a.structures as any).nom).localeCompare(String((b.structures as any).nom), 'fr'));
-    setMedicalStructures(liste.map(a => ({ id: (a.structures as any).id, nom: (a.structures as any).nom, type: (a.structures as any).type })));
-    const cleChoix = `gsante.structure.${user.id}`;
-    let prefere: string | null = structureId ?? null;
-    if (!prefere) { try { prefere = localStorage.getItem(cleChoix); } catch { prefere = null; } }
-    const data = liste.find(a => a.structure_id === prefere) ?? liste[0] ?? null;
-    if (data) { try { localStorage.setItem(cleChoix, data.structure_id); } catch { /* stockage indisponible : sans conséquence */ } }
     const structure = data?.structures as any;
     setMedicalStructure(structure ? {
       id: structure.id,
@@ -436,14 +424,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setExercices(allExcs);
             await loadExerciceData(currentExc.id, allExcs, currentExc);
           }
-          const planData = await lirePlan(ent.id);
+          const { data: planData } = await supabase.from('plan_comptable').select('*').eq('entreprise_id', ent.id).order('numero');
           setPlan(planData ? mapPlan(planData) : []);
         }
       } catch { /* l'espace santé reste utilisable sans la comptabilité */ }
     }
     setLaunched(true);
     setLoading(false);
-    } finally { lancementEnCours.current = false; }
   }, [loadExerciceData]);
 
   const completeHealthOnboarding = useCallback((structure: MedicalStructure) => {
@@ -461,7 +448,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setJournal([]);
     setPlan([]);
     setCurrentPage('dashboard');
-    setMedicalStructure(null); setMedicalStructures([]);
+    setMedicalStructure(null);
     setMedicalRoles([]);
     await supabase.auth.signOut();
   }, []);
@@ -628,26 +615,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toast.success('Compte supprimé');
   }, []);
 
-  /** Recharge journal et balance de l'exercice affiché : les factures, encaissements et délivrances de l'espace
-   *  santé passent en comptabilité côté serveur, sans que l'écran comptable en soit prévenu. */
-  const rafraichirComptabilite = useCallback(async () => {
-    if (!exercice || demo) return;
-    await loadExerciceData(exercice.id, exercices, exercice);
-  }, [exercice, exercices, demo, loadExerciceData]);
-
-  /** Ajoute au dossier les comptes du référentiel SYSCOHADA absents ; ne modifie ni ne supprime rien. */
-  const installerPlanReference = useCallback(async () => {
-    if (!entreprise || demo) return 0;
-    let n = 0;
-    for (const lot of lotsInstallation(entreprise.id, plan.map(p => p.numero))) {
-      const { error } = await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
-      if (error) throw new Error(error.message.includes('row-level') ? 'Réservé à l’administrateur ou au comptable du dossier.' : error.message);
-      n += lot.length;
-    }
-    setPlan(mapPlan(await lirePlan(entreprise.id)));
-    return n;
-  }, [entreprise, demo, plan]);
-
   const toggleCompte = useCallback(async (id: string) => {
     const compte = plan.find(p => p.id === id);
     if (!compte) return;
@@ -706,7 +673,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const [excsRes, planRes] = await Promise.all([
         supabase.from('exercices').select('*').eq('entreprise_id', entrepriseId).order('annee', { ascending: false }),
-        lirePlan(entrepriseId).then(data => ({ data })),
+        supabase.from('plan_comptable').select('*').eq('entreprise_id', entrepriseId).order('numero'),
       ]);
       const allExcs = (excsRes.data || []).map(mapExercice);
       const currentExc = allExcs.find(e => e.statut === 'en_cours') || allExcs[0];
@@ -746,10 +713,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       workspace, env, demo, launched, loading, currentPage, entreprise, exercice, exercices,
-      balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles, medicalStructures,
+      balance, balanceN1, journal, plan, entreprises, medicalStructure, medicalRoles,
       setPage: setCurrentPage, launchDemo, launchUser, logout, addJournalEntry,
       launchHealth, completeHealthOnboarding, setWorkspace,
-      deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte, installerPlanReference, rafraichirComptabilite,
+      deleteJournalEntry, extournerEcriture, addCompte, deleteCompte, toggleCompte,
       addExercice, deleteExercice, openExercice, updateEntreprise,
       clotureExercice, isExerciceCloture, switchEntreprise,
     }}>

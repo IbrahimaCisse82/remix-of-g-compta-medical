@@ -1,4 +1,3 @@
-import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -127,7 +126,7 @@ export default function FournisseursPage() {
     load();
   };
   const deleteFrn = async (id: string) => {
-    if (!(await confirmer('Supprimer ce fournisseur ?'))) return;
+    if (!confirm('Supprimer ce fournisseur ?')) return;
     const { error } = await supabase.from('fournisseurs').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Supprimé');
@@ -221,7 +220,7 @@ export default function FournisseursPage() {
   };
 
   const deleteFact = async (id: string) => {
-    if (!(await confirmer('Supprimer cette facture ?'))) return;
+    if (!confirm('Supprimer cette facture ?')) return;
     const { error } = await supabase.from('factures_achat').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Supprimée');

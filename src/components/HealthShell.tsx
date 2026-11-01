@@ -23,10 +23,6 @@ import EmailJournal from '@/components/sante/EmailJournal';
 import EquipeCard from '@/components/sante/EquipeCard';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
-import BibliothequeConsentements from '@/components/sante/BibliothequeConsentements';
-import ExploitationPage from '@/components/sante/ExploitationPage';
-import { ImportEquipe } from '@/components/sante/ImportsStructure';
-import { roleCompatible } from '@/domain/sante/imports-structure';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
@@ -51,7 +47,7 @@ const VUES: { v: HealthView; label: string; Icon: typeof LayoutDashboard }[] = [
 export type HealthView = 'accueil' | 'pilotage' | 'patients' | 'agenda' | 'laboratoire' | 'qualite' | 'facturation' | 'catalogue' | 'plannings' | 'retrocessions' | 'parametres';
 
 export default function HealthShell({ embeddedView }: { embeddedView?: HealthView } = {}) {
-  const { medicalStructure, medicalRoles, logout, entreprise } = useApp();
+  const { medicalStructure, medicalRoles, logout } = useApp();
   // Filtrage d'affichage selon le type de structure et les rôles du membre.
   const ctxNav: ContexteNavigation = { typeStructure: medicalStructure?.type ?? null, roles: medicalRoles };
   const vuesVisibles = VUES.filter(({ v }) => moduleVisible(`sante_${v}` as PageId, ctxNav));
@@ -97,8 +93,6 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
   };
 
   useEffect(() => { void refreshSettings(); }, [medicalStructure?.id]);
-  // Rôle proposé par défaut compatible avec le type de structure (pas de médecin dans un laboratoire).
-  useEffect(() => { if (medicalStructure && !roleCompatible(inviteRole, medicalStructure.type)) setInviteRole('secretaire'); }, [medicalStructure?.type]);
 
   const changePalette = async (next: MedicalPalette) => {
     setPalette(next);
@@ -127,7 +121,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
       const { error } = await supabase.rpc('create_medical_invitation', { _structure_id: medicalStructure.id, _email: inviteEmail.trim(), _role: inviteRole });
       if (error) throw error;
       setInviteEmail(''); toast.success('Invitation enregistrée.'); await refreshSettings();
-    } catch (e) { toast.error((e as { message?: string })?.message || 'Invitation non enregistrée. Vérifiez votre accès puis réessayez.'); }
+    } catch { toast.error('Invitation non enregistrée. Vérifiez votre accès puis réessayez.'); }
     finally { setInviteBusy(false); }
   };
 
@@ -153,7 +147,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
             <div className="max-w-5xl">
               <p className="text-xs font-mono uppercase text-primary mb-2">Configuration</p>
               <h1 className="font-serif text-3xl mb-2">Sites et équipe</h1>
-              {medicalStructure && medicalRoles.includes('admin_structure') && <ConfigurationEntreprise key={`config-${medicalStructure.id}`} structureId={medicalStructure.id} />}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <ConfigurationEntreprise key={medicalStructure.id} structureId={medicalStructure.id} />}
               {settingsError && <div role="alert" className="mb-5 text-destructive"><p>{settingsError}</p><Button variant="outline" onClick={() => void refreshSettings()}>Réessayer</Button></div>}
               <p className="text-sm text-fg2 mb-8">Ajoutez vos lieux d’exercice et préparez les accès de chaque collaborateur.</p>
               <div className="grid gap-8 lg:grid-cols-2">
@@ -166,21 +160,18 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
                   <div className="flex items-center gap-2 mb-5"><Users className="text-primary" /><h2 className="font-semibold">Invitations</h2></div>
                   <form onSubmit={invite} className="space-y-3 mb-5">
                     <div><Label htmlFor="invite-email" className="sr-only">Email</Label><Input id="invite-email" type="email" required value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="collaborateur@structure.sn" /></div>
-                    <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(['medecin','biologiste','technicien','preleveur','secretaire','caissier','tiers_payant','comptable','lecteur'] as const).filter(role => !medicalStructure || roleCompatible(role, medicalStructure.type)).map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
+                    <Select value={inviteRole} onValueChange={value => setInviteRole(value as typeof inviteRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['medecin','biologiste','technicien','preleveur','secretaire','caissier','tiers_payant','comptable','lecteur'].map(role => <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>)}</SelectContent></Select>
                     <Button type="submit" disabled={inviteBusy} className="w-full"><Send />Enregistrer l’invitation</Button>
                   </form>
                   <div className="space-y-2">{invitations.length === 0 ? <p className="text-xs text-fg3">Aucune invitation.</p> : invitations.map(item => <div key={item.id} className="border border-border rounded-md p-3"><p className="text-sm truncate">{item.email}</p><p className="text-xs text-fg3 capitalize">{item.role} · {item.statut.replace('_', ' ')}</p>{item.statut === 'en_attente' && <div className="flex flex-wrap gap-2 mt-2"><Button size="sm" variant="outline" onClick={() => void copyInvitation(item.id)}>Copier le lien d’invitation</Button><Button size="sm" variant="ghost" onClick={() => void revokeInvitation(item.id)}>Révoquer</Button></div>}</div>)}</div>
                 </section>
               </div>
-              {medicalStructure && medicalRoles.includes('admin_structure') && <ImportEquipe structureId={medicalStructure.id} type={medicalStructure.type} enAttente={invitations} onDone={() => void refreshSettings()} />}
               {medicalStructure && medicalRoles.includes('admin_structure') && <EquipeCard structureId={medicalStructure.id} type={medicalStructure.type} />}
               {medicalStructure && <LierEntrepriseCard structureId={medicalStructure.id} />}
-              {medicalStructure && medicalRoles.includes('admin_structure') && <section key={`exploitation-${medicalStructure.id}`} className="mt-8"><ExploitationPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} entrepriseId={entreprise?.id ?? null} /></section>}
-              {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={`journal-${medicalStructure.id}`} structureId={medicalStructure.id} />}
+              {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={medicalStructure.id} structureId={medicalStructure.id} />}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
               {medicalStructure && <ConformiteCard structureId={medicalStructure.id} />}
-              {medicalStructure && medicalRoles.includes('admin_structure') && <BibliothequeConsentements key={`consentements-${medicalStructure.id}`} structureId={medicalStructure.id} />}
               {medicalStructure && <ParametresFinanceCard structureId={medicalStructure.id} />}
               {medicalStructure && <FiscalSecoursCard structureId={medicalStructure.id} />}
             </div>

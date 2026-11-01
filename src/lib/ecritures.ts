@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { chargerTout } from '@/lib/pagination';
 
 /**
  * Couche d'accès aux écritures comptables.
@@ -124,12 +123,12 @@ export async function rouvrirExercice(exerciceId: string, motif: string): Promis
 
 /** Balance dérivée du journal et des écritures validées (vue matérialisée). */
 export async function getBalanceDerivee(entrepriseId: string, exerciceId: string): Promise<BalanceDeriveeLine[]> {
-  // Une ligne par compte mouvementé ; lue page par page (l'API plafonne chaque réponse à 1 000 lignes).
-  const data = await chargerTout<any>((de, a) => supabase.rpc('fn_balance', {
+  const { data, error } = await supabase.rpc('fn_balance', {
     _entreprise_id: entrepriseId,
     _exercice_id: exerciceId,
-  } as any).order('compte').range(de, a));
-  return (data || []).map(d => ({
+  } as any);
+  if (error) throw new Error(error.message);
+  return ((data as any[]) || []).map(d => ({
     compte: d.compte,
     intitule: d.intitule ?? '',
     md: Number(d.md) || 0,
@@ -192,20 +191,9 @@ export interface LigneJournalPlate {
  */
 export async function enregistrerLignesJournal(
   lignes: LigneJournalPlate[],
-  options?: { statut?: 'brouillon' | 'validee'; origine?: string; pieceUnique?: boolean }
+  options?: { statut?: 'brouillon' | 'validee'; origine?: string }
 ): Promise<string[]> {
   if (!lignes.length) return [];
-  if (options?.pieceUnique) {
-    // Pièces générées par un module (dotation, cession, paie…) : une seule écriture en vigueur par pièce.
-    for (const piece of new Set(lignes.map(l => l.piece).filter((p): p is string => !!p))) {
-      const l = lignes.find(x => x.piece === piece)!;
-      const { data, error } = await supabase.from('ecritures').select('numero')
-        .eq('entreprise_id', l.entreprise_id).eq('journal_code', l.journal_code).eq('piece', piece)
-        .is('contrepasse_par', null).neq('statut', 'annulee').limit(1);
-      if (error) throw new Error(error.message);
-      if (data?.length) throw new Error(`Pièce ${piece} déjà comptabilisée (écriture ${data[0].numero}) : contre-passez-la avant de recommencer.`);
-    }
-  }
   const groupes = new Map<string, LigneJournalPlate[]>();
   for (const l of lignes) {
     const cle = [l.entreprise_id, l.exercice_id, l.journal_code, l.date_ecriture, l.piece ?? ''].join('|');

@@ -1,11 +1,9 @@
-import { saisir } from '@/components/Confirmation';
 import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/use-user-role';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { chargerTout } from '@/lib/pagination';
 
 interface JournalRow {
   id: string;
@@ -41,20 +39,17 @@ export default function ValidationPage() {
   const load = useCallback(async () => {
     if (!entreprise || !exercice || demo) return;
     setLoading(true);
-    // Toutes les lignes du statut affiché (au-delà de 1 000 lignes comprises).
-    try {
-      setRows(await chargerTout<JournalRow>((de, a) => supabase
-        .from('journal')
-        .select('*')
-        .eq('entreprise_id', entreprise.id)
-        .eq('exercice_id', exercice.id)
-        .eq('statut_validation', tab)
-        .order('date_ecriture', { ascending: false })
-        .order('id')
-        .range(de, a)));
-    } catch (e) { toast.error((e as Error).message); }
+    const { data, error } = await supabase
+      .from('journal')
+      .select('*')
+      .eq('entreprise_id', entreprise.id)
+      .eq('exercice_id', exercice.id)
+      .order('date_ecriture', { ascending: false })
+      .limit(500);
+    if (error) toast.error(error.message);
+    else setRows((data as any) || []);
     setLoading(false);
-  }, [entreprise, exercice, demo, tab]);
+  }, [entreprise, exercice, demo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -78,14 +73,11 @@ export default function ValidationPage() {
     if (newStatus === 'refuse') { updates.valide_par = user.id; updates.valide_le = now; updates.motif_refus = motif || 'Non spécifié'; }
     if (newStatus === 'brouillon') { updates.soumis_le = null; updates.valide_le = null; updates.motif_refus = null; }
 
-    // Uniquement les lignes de cette pièce dans l'exercice affiché (un même numéro peut exister ailleurs).
-    const ids = rows.filter(r => (r.piece || r.id) === piece).map(r => r.id);
-    if (!ids.length) return;
     const { error } = await supabase
       .from('journal')
       .update(updates)
       .eq('entreprise_id', entreprise.id)
-      .in('id', ids);
+      .eq('piece', piece);
     if (error) { toast.error(error.message); return; }
 
     // Notification du circuit de validation (cloche + email si configuré)
@@ -172,8 +164,8 @@ export default function ValidationPage() {
                     <>
                       <button onClick={() => changeStatus(piece, 'valide')}
                         className="px-2 py-1 rounded text-[10px] bg-primary text-primary-foreground font-bold">✓ Valider</button>
-                      <button onClick={async () => {
-                        const m = (await saisir('Motif du refus :'));
+                      <button onClick={() => {
+                        const m = prompt('Motif du refus :');
                         if (m) changeStatus(piece, 'refuse', m);
                       }} className="px-2 py-1 rounded text-[10px] border border-destructive/30 text-destructive">✕ Refuser</button>
                     </>

@@ -1,8 +1,6 @@
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { chargerTout } from '@/lib/pagination';
-import { cleTiers, controlerSelection, pairesAutomatiques, prochainCode } from '@/lib/lettrage';
+import { useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,13 +26,12 @@ export default function LettragePage() {
     return journal.filter(j => j.compte.startsWith(compteFilter));
   }, [journal, compteFilter]);
 
-  // Regroupement par compte et par tiers (compte auxiliaire)
+  // Group by compte
   const comptes = useMemo(() => {
     const map = new Map<string, { intitule: string; entries: typeof tiersEntries }>();
     for (const e of tiersEntries) {
-      const k = cleTiers(e);
-      if (!map.has(k)) map.set(k, { intitule: e.compte_auxiliaire ? `${e.compte_auxiliaire} ${e.auxiliaire_libelle ?? ''}`.trim() : e.intitule, entries: [] });
-      map.get(k)!.entries.push(e);
+      if (!map.has(e.compte)) map.set(e.compte, { intitule: e.intitule, entries: [] });
+      map.get(e.compte)!.entries.push(e);
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [tiersEntries]);
@@ -42,13 +39,12 @@ export default function LettragePage() {
   // Load existing lettrages
   const loadLettrages = useCallback(async () => {
     if (!entreprise || !exercice) return;
-    try {
-      setLettrages(await chargerTout<LettrageEntry>((de, a) => supabase.from('lettrage').select('*')
-        .eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id).order('id').range(de, a)));
-    } catch (e) { toast.error((e as Error).message); }
+    const { data } = await supabase.from('lettrage').select('*')
+      .eq('entreprise_id', entreprise.id).eq('exercice_id', exercice.id);
+    if (data) setLettrages(data as any[]);
   }, [entreprise, exercice]);
 
-  useEffect(() => { void loadLettrages(); }, [loadLettrages]);
+  useState(() => { loadLettrages(); });
 
   const lettredIds = useMemo(() => new Set(lettrages.map(l => l.journal_entry_id)), [lettrages]);
 
@@ -60,23 +56,23 @@ export default function LettragePage() {
     });
   };
 
-  // Solde et contrôle de la sélection
-  const lignesSelection = useMemo(() => journal.filter(j => selected.has(j.id)), [selected, journal]);
+  // Compute selected balance
   const selectedBalance = useMemo(() => {
-    const d = lignesSelection.reduce((s, e) => s + (e.debit || 0), 0), c = lignesSelection.reduce((s, e) => s + (e.credit || 0), 0);
+    let d = 0, c = 0;
+    for (const id of selected) {
+      const e = journal.find(j => j.id === id);
+      if (e) { d += e.debit || 0; c += e.credit || 0; }
+    }
     return { debit: d, credit: c, solde: d - c };
-  }, [lignesSelection]);
-  const refusSelection = useMemo(() => controlerSelection(lignesSelection, lettredIds), [lignesSelection, lettredIds]);
-  const canLettre = !refusSelection;
-  const codesExistants = useMemo(() => lettrages.map(l => l.code_lettrage), [lettrages]);
+  }, [selected, journal]);
+
+  const canLettre = selected.size >= 2 && Math.abs(selectedBalance.solde) < 0.01;
 
   // Manual lettrage
   const handleLettrage = async () => {
-    if (!entreprise || !exercice) return;
-    if (refusSelection) return void toast.error(refusSelection);
-    const code = lettreCode.trim().toUpperCase() || prochainCode(codesExistants, 'L');
-    if (codesExistants.includes(code)) return void toast.error(`Le code ${code} est déjà utilisé dans cet exercice.`);
+    if (!canLettre || !entreprise || !exercice) return;
     setLoading(true);
+    const code = lettreCode || `L${String(lettrages.length + 1).padStart(4, '0')}`;
     const inserts = Array.from(selected).map(id => {
       const e = journal.find(j => j.id === id)!;
       return {
@@ -100,22 +96,37 @@ export default function LettragePage() {
     setLoading(false);
   };
 
-  // Lettrage automatique : débit et crédit de même montant, même compte et même tiers
+  // Auto lettrage by exact amount matching
   const handleAutoLettrage = async () => {
     if (!entreprise || !exercice) return;
     setLoading(true);
-    const date = new Date().toISOString().slice(0, 10);
-    const nouveaux = new Set<string>();
-    const rows = pairesAutomatiques(tiersEntries, lettredIds).flatMap(([d, c]) => {
-      const code = prochainCode(codesExistants, 'A', nouveaux); nouveaux.add(code);
-      return [
-        { entreprise_id: entreprise.id, exercice_id: exercice.id, compte: d.compte, code_lettrage: code, journal_entry_id: d.id, montant: d.debit || 0, date_lettrage: date },
-        { entreprise_id: entreprise.id, exercice_id: exercice.id, compte: c.compte, code_lettrage: code, journal_entry_id: c.id, montant: -(c.credit || 0), date_lettrage: date },
-      ];
-    });
-    const { error } = rows.length ? await supabase.from('lettrage').insert(rows) : { error: null };
-    if (error) toast.error('Erreur lettrage : ' + error.message);
-    else toast.success(`${nouveaux.size} lettrage(s) automatique(s) appliqué(s)`);
+    let count = 0;
+    for (const [compte, { entries }] of comptes) {
+      const unlettered = entries.filter(e => !lettredIds.has(e.id));
+      const debits = unlettered.filter(e => (e.debit || 0) > 0);
+      const credits = unlettered.filter(e => (e.credit || 0) > 0);
+      const usedD = new Set<string>();
+      const usedC = new Set<string>();
+
+      for (const d of debits) {
+        if (usedD.has(d.id)) continue;
+        for (const c of credits) {
+          if (usedC.has(c.id)) continue;
+          if (Math.abs((d.debit || 0) - (c.credit || 0)) < 0.01) {
+            const code = `A${String(lettrages.length + count + 1).padStart(4, '0')}`;
+            await supabase.from('lettrage').insert([
+              { entreprise_id: entreprise.id, exercice_id: exercice.id, compte, code_lettrage: code, journal_entry_id: d.id, montant: d.debit || 0, date_lettrage: new Date().toISOString().slice(0, 10) },
+              { entreprise_id: entreprise.id, exercice_id: exercice.id, compte, code_lettrage: code, journal_entry_id: c.id, montant: -(c.credit || 0), date_lettrage: new Date().toISOString().slice(0, 10) },
+            ]);
+            usedD.add(d.id);
+            usedC.add(c.id);
+            count++;
+            break;
+          }
+        }
+      }
+    }
+    toast.success(`${count} lettrage(s) automatique(s) appliqué(s)`);
     await loadLettrages();
     setLoading(false);
   };
@@ -123,7 +134,7 @@ export default function LettragePage() {
   // Delettrage
   const handleDelettrage = async (code: string) => {
     const { error } = await supabase.from('lettrage').delete()
-      .eq('code_lettrage', code).eq('entreprise_id', entreprise?.id).eq('exercice_id', exercice?.id);
+      .eq('code_lettrage', code).eq('entreprise_id', entreprise?.id);
     if (error) toast.error(error.message);
     else { toast.success(`Lettrage ${code} annulé`); await loadLettrages(); }
   };
@@ -157,7 +168,7 @@ export default function LettragePage() {
                 Solde: {fmt(selectedBalance.solde)}
               </span>
               <input value={lettreCode} onChange={e => setLettreCode(e.target.value)} placeholder="Code..." className="bg-bg3 border border-border rounded px-2 py-1 text-[11px] w-24 font-mono" />
-              <button onClick={handleLettrage} disabled={!canLettre || loading} title={refusSelection ?? ''}
+              <button onClick={handleLettrage} disabled={!canLettre || loading}
                 className="px-3 py-1.5 rounded text-[11px] font-bold bg-primary text-primary-foreground disabled:opacity-40">
                 ✓ Lettrer
               </button>
@@ -169,7 +180,7 @@ export default function LettragePage() {
         {comptes.map(([compte, { intitule, entries }]) => (
           <div key={compte} className="bg-bg2 border border-border rounded-lg overflow-hidden mb-3">
             <div className="px-3.5 py-2 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-bold text-primary font-mono">{compte.split('|')[0]} — {intitule}</span>
+              <span className="text-xs font-bold text-primary font-mono">{compte} — {intitule}</span>
               <span className="text-[10px] text-fg3">{entries.length} écriture(s)</span>
             </div>
             <table className="w-full border-collapse">

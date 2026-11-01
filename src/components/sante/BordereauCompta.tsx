@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { bordereauParOrganisme, fcfa, type LigneBordereau } from '@/domain/sante/tiers-payant';
 import { exportCsv } from '@/lib/csv-export';
-import { htmlBordereau, dateFr, type StructureEntete } from '@/domain/sante/bordereau';
+import { escapeHtml } from '@/lib/impression';
 
 type Lien = { source_type: string; statut: string; erreur: string | null; created_at: string };
 
@@ -19,12 +19,10 @@ export default function BordereauCompta({ structureId }: { structureId: string }
     const d = new Date(debut); d.setMonth(d.getMonth() + 1);
     const fin = d.toISOString().slice(0, 10);
     supabase.from('sante_factures')
-      .select('id, numero, type, annulee, organisme, part_organisme, total, taux_couverture, facture_origine_id, patient_id, created_at, bon_id, patient:sante_patients(nom, prenoms, numero_dossier)')
+      .select('numero, type, annulee, organisme, part_organisme, created_at, patient:sante_patients(nom, prenoms, numero_dossier)')
       .eq('structure_id', structureId).not('organisme', 'is', null).gte('created_at', debut).lt('created_at', fin).order('created_at')
-      .then(({ data }) => setLignes((data ?? []).map((f: any) => ({
-        id: f.id, origine_id: f.facture_origine_id, patient_id: f.patient_id,
+      .then(({ data }) => setLignes((data ?? []).map(f => ({
         numero: f.numero, type: f.type, annulee: f.annulee, organisme: f.organisme, part_organisme: Number(f.part_organisme),
-        total: Number(f.total), taux: f.taux_couverture == null ? null : Number(f.taux_couverture), bon_id: f.bon_id,
         date: f.created_at.slice(0, 10), patient: `${f.patient?.nom ?? ''} ${f.patient?.prenoms ?? ''}`.trim(), dossier: f.patient?.numero_dossier ?? '',
       }))));
     supabase.rpc('sante_ventes_par_categorie', { _structure_id: structureId, _debut: debut, _fin: new Date(d.getTime() - 86400000).toISOString().slice(0, 10) })
@@ -36,38 +34,11 @@ export default function BordereauCompta({ structureId }: { structureId: string }
 
   const groupes = bordereauParOrganisme(lignes);
 
-  // Détails pour l'organisme : prestations (lignes de la facture d'origine pour un avoir), n° d'adhérent, en-tête.
-  const completer = async (g: (typeof groupes)[number]) => {
-    const ids = [...new Set(g.lignes.map(l => (l.type === 'avoir' && l.origine_id) ? l.origine_id : l.id).filter(Boolean))] as string[];
-    const patients = [...new Set(g.lignes.map(l => l.patient_id).filter(Boolean))] as string[];
-    const bonIds = [...new Set(g.lignes.map(l => l.bon_id).filter(Boolean))] as string[];
-    const [{ data: st }, { data: lf }, { data: ass }, { data: bons }] = await Promise.all([
-      supabase.from('structures').select('nom, adresse, telephone, ninea, rccm').eq('id', structureId).maybeSingle(),
-      ids.length ? supabase.from('sante_facture_lignes').select('facture_id, libelle, quantite').in('facture_id', ids) : Promise.resolve({ data: [] as any[] }),
-      patients.length ? supabase.from('sante_patient_assurances').select('patient_id, numero_adherent, created_at').in('patient_id', patients).eq('organisme', g.organisme).order('created_at') : Promise.resolve({ data: [] as any[] }),
-      bonIds.length ? supabase.from('sante_bons_pec').select('id, numero').in('id', bonIds) : Promise.resolve({ data: [] as any[] }),
-    ]);
-    const numerosBons = new Map(((bons ?? []) as any[]).map(b => [b.id, b.numero]));
-    const prestations = new Map<string, string[]>();
-    for (const l of (lf ?? []) as any[]) prestations.set(l.facture_id, [...(prestations.get(l.facture_id) ?? []), Number(l.quantite) > 1 ? `${l.libelle} ×${Number(l.quantite)}` : l.libelle]);
-    const adherents = new Map<string, string>();
-    for (const a of (ass ?? []) as any[]) if (a.numero_adherent) adherents.set(a.patient_id, a.numero_adherent);
-    const lignesDetail = g.lignes.map(l => ({ ...l,
-      prestations: (prestations.get(((l.type === 'avoir' && l.origine_id) ? l.origine_id : l.id) ?? '') ?? []).join(', '),
-      adherent: adherents.get(l.patient_id ?? '') ?? null, bon: l.bon_id ? numerosBons.get(l.bon_id) ?? null : null }));
-    return { structure: (st ?? { nom: '' }) as StructureEntete, lignes: lignesDetail };
-  };
-  const imprimer = async (g: (typeof groupes)[number]) => {
+  const imprimer = (g: (typeof groupes)[number]) => {
     const w = window.open('', '_blank'); if (!w) return;
-    const { structure, lignes: detail } = await completer(g);
-    w.document.write(htmlBordereau(structure, g.organisme, mois, detail, g.total));
-    w.document.close();
-  };
-  const exporter = async (g: (typeof groupes)[number]) => {
-    const { lignes: detail } = await completer(g);
-    exportCsv(['Date', 'Facture', 'Type', 'Dossier', 'Patient', 'N° adhérent', 'Bon de prise en charge', 'Prestations', 'Montant total', 'Taux (%)', 'Part organisme'],
-      detail.map(l => [dateFr(l.date), l.numero, l.type, l.dossier, l.patient, l.adherent ?? '', l.bon ?? '', l.prestations ?? '', l.total ?? '', l.taux ?? '', l.part_organisme]),
-      `bordereau-${g.organisme}-${mois}.csv`);
+    // Toutes les données issues de la base sont échappées avant insertion dans le HTML.
+    const rows = g.lignes.map(l => `<tr><td>${escapeHtml(l.date)}</td><td>${escapeHtml(l.numero)}</td><td>${escapeHtml(l.dossier)}</td><td>${escapeHtml(l.patient)}</td><td style="text-align:right">${fcfa(l.part_organisme)}</td></tr>`).join('');
+    w.document.write(`<html><head><title>Bordereau ${escapeHtml(g.organisme)} ${escapeHtml(mois)}</title><style>@page{size:A4;margin:15mm}body{font-family:sans-serif;font-size:12px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:5px}</style></head><body><h2>Bordereau de facturation — ${escapeHtml(g.organisme)}</h2><p>Période : ${escapeHtml(mois)}</p><table><tr><th>Date</th><th>Facture</th><th>Dossier</th><th>Patient</th><th>Montant</th></tr>${rows}<tr><td colspan="4"><b>Total</b></td><td style="text-align:right"><b>${fcfa(g.total)}</b></td></tr></table><script>print()</script></body></html>`);
   };
 
   return (
@@ -86,8 +57,8 @@ export default function BordereauCompta({ structureId }: { structureId: string }
         <div key={g.organisme} className="flex flex-wrap items-center justify-between gap-2 border border-border rounded-md p-3 text-sm">
           <span><b>{g.organisme}</b> · {g.lignes.length} pièce(s) · {fcfa(g.total)}</span>
           <span className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => void imprimer(g)}>Imprimer A4</Button>
-            <Button size="sm" variant="outline" onClick={() => void exporter(g)}>CSV</Button>
+            <Button size="sm" variant="outline" onClick={() => imprimer(g)}>Imprimer A4</Button>
+            <Button size="sm" variant="outline" onClick={() => exportCsv(['Date', 'Facture', 'Dossier', 'Patient', 'Montant'], g.lignes.map(l => [l.date, l.numero, l.dossier, l.patient, l.part_organisme]), `bordereau-${g.organisme}-${mois}.csv`)}>CSV</Button>
           </span>
         </div>
       ))}

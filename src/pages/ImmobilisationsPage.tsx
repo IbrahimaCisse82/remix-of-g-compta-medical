@@ -1,4 +1,3 @@
-import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -83,7 +82,7 @@ export default function ImmobilisationsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!canDelete || !(await confirmer('Supprimer cette immobilisation ?'))) return;
+    if (!canDelete || !confirm('Supprimer cette immobilisation ?')) return;
     const { error } = await supabase.from('immobilisations').delete().eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('Supprimée'); load(); }
@@ -117,7 +116,7 @@ export default function ImmobilisationsPage() {
       },
     ];
     try {
-      await enregistrerLignesJournal(lines as any, { origine: 'immobilisation', pieceUnique: true });
+      await enregistrerLignesJournal(lines as any, { origine: 'immobilisation' });
       toast.success(`Dotation ${fmt(row.dotation)} comptabilisée (pièce ${piece})`);
     } catch (e) { toast.error((e as Error).message); }
   };
@@ -163,7 +162,7 @@ export default function ImmobilisationsPage() {
         debit: 0, credit: Math.round(prix) },
     ];
     try {
-      await enregistrerLignesJournal(lines as any, { origine: 'cession_immo', pieceUnique: true });
+      await enregistrerLignesJournal(lines as any, { origine: 'cession_immo' });
     } catch (e) { toast.error((e as Error).message); return; }
     await supabase.from('immobilisations').update({ statut: 'cede' }).eq('id', it.id);
     const pmv = prix - vnc;

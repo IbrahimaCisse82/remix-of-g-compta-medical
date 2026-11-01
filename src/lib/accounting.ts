@@ -1,5 +1,4 @@
 import { REFERENCE_MAPPING, referenceFormula } from './syscohada-reference';
-import { calculerTft, LIGNES_TFT } from './tft-syscohada';
 // ─── FORMATTING ────────────────────────────────────────
 export const fmt = (n: number | null | undefined, dash = true): string => {
   if (n === null || n === undefined) return dash ? '—' : '';
@@ -170,7 +169,7 @@ export function aggVar(balance: BalanceLine[], ranges: string[][], sens: string)
 
 export function calc(balance: BalanceLine[], def: MapLine[], extra: Record<string, number> = {}): Record<string, number> {
   if (def === ACTIF) return calculateActif(balance).net;
-  if (def === TFT) return { ...extra, ...calculerTft(balance).valeurs };
+  if (def === TFT) extra = { ...calc(balance, CR), ...extra };
   const v: Record<string, number> = { ...extra };
   for (const l of def) {
     if (l.type || l.srcCR || !l.c) continue;
@@ -345,15 +344,56 @@ const CR_LAYOUT: MapLine[] = [
   { id: 'XI', label: "RÉSULTAT NET (XG+XH+RQ+RS)", type: 'gtotal', f: v => v.XG + v.XH - v.RQ - v.RS },
 ];
 
-/**
- * Tableau des flux de trésorerie : présentation officielle (LIGNES_TFT), montants signés
- * (encaissement +, décaissement −) calculés par le moteur `calculerTft` (tft-syscohada.ts).
- */
-export const TFT: MapLine[] = LIGNES_TFT.map((l, i) => ({
-  id: l.code || `S_${i}`,
-  label: l.libelle,
-  type: l.titre ? 'sect' as const : l.total ? 'gtotal' as const : l.code === 'VO' ? 'total' as const : undefined,
-}));
+export const TFT: MapLine[] = [
+  { id: 'S_OP', label: 'FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS OPÉRATIONNELLES', type: 'sect' },
+  { id: 'ZA', label: "Trésorerie nette au 1er janvier (Trésorerie actif N-1 − Trésorerie passif N-1)", f: (v) => v._ZA_actif - v._ZA_passif - v._ZA_472 },
+  { id: '_ZA_actif', label: '', c: [['50','58']], s: 'D', m: 'solde_n1' },
+  { id: '_ZA_passif', label: '', c: [['52','53'],['561','566']], s: 'C', m: 'solde_n1' },
+  { id: '_ZA_472', label: '', c: [['472','472']], s: 'SC', m: 'solde_n1' },
+  { id: 'FA', label: "Capacité d'Autofinancement Globale (CAFG)", f: (v) => v._FA_XD + v._FA_654 - v._FA_754 + v._FA_XF + v._FA_TO + v._FA_RP + v._FA_RQ + v._FA_RS },
+  { id: '_FA_XD', label: '', srcCR: 'XD' },
+  { id: '_FA_XF', label: '', srcCR: 'XF' },
+  { id: '_FA_TO', label: '', srcCR: 'TO' },
+  { id: '_FA_RP', label: '', srcCR: 'RP' },
+  { id: '_FA_RQ', label: '', srcCR: 'RQ' },
+  { id: '_FA_RS', label: '', srcCR: 'RS' },
+  { id: '_FA_654', label: '', c: [['654','654']], s: 'D', m: 'n' },
+  { id: '_FA_754', label: '', c: [['754','754']], s: 'C', m: 'n' },
+  { id: '_FA_dot', label: '', c: [['681', '681'], ['691', '693']], s: 'D', m: 'n' },
+  { id: '_FA_rep', label: '', c: [['791', '795'], ['796', '796'], ['787', '787']], s: 'C', m: 'n' },
+  { id: '_FA_vnc', label: '', c: [['81', '819']], s: 'D', m: 'n' },
+  { id: '_FA_pci', label: '', c: [['82', '829']], s: 'C', m: 'n' },
+  { id: 'FB', label: '(−) Variation de l\'actif circulant HAO', c: [['488', '488']], s: 'D', m: 'var' },
+  { id: 'FC', label: '(−) Variation des stocks', c: [['31', '38']], s: 'D', m: 'var' },
+  { id: 'FD', label: '(−) Variation des créances', c: [['401','47']], exclusions: ['414','467','458','4494','475','472','478','479','481','482','485'], s: 'D', m: 'var' },
+  { id: 'FE', label: '(+) Variation du passif circulant', c: [['401','499']], exclusions: ['404','481','482','467','475','472','478','479'], s: 'C', m: 'var' },
+  { id: 'VO', label: 'Variations du BFR lié aux activités opérationnelles (FB+FC+FD+FE)', type: 'total', refs: ['FB', 'FC', 'FD', 'FE'] },
+  { id: 'ZB', label: 'FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS OPÉRATIONNELLES (A)', type: 'gtotal', f: v => v.FA - v.FB - v.FC - v.FD + v.FE },
+
+  { id: 'S_IV', label: "FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS D'INVESTISSEMENT", type: 'sect' },
+  { id: 'FF', label: "(−) Décaissements liés aux acquisitions d'immobilisations incorporelles", c: [['21','21']], s: 'D', m: 'var' },
+  { id: 'FG', label: "(−) Décaissements liés aux acquisitions d'immobilisations corporelles", c: [['22', '24']], s: 'D', m: 'var' },
+  { id: 'FH', label: "(−) Décaissements liés aux acquisitions d'immobilisations financières", c: [['26', '27']], s: 'D', m: 'var' },
+  { id: 'FI', label: "(+) Encaissements liés aux cessions d'immobilisations incorporelles et corporelles", c: [['821','825'],['754','754']], s: 'C', m: 'n' },
+  { id: 'FJ', label: "(+) Encaissements liés aux cessions d'immobilisations financières", c: [['826', '829']], s: 'C', m: 'n' },
+  { id: 'ZC', label: "FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS D'INVESTISSEMENT (B)", type: 'gtotal', f: v => -v.FF - v.FG - v.FH + v.FI + v.FJ },
+
+  { id: 'S_FN', label: 'FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS DE FINANCEMENT', type: 'sect' },
+  { id: 'FK', label: '(+) Augmentation de capital par apports nouveaux', c: [['101', '103']], s: 'C', m: 'n' },
+  { id: 'FL', label: '(+) Subventions d\'investissement reçues', c: [['14', '149']], s: 'C', m: 'n' },
+  { id: 'FM', label: '(−) Prélèvements sur le capital', c: [['101', '103']], s: 'D', m: 'n' },
+  { id: 'FN', label: '(−) Dividendes versés', c: [['465', '465']], s: 'D', m: 'n' },
+  { id: 'ZD', label: 'Flux de trésorerie provenant des capitaux propres (D)', type: 'total', f: v => v.FK + v.FL - v.FM - v.FN },
+  { id: 'FO', label: '(+) Emprunts', c: [['161', '169']], s: 'C', m: 'n' },
+  { id: 'FP', label: '(+) Autres dettes financières', c: [['18','18']], exclusions: ['183'], s: 'C', m: 'n' },
+  { id: 'FQ', label: '(−) Remboursements des emprunts et autres dettes financières', c: [['16','18']], exclusions: ['166','176','183'], s: 'D', m: 'n' },
+  { id: 'ZE', label: 'Flux de trésorerie provenant des capitaux étrangers (E)', type: 'total', f: v => v.FO + v.FP - v.FQ },
+  { id: 'ZF', label: 'FLUX DE TRÉSORERIE PROVENANT DES ACTIVITÉS DE FINANCEMENT (F=D+E)', type: 'gtotal', refs: ['ZD', 'ZE'] },
+
+  { id: 'ZG', label: 'VARIATION DE LA TRÉSORERIE NETTE DE LA PÉRIODE (G=A+B+F)', type: 'gtotal', refs: ['ZB', 'ZC', 'ZF'] },
+
+  { id: 'ZH', label: 'Trésorerie nette au 31 décembre (G+A) — Contrôle', type: 'gtotal', f: v => v.ZG + v.ZA },
+];
 
 
 function mappedLayout(layout: MapLine[], state: string): MapLine[] {

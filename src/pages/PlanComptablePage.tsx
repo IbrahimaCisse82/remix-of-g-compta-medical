@@ -1,8 +1,7 @@
-import { comptesManquants } from '@/lib/plan-reference';
 import { accountReference, REFERENCE_VERSION } from '@/lib/syscohada-reference';
 import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { exportCsv } from '@/lib/csv-export';
 
@@ -13,20 +12,10 @@ const SENS_AUTO: Record<string, string> = { '1': 'C', '2': 'D', '3': 'D', '4': '
 const TYPE_AUTO: Record<string, string> = { '1': 'Bilan', '2': 'Bilan', '3': 'Bilan', '4': 'Bilan', '5': 'Bilan', '6': 'Résultat', '7': 'Résultat', '8': 'HAO' };
 
 export default function PlanComptablePage() {
-  const { plan, toggleCompte, addCompte, deleteCompte, demo, installerPlanReference } = useApp();
-  const manquants = useMemo(() => comptesManquants(plan.map(p => p.numero)).length, [plan]);
-  const [installation, setInstallation] = useState(false);
-  const installer = async () => {
-    setInstallation(true);
-    try { const n = await installerPlanReference(); toast.success(`${n.toLocaleString('fr-FR')} compte(s) du référentiel ajouté(s).`); }
-    catch (e) { toast.error(e instanceof Error ? e.message : 'Installation impossible.'); }
-    finally { setInstallation(false); }
-  };
+  const { plan, toggleCompte, addCompte, deleteCompte, demo } = useApp();
   const [filter, setFilter] = useState('');
   const [showInactif, setShowInactif] = useState(false);
   const [classeFilter, setClasseFilter] = useState<string>('');
-  const [limite, setLimite] = useState(200);
-  useEffect(() => { setLimite(200); }, [filter, classeFilter]);
   const [toggling, setToggling] = useState<Set<string>>(new Set());
   const [showForm, setShowForm] = useState(false);
   const [newNumero, setNewNumero] = useState('');
@@ -99,16 +88,6 @@ export default function PlanComptablePage() {
       </div>
       <div className="p-5">
         <p className="text-xs text-muted-foreground mb-3">Référentiel {REFERENCE_VERSION} — 1 422 comptes, classes 1 à 9 ; mappings en attente de visa.</p>
-        {!demo && manquants > 0 && (
-          <div className="border border-border bg-bg2 rounded-lg p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-fg2 max-w-2xl">{plan.length === 0
-              ? 'Ce dossier n’a pas encore de plan comptable : la saisie manuelle et le rapprochement bancaire en ont besoin. Installez le plan SYSCOHADA révisé (classes 1 à 8).'
-              : `${manquants.toLocaleString('fr-FR')} compte(s) du référentiel SYSCOHADA ne figurent pas dans ce plan. Les ajouter ne modifie ni ne supprime aucun compte existant.`}</p>
-            <button disabled={installation} onClick={() => void installer()} className="px-3 py-1.5 rounded-md text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
-              {installation ? 'Installation…' : plan.length === 0 ? 'Installer le plan SYSCOHADA' : `Ajouter les ${manquants.toLocaleString('fr-FR')} comptes`}
-            </button>
-          </div>
-        )}
         {/* Add form */}
         {showForm && (
           <div className="bg-bg2 border border-border rounded-lg p-4 mb-4">
@@ -175,7 +154,7 @@ export default function PlanComptablePage() {
                 ))}
               </tr></thead>
               <tbody>
-                {rows.slice(0, limite).map(r => {
+                {rows.map(r => {
                   const isParent = r.numero.length <= 3;
                   return (
                     <tr key={r.id} className={`hover:bg-[rgba(56,189,248,.02)] transition-opacity ${r.actif === false ? 'opacity-35' : ''} ${isParent ? 'bg-bg3/30' : ''}`}>
@@ -208,13 +187,6 @@ export default function PlanComptablePage() {
                 })}
               </tbody>
             </table>
-            {rows.length > limite && (
-              <div className="p-3 text-center border-t border-border">
-                <button onClick={() => setLimite(l => l + 200)} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-border text-fg2 hover:bg-bg3">
-                  Afficher plus ({(rows.length - limite).toLocaleString('fr-FR')} compte(s) restant(s) ; filtrez par classe ou recherchez un numéro)
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

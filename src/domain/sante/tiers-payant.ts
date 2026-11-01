@@ -18,11 +18,6 @@ export function resteDu(partPatient: number, encaisse: number) {
   return Math.max(0, partPatient - encaisse);
 }
 
-/** Reste à encaisser d'une pièce : rien sur une facture annulée (l'avoir l'a soldée) ni sur un avoir. */
-export function resteAEncaisser(f: { type: string; annulee: boolean; part_patient: number; encaisse: number }) {
-  return f.type !== 'facture' || f.annulee ? 0 : resteDu(f.part_patient, f.encaisse);
-}
-
 export const MODES_PAIEMENT = [
   ['especes', 'Espèces'], ['wave', 'Wave'], ['orange_money', 'Orange Money'], ['free_money', 'Free Money'],
   ['wizall', 'Wizall'], ['carte', 'Carte'], ['cheque', 'Chèque'], ['virement', 'Virement'],
@@ -30,25 +25,13 @@ export const MODES_PAIEMENT = [
 
 export const fcfa = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 
-export interface LigneBordereau {
-  numero: string; date: string; patient: string; dossier: string; organisme: string | null; part_organisme: number; type: string; annulee: boolean;
-  /** Identifiants facultatifs : permettent d'écarter l'avoir d'une facture annulée dans le même mois. */
-  id?: string; origine_id?: string | null; patient_id?: string | null; bon_id?: string | null;
-  /** Détails facultatifs imprimés sur le bordereau. */
-  total?: number; taux?: number | null; adherent?: string | null; bon?: string | null; prestations?: string;
-}
+export interface LigneBordereau { numero: string; date: string; patient: string; dossier: string; organisme: string | null; part_organisme: number; type: string; annulee: boolean }
 
-/**
- * Bordereau mensuel : factures (et avoirs) avec part organisme, groupées par organisme.
- * Une facture annulée et son avoir d'annulation du même mois s'annulent : aucun des deux n'est présenté.
- * Un avoir dont la facture d'origine est d'un mois précédent (déjà présentée) reste, en négatif.
- */
+/** Bordereau mensuel : factures (et avoirs) avec part organisme, groupées par organisme. */
 export function bordereauParOrganisme(lignes: LigneBordereau[]) {
-  const annuleesDuMois = new Set(lignes.filter(l => l.annulee && l.id).map(l => l.id as string));
   const groupes = new Map<string, { lignes: LigneBordereau[]; total: number }>();
   for (const l of lignes) {
     if (l.annulee || !l.organisme || l.part_organisme === 0) continue;
-    if (l.type === 'avoir' && l.origine_id && annuleesDuMois.has(l.origine_id)) continue;
     const g = groupes.get(l.organisme) ?? { lignes: [], total: 0 };
     g.lignes.push(l); g.total += l.part_organisme;
     groupes.set(l.organisme, g);

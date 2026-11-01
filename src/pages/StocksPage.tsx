@@ -1,4 +1,3 @@
-import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -101,23 +100,42 @@ export default function StocksPage() {
 
   const saveMvt = async () => {
     if (!selected || !entreprise) return;
-    // Contrôle local (confort) puis calcul et écriture côté serveur, article verrouillé :
-    // une délivrance faite entre-temps en consultation n'est jamais écrasée.
+    let calc;
     try {
-      calculerMouvement({ type: mvtForm.type_mvt, stockAvant: Infinity, cumpAvant: selected.prix_achat_moyen, quantite: Number(mvtForm.quantite), prixUnitaire: Number(mvtForm.prix_unitaire) });
+      calc = calculerMouvement({
+        type: mvtForm.type_mvt,
+        stockAvant: selected.quantite_stock,
+        cumpAvant: selected.prix_achat_moyen,
+        quantite: Number(mvtForm.quantite),
+        prixUnitaire: Number(mvtForm.prix_unitaire),
+      });
     } catch (e) { toast.error((e as Error).message); return; }
-    const { data: res, error } = await supabase.rpc('stock_enregistrer_mouvement', {
-      _article_id: selected.id, _type: mvtForm.type_mvt, _quantite: Number(mvtForm.quantite),
-      _prix_unitaire: Number(mvtForm.prix_unitaire) || 0, _date: mvtForm.date_mvt,
-      _reference: mvtForm.reference || undefined, _notes: mvtForm.notes || undefined, _exercice_id: exercice?.id,
+    const qte = Number(mvtForm.quantite);
+    const { qteApres, cumpApres, montant, prixUtilise } = calc;
+
+    const { error } = await supabase.from('mouvements_stock').insert({
+      entreprise_id: entreprise.id,
+      exercice_id: exercice?.id,
+      article_id: selected.id,
+      date_mvt: mvtForm.date_mvt,
+      type_mvt: mvtForm.type_mvt,
+      reference: mvtForm.reference,
+      quantite: qte,
+      prix_unitaire: prixUtilise,
+      montant,
+      cump_apres: cumpApres,
+      qte_apres: qteApres,
+      notes: mvtForm.notes,
     });
-    if (error || !res) { toast.error(error?.message ?? 'Mouvement refusé'); return; }
-    const r = res as unknown as { qte_avant: number; cump_avant: number; qte_apres: number; cump_apres: number };
-    const qteApres = Number(r.qte_apres), cumpApres = Number(r.cump_apres);
+    if (error) { toast.error(error.message); return; }
+
+    await supabase.from('articles')
+      .update({ quantite_stock: qteApres, prix_achat_moyen: cumpApres })
+      .eq('id', selected.id);
 
     // Inventaire permanent : chaque mouvement génère son écriture 3XX / 603X
     if (exercice) {
-      const variation = variationValeur(Number(r.qte_avant), Number(r.cump_avant), qteApres, cumpApres);
+      const variation = variationValeur(selected.quantite_stock, selected.prix_achat_moyen, qteApres, cumpApres);
       const lignes = lignesEcritureStock({
         type: mvtForm.type_mvt,
         compteStock: selected.compte_stock,
@@ -195,7 +213,7 @@ export default function StocksPage() {
   };
 
   const remove = async (id: string) => {
-    if (!(await confirmer('Supprimer cet article ?'))) return;
+    if (!confirm('Supprimer cet article ?')) return;
     const { error } = await supabase.from('articles').delete().eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('Supprimé'); load(); }
