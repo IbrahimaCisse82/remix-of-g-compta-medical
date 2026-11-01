@@ -3602,11 +3602,68 @@ export type Database = {
           },
         ]
       }
+      sante_consentement_modeles: {
+        Row: {
+          actif: boolean
+          archive_le: string | null
+          archive_par: string | null
+          created_at: string
+          cree_par: string | null
+          id: string
+          structure_id: string
+          texte: string
+          texte_sha256: string
+          titre: string
+          type: string
+          valide_par: string | null
+          version: string
+        }
+        Insert: {
+          actif?: boolean
+          archive_le?: string | null
+          archive_par?: string | null
+          created_at?: string
+          cree_par?: string | null
+          id?: string
+          structure_id: string
+          texte: string
+          texte_sha256: string
+          titre: string
+          type: string
+          valide_par?: string | null
+          version: string
+        }
+        Update: {
+          actif?: boolean
+          archive_le?: string | null
+          archive_par?: string | null
+          created_at?: string
+          cree_par?: string | null
+          id?: string
+          structure_id?: string
+          texte?: string
+          texte_sha256?: string
+          titre?: string
+          type?: string
+          valide_par?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_consentement_modeles_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_consentements: {
         Row: {
           accorde: boolean
           created_at: string
           id: string
+          modele_id: string | null
           patient_id: string
           preuve: string | null
           recueilli_par: string | null
@@ -3623,6 +3680,7 @@ export type Database = {
           accorde: boolean
           created_at?: string
           id?: string
+          modele_id?: string | null
           patient_id: string
           preuve?: string | null
           recueilli_par?: string | null
@@ -3639,6 +3697,7 @@ export type Database = {
           accorde?: boolean
           created_at?: string
           id?: string
+          modele_id?: string | null
           patient_id?: string
           preuve?: string | null
           recueilli_par?: string | null
@@ -3652,6 +3711,13 @@ export type Database = {
           version_texte?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sante_consentements_modele_id_fkey"
+            columns: ["modele_id"]
+            isOneToOne: false
+            referencedRelation: "sante_consentement_modeles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sante_consentements_patient_id_fkey"
             columns: ["patient_id"]
@@ -4225,6 +4291,8 @@ export type Database = {
           prescripteur: string | null
           recue_le: string | null
           renseignements: string | null
+          signataire_nom: string | null
+          signataire_ordre: string | null
           statut: string
           structure_id: string
           urgence: boolean
@@ -4257,6 +4325,8 @@ export type Database = {
           prescripteur?: string | null
           recue_le?: string | null
           renseignements?: string | null
+          signataire_nom?: string | null
+          signataire_ordre?: string | null
           statut?: string
           structure_id: string
           urgence?: boolean
@@ -4289,6 +4359,8 @@ export type Database = {
           prescripteur?: string | null
           recue_le?: string | null
           renseignements?: string | null
+          signataire_nom?: string | null
+          signataire_ordre?: string | null
           statut?: string
           structure_id?: string
           urgence?: boolean
@@ -7623,6 +7695,10 @@ export type Database = {
         }
         Returns: string
       }
+      sante_catalogue_importer_references: {
+        Args: { _lignes: Json; _structure_id: string }
+        Returns: Json
+      }
       sante_categorie_code: {
         Args: { _code: string; _structure_id: string }
         Returns: string
@@ -7820,6 +7896,25 @@ export type Database = {
         Args: { _cle: string; _compte: string; _structure_id: string }
         Returns: undefined
       }
+      sante_demandes_accueil: {
+        Args: {
+          _limit?: number
+          _offset?: number
+          _statut?: string
+          _structure_id: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          numero: string
+          numero_dossier: string
+          patient_id: string
+          patient_nom: string
+          patient_prenoms: string
+          statut: string
+          urgence: boolean
+        }[]
+      }
       sante_demarrer_consultation: {
         Args: {
           _motif?: string
@@ -7921,6 +8016,18 @@ export type Database = {
       sante_escalader_bris_glace: { Args: never; Returns: number }
       sante_export_dossier: { Args: { _patient_id: string }; Returns: Json }
       sante_export_structure: { Args: { _structure_id: string }; Returns: Json }
+      sante_factures_ouvertes_organisme: {
+        Args: { _organisme: string; _structure_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          numero: string
+          organisme: string
+          part_organisme: number
+          reste: number
+          statut_tiers: string
+        }[]
+      }
       sante_factures_rapprochables: {
         Args: { _structure_id: string }
         Returns: {
@@ -7939,6 +8046,10 @@ export type Database = {
         Returns: undefined
       }
       sante_germe_definitif: { Args: { _germe_id: string }; Returns: undefined }
+      sante_import_nombre: {
+        Args: { _champ: string; _ligne: number; _v: string }
+        Returns: number
+      }
       sante_importer_reglements: {
         Args: { _lignes: Json; _structure_id: string }
         Returns: Json
@@ -7973,9 +8084,35 @@ export type Database = {
         Returns: undefined
       }
       sante_lettrer_facture: { Args: { _facture_id: string }; Returns: number }
+      sante_lignes_ca: {
+        Args: { _debut: string; _fin: string; _structure_id: string }
+        Returns: {
+          categorie: string
+          code: string
+          facture_id: string
+          montant: number
+          praticien_id: string
+          site_id: string
+        }[]
+      }
       sante_lignes_compta_facture: {
         Args: { _facture_id: string }
         Returns: Json
+      }
+      sante_modele_consentement_archiver: {
+        Args: { _modele_id: string }
+        Returns: undefined
+      }
+      sante_modele_consentement_creer: {
+        Args: {
+          _structure_id: string
+          _texte: string
+          _titre: string
+          _type: string
+          _valide_par?: string
+          _version: string
+        }
+        Returns: string
       }
       sante_mouvement_reactif: {
         Args: {
@@ -8013,6 +8150,10 @@ export type Database = {
           membership_id: string
           nom: string
         }[]
+      }
+      sante_praticien_relier_moi: {
+        Args: { _praticien_id: string }
+        Returns: undefined
       }
       sante_prelever: {
         Args: {
@@ -8222,6 +8363,17 @@ export type Database = {
         }
         Returns: string
       }
+      sante_signer_consentement_modele: {
+        Args: {
+          _accorde: boolean
+          _modele_id: string
+          _patient_id: string
+          _signataire_nom: string
+          _signataire_qualite: string
+          _signature_png: string
+        }
+        Returns: string
+      }
       sante_statut_tiers: {
         Args: { _facture_id: string; _statut: string }
         Returns: undefined
@@ -8266,6 +8418,19 @@ export type Database = {
       set_secteur_activite: {
         Args: { _entreprise_id: string; _secteur: string }
         Returns: undefined
+      }
+      stock_enregistrer_mouvement: {
+        Args: {
+          _article_id: string
+          _date: string
+          _exercice_id?: string
+          _notes?: string
+          _prix_unitaire: number
+          _quantite: number
+          _reference?: string
+          _type: string
+        }
+        Returns: Json
       }
       structure_module_actif: {
         Args: { _module: string; _structure_id: string }
