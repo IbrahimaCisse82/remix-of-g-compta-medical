@@ -17,6 +17,8 @@ describe('peut', () => {
     expect(peut(['caissier', 'admin_structure'], 'annuler_facture')).toBe(true);
     expect(peut(['caissier'], 'analyse_chiffre_affaires')).toBe(false);
     expect(peut(['comptable'], 'analyse_chiffre_affaires')).toBe(true);
+    expect(peut(['tiers_payant'], 'rejeter_tiers')).toBe(true);
+    expect(peut(['caissier'], 'rejeter_tiers')).toBe(false);
   });
   it('distingue la lecture labo et la vue accueil', () => {
     expect(peut(['secretaire'], 'lire_demandes_labo')).toBe(false);

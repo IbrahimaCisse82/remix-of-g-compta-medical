@@ -19,6 +19,7 @@ export const DROITS_SANTE = {
   remettre_cheques: ['admin_structure', 'caissier'],
   accorder_remise: ['admin_structure'],
   annuler_facture: ['admin_structure'],
+  rejeter_tiers: ['admin_structure', 'tiers_payant'],
   analyse_chiffre_affaires: ['admin_structure', 'comptable'],
 } as const satisfies Record<string, readonly RoleMedical[]>;
 
