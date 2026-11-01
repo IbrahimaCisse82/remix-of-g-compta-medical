@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BordereauCompta from './BordereauCompta';
 import { OutboxCard, RemboursementsCard, ReglementOrganismeCard, ConventionsCard, BonsPecCard, CreancesOrganismesCard, AnalytiqueSanteCard, SaisieSecoursCard } from './FinanceSante';
-import { MODES_PAIEMENT, fcfa, resteDu, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
+import { MODES_PAIEMENT, fcfa, resteAEncaisser, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
 import { montantCaisse } from '@/lib/caisse-montant';
 import { escapeHtml } from '@/lib/impression';
 import { OrganismesPayeurs, CouverturePatient } from './TiersPayantSaisie';
@@ -121,7 +121,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
       db.from('sante_encaissements').select('mode, montant, created_at').eq('facture_id', f.id).order('created_at'),
     ]);
     const w = window.open('', '_blank'); if (!w) { toast.error('Autorisez les fenêtres pour imprimer'); return; }
-    const reste = resteDu(f.part_patient, f.encaisse);
+    const reste = resteAEncaisser(f);
     const titre = f.type === 'avoir' ? 'AVOIR' : 'FACTURE';
     const lignesHtml = (lignes ?? []).map((l: any) =>
       `<tr><td>${esc(l.libelle)}${l.code ? ` <small>(${esc(l.code)})</small>` : ''}</td><td style="text-align:center">${esc(l.quantite)}</td><td style="text-align:right">${fcfa(Number(l.prix_unitaire))}</td><td style="text-align:right">${fcfa(Number(l.montant))}</td></tr>`).join('');
@@ -220,7 +220,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
         {/* Écran étroit : une carte par facture, les actions restent visibles sans défilement horizontal */}
         <div className="sm:hidden divide-y divide-border">{factures.length === 0 ? <p className="p-4 text-sm text-fg3">Aucune facture.</p> : factures.map(f => {
-          const reste = resteDu(f.part_patient, f.encaisse); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
+          const reste = resteAEncaisser(f); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
           return <div key={f.id} className="p-3 space-y-2 text-sm">
             <div className="flex justify-between gap-2"><span className="font-mono">{f.numero}{f.annulee && <span className="block text-xs text-destructive">Annulée</span>}</span><span>{fcfa(f.total)}</span></div>
             <div className="flex justify-between gap-2"><span>{f.patient?.nom} {f.patient?.prenoms}</span><span className="text-xs text-fg3">reste {fcfa(reste)}</span></div>
@@ -241,7 +241,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
         })}</div>
         <table className="w-full text-sm hidden sm:table"><thead className="text-xs text-fg3 text-left"><tr><th className="p-3">N°</th><th>Patient</th><th>Total</th><th>Patient / reste</th><th>Tiers-payant</th><th className="p-3">Actions</th></tr></thead>
           <tbody>{factures.length === 0 ? <tr><td colSpan={6} className="p-4 text-fg3">Aucune facture.</td></tr> : factures.map(f => {
-            const reste = resteDu(f.part_patient, f.encaisse); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
+            const reste = resteAEncaisser(f); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
             return <tr key={f.id} className="border-t border-border align-top">
               <td className="p-3 font-mono">{f.numero}{f.annulee && <span className="block text-xs text-destructive">Annulée</span>}</td>
               <td>{f.patient?.nom} {f.patient?.prenoms}</td>
