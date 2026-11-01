@@ -1,11 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import ExcelJS from 'exceljs';
 import type { BalanceLine, Entreprise, Exercice } from './accounting';
-import { dureeMois, remplirClasseurDgid, MODELE_DGID } from './export-dgid';
+import { Classeur, dureeMois, genererClasseurDgid, MODELE_DGID } from './export-dgid';
 
 const b = (compte: string, d: Partial<BalanceLine>): BalanceLine => ({ compte, intitule: compte, sd: 0, sc: 0, md: 0, mc: 0, sfd: 0, sfc: 0, ...d });
-const entreprise = { id: 'e', nom: 'Clinique Test', sigle: 'CT', ninea: '0012345 2G3', rccm: 'SN-DKR-2024-B-1', tel: '33 800 00 00', adresse: 'Dakar', forme_juridique: 'SARL', secteur: 'Santé', monnaie: 'FCFA' } as Entreprise;
+const entreprise = { id: 'e', nom: 'Clinique Test & Fils', sigle: 'CT', ninea: '0012345 2G3', rccm: 'SN-DKR-2024-B-1', tel: '33 800 00 00', adresse: 'Dakar', forme_juridique: 'SARL', secteur: 'Santé', monnaie: 'FCFA' } as Entreprise;
 const exercice = { id: 'x', entreprise_id: 'e', annee: 2026, date_debut: '2026-01-01', date_fin: '2026-12-31', statut: 'en_cours' } as Exercice;
 const balance = [
   b('101', { sc: 1_000_000, mc: 1_000_000, sfc: 1_000_000 }),
@@ -16,46 +15,46 @@ const balance = [
   b('706', { mc: 500_000, sfc: 500_000 }),
 ];
 
-let rempli: ExcelJS.Workbook;
-async function charger() {
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(readFileSync(`public/${MODELE_DGID}`));
-  remplirClasseurDgid(wb, { entreprise, exercice, balance, balanceN1: [] });
-  return wb;
-}
-const classeur = async () => rempli;
-const ligne = (ws: ExcelJS.Worksheet, col: number, ref: string) => { for (let r = 1; r <= ws.rowCount; r++) if (ws.getRow(r).getCell(col).value === ref) return ws.getRow(r); throw new Error(ref); };
+let c: Classeur; let provisoire: string[]; let duree = 0;
+beforeAll(async () => {
+  const t0 = Date.now();
+  const r = await genererClasseurDgid(readFileSync(`public/${MODELE_DGID}`), { entreprise, exercice, balance, balanceN1: [] });
+  duree = Date.now() - t0;
+  provisoire = r.provisoire;
+  c = await Classeur.ouvrir(r.fichier);
+}, 60_000);
+
+const ligne = (onglet: string, col: string, ref: string) => { for (let r = 1; r < 90; r++) if (c.lire(onglet, `${col}${r}`) === ref) return r; throw new Error(ref); };
 
 describe('export Excel modèle DGID', () => {
-  beforeAll(async () => { rempli = await charger(); }, 60_000);
   it('durée de l’exercice en mois', () => { expect(dureeMois('2026-01-01', '2026-12-31')).toBe(12); expect(dureeMois('2026-07-01', '2026-12-31')).toBe(6); });
-  it('remplit le bilan par référence (brut, amortissements, net)', async () => {
-    const ws = (await classeur()).getWorksheet('BILAN PAYSAGE')!;
-    const am = ligne(ws, 1, 'AM');
-    expect([am.getCell(4).value, am.getCell(5).value, am.getCell(6).value]).toEqual([300_000, 50_000, 250_000]);
-    expect(ligne(ws, 1, 'BZ').getCell(6).value).toBe(1_450_000);
-    expect(ligne(ws, 8, 'DZ').getCell(11).value).toBe(1_450_000);
-    expect(ligne(ws, 8, 'CJ').getCell(11).value).toBe(450_000);
+  it('reste rapide (retouche du XML, pas de relecture complète)', () => expect(duree).toBeLessThan(10_000));
+  it('remplit le bilan par référence (brut, amortissements, net)', () => {
+    const B = 'BILAN PAYSAGE', am = ligne(B, 'A', 'AM');
+    expect([c.lire(B, `D${am}`), c.lire(B, `E${am}`), c.lire(B, `F${am}`)]).toEqual([300_000, 50_000, 250_000]);
+    expect(c.lire(B, `F${ligne(B, 'A', 'BZ')}`)).toBe(1_450_000);
+    expect(c.lire(B, `K${ligne(B, 'H', 'DZ')}`)).toBe(1_450_000);
+    expect(c.lire(B, `K${ligne(B, 'H', 'CJ')}`)).toBe(450_000);
   });
-  it('remplit le compte de résultat et le TFT', async () => {
-    const wb = await classeur();
-    expect(ligne(wb.getWorksheet('COMPTE DE RESULTAT')!, 1, 'XI').getCell(5).value).toBe(450_000);
-    const t = wb.getWorksheet('FLUX DE TRESORERIE')!;
-    expect(ligne(t, 1, 'ZA').getCell(5).value).toBe(1_000_000);
-    expect(ligne(t, 1, 'FA').getCell(5).value).toBe(500_000);
-    expect(ligne(t, 1, 'FG').getCell(5).value).toBe(-300_000);
-    expect(ligne(t, 1, 'ZH').getCell(5).value).toBe(1_200_000);
+  it('remplit le compte de résultat et le TFT', () => {
+    expect(c.lire('COMPTE DE RESULTAT', `E${ligne('COMPTE DE RESULTAT', 'A', 'XI')}`)).toBe(450_000);
+    const T = 'FLUX DE TRESORERIE';
+    expect(c.lire(T, `E${ligne(T, 'A', 'ZA')}`)).toBe(1_000_000);
+    expect(c.lire(T, `E${ligne(T, 'A', 'FA')}`)).toBe(500_000);
+    expect(c.lire(T, `E${ligne(T, 'A', 'FG')}`)).toBe(-300_000);
+    expect(c.lire(T, `E${ligne(T, 'A', 'ZH')}`)).toBe(1_200_000);
   });
-  it('identifie l’entité et efface les données d’exemple', async () => {
-    const wb = await classeur();
-    const pg = wb.getWorksheet('Page de garde')!, r1 = wb.getWorksheet('Fiche de renseignement R1')!;
-    expect(pg.getCell('L35').value).toBe('Clinique Test');
-    expect(pg.getCell('N51').value).toBe('0012345 2G3');
-    expect(pg.getCell('B17').value).toBe('CENTRE DE DEPOT : ');
-    expect(r1.getCell('T71').value).toBeNull();
-    expect(r1.getCell('I24').value).toBe('SN-DKR-2024-B-1');
-    expect(wb.calcProperties.fullCalcOnLoad).toBe(true);
-    expect((r1.getCell('J4').value as { result?: unknown }).result).toBe('Clinique Test');
-    expect((wb.getWorksheet('BILAN PAYSAGE')!.getCell('D5').value as { result?: unknown }).result).toBe('0012345 2G3');
+  it('identifie l’entité, efface les exemples et propage les renvois', () => {
+    expect(c.lire('Page de garde', 'L35')).toBe('Clinique Test & Fils');
+    expect(c.lire('Page de garde', 'N51')).toBe('0012345 2G3');
+    expect(c.lire('Page de garde', 'B17')).toBe('CENTRE DE DEPOT : ');
+    expect(c.lire('Page de garde', 'B19')).toContain('ÉTATS PROVISOIRES');
+    expect(provisoire).toContain('REF-VISA');
+    const R1 = 'Fiche de renseignement R1';
+    expect(c.lire(R1, 'T71')).toBeNull();
+    expect(c.lire(R1, 'I24')).toBe('SN-DKR-2024-B-1');
+    expect(c.lire(R1, 'J4')).toBe('Clinique Test & Fils');
+    expect(c.lire('BILAN PAYSAGE', 'D5')).toBe('0012345 2G3');
+    expect(c.lire('BILAN PAYSAGE', 'J3')).toBe(46387); // 31/12/2026
   });
 });
