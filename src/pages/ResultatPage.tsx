@@ -50,7 +50,7 @@ export default function ResultatPage() {
             const vn1 = vCRN1[l.id] ?? 0;
             const isGtotal = l.type === 'gtotal';
             const isTotal = l.type === 'total';
-            const bg = isGtotal ? 'bg-[#0B1F3A]' : isTotal ? 'bg-accent/5' : '';
+            const bg = isGtotal ? 'bg-primary/15' : isTotal ? 'bg-accent/5' : '';
             const fg = isGtotal ? 'text-foreground' : isTotal ? 'text-primary font-semibold' : v < 0 ? 'text-destructive' : '';
             const last = l.id === 'XI';
 
