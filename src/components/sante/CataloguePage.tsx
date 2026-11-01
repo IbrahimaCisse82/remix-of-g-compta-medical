@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LabotestCatalogue from './LabotestCatalogue';
 import AnalyseDetail from './AnalyseDetail';
+import CatalogueTableur from './CatalogueTableur';
+import { ImportActes } from './ImportsStructure';
+import { aValider, avancementCatalogue, compterParametres, filtrerCatalogue, type FiltreCatalogue } from '@/domain/sante/catalogue-suivi';
 
 const VALID_MAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
@@ -21,14 +24,18 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const [ac, setAc] = useState({ code: '', libelle: '', tarif: '' });
   const [analyseBusy, setAnalyseBusy] = useState(false);
   const [vue, setVue] = useState('structure');
+  const [nbParams, setNbParams] = useState<Record<string, number>>({});
   const [fiche, setFiche] = useState<string | null>(null);
+  const [suivi, setSuivi] = useState<{ filtre: FiltreCatalogue; section: string; q: string }>({ filtre: 'toutes', section: '', q: '' });
 
   const load = useCallback(async () => {
-    const [a, b, c] = await Promise.all([
+    const [a, b, c, n] = await Promise.all([
       supabase.from('sante_praticiens').select('*').eq('structure_id', structureId).order('nom'),
       supabase.from('sante_actes').select('*').eq('structure_id', structureId).order('code'),
-      supabase.from('sante_analyses').select('id, code, libelle, section, tarif, delai_heures, actif').eq('structure_id', structureId).order('section'),
+      supabase.from('sante_analyses').select('id, code, libelle, section, tarif, delai_heures, actif').eq('structure_id', structureId).order('section').order('code'),
+      supabase.from('sante_analyse_parametres').select('analyse_id').eq('structure_id', structureId),
     ]);
+    setNbParams(compterParametres(n.data ?? []));
     const st = await supabase.from('structures').select('derogation_validation_unique').eq('id', structureId).maybeSingle(); setDerog(!!st.data?.derogation_validation_unique);
     setPraticiens(a.data ?? []); setActes(b.data ?? []); setAnalyses(c.data ?? []);
   }, [structureId]);
@@ -38,7 +45,8 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const addPr = async (e: React.FormEvent) => { e.preventDefault(); const m = pr.email.trim().toLowerCase(); if (m && !VALID_MAIL.test(m)) return toast.error('Adresse e-mail invalide');
     const uid = pr.moi ? (await supabase.auth.getUser()).data.user?.id ?? null : null;
     if (ok((await supabase.from('sante_praticiens').insert({ structure_id: structureId, nom: pr.nom, specialite: pr.specialite, numero_ordre: pr.numero_ordre, email: m || null, user_id: uid })).error, 'Praticien ajouté')) setPr({ nom: '', specialite: '', numero_ordre: '', email: '', moi: false }); };
-  const lierMoi = async (id: string) => { const uid = (await supabase.auth.getUser()).data.user?.id; if (uid) ok((await supabase.from('sante_praticiens').update({ user_id: uid }).eq('id', id)).error, 'Fiche reliée à votre compte'); };
+  // Fonction serveur : un médecin ou un biologiste non administrateur peut relier sa propre fiche (la mise à jour directe lui est interdite).
+  const lierMoi = async (id: string) => { if (ok((await supabase.rpc('sante_praticien_relier_moi', { _praticien_id: id })).error, 'Fiche reliée à votre compte')) await load(); };
   const addAn = async (e: React.FormEvent) => {
     e.preventDefault(); if (analyseBusy) return;
     const t = Number(an.tarif), d = Number(an.delai);
@@ -56,6 +64,11 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const toggle = async (table: 'sante_praticiens' | 'sante_actes' | 'sante_analyses', id: string, actif: boolean) => ok((await supabase.from(table).update({ actif: !actif }).eq('id', id)).error, actif ? 'Désactivé' : 'Réactivé');
   const tarif = async (table: 'sante_actes' | 'sante_analyses', id: string, v: string) => { const t = Number(v); if (t >= 0) ok((await supabase.from(table).update({ tarif: t }).eq('id', id)).error, 'Tarif mis à jour'); };
   const mail = async (id: string, v: string) => { const m = v.trim().toLowerCase(); if (m && !VALID_MAIL.test(m)) return toast.error('Adresse e-mail invalide'); ok((await supabase.from('sante_praticiens').update({ email: m || null }).eq('id', id)).error, 'E-mail enregistré'); };
+
+  const avecParams = analyses.map(a => ({ ...a, nb_parametres: nbParams[a.id] ?? 0 }));
+  const avancement = avancementCatalogue(avecParams);
+  const sections = [...new Set(analyses.map(a => a.section as string))].sort();
+  const visibles = filtrerCatalogue(avecParams, suivi);
 
   const Ligne = ({ children, actif, onToggle }: { children: React.ReactNode; actif: boolean; onToggle: () => void }) => (
     <div className={`flex items-center justify-between gap-2 border border-border rounded p-2 text-sm ${actif ? '' : 'opacity-50'}`}>{children}<Button size="sm" variant="ghost" onClick={onToggle}>{actif ? 'Désactiver' : 'Activer'}</Button></div>
@@ -78,6 +91,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
         </section>
         <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
           <h2 className="font-semibold">Actes facturables</h2>
+          <ImportActes structureId={structureId} onDone={() => void load()} />
           <form onSubmit={addAc} className="grid grid-cols-[1fr_3fr_1fr_auto] gap-2"><Input required aria-label="Code" placeholder="Code" value={ac.code} onChange={e => setAc({ ...ac, code: e.target.value })} /><Input required aria-label="Libellé" placeholder="Libellé" value={ac.libelle} onChange={e => setAc({ ...ac, libelle: e.target.value })} /><Input required aria-label="Tarif" inputMode="numeric" placeholder="FCFA" value={ac.tarif} onChange={e => setAc({ ...ac, tarif: e.target.value })} /><Button size="icon" aria-label="Ajouter"><Plus /></Button></form>
           {actes.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_actes', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle}</span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_actes', a.id, e.target.value)} /></Ligne>)}
         </section>
@@ -97,8 +111,21 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
           <select aria-label="Type de résultat" className="h-10 rounded-md border border-border bg-background px-2 text-sm" value={an.type} onChange={e => setAn({ ...an, type: e.target.value })}><option value="numerique">Nombre</option><option value="qualitatif">Positif / négatif</option><option value="texte">Texte</option></select>
           <Button size="sm" className="md:col-span-4" aria-label="Ajouter l’analyse" disabled={analyseBusy}><Plus /> Ajouter l’analyse</Button>
         </form>
-        {analyses.length === 0 && <p className="text-xs text-fg3">Aucune analyse.</p>}
-        {analyses.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_analyses', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle} <span className="text-xs text-fg3">· {a.section} · rendu {a.delai_heures} h</span></span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_analyses', a.id, e.target.value)} /><Button size="sm" variant="outline" aria-label={`Ouvrir la fiche ${a.code}`} onClick={() => setFiche(a.id)}>Ouvrir</Button></Ligne>)}
+        {analyses.length === 0 ? <p className="text-xs text-fg3">Aucune analyse.</p> : <>
+          <div className="border-t border-border pt-3 space-y-2">
+            <p className="text-sm"><strong>Validation du catalogue :</strong> {avancement.actives} / {avancement.total} analyses prêtes à prescrire ({avancement.pourcentage} %) · <span className={avancement.a_valider ? 'text-destructive' : 'text-primary'}>{avancement.a_valider} à valider</span>{avancement.sans_parametre > 0 && <span className="text-fg3"> · {avancement.sans_parametre} sans paramètre mesuré</span>}</p>
+            <div className="h-1.5 rounded-full bg-bg3 overflow-hidden" aria-hidden><div className="h-full bg-primary" style={{ width: `${avancement.pourcentage}%` }} /></div>
+            <CatalogueTableur structureId={structureId} analyses={analyses} completesInactives={avecParams.filter(a => !a.actif && a.nb_parametres > 0)} onDone={() => void load()} />
+            <p className="text-xs text-fg3">Ouvrez une analyse pour vérifier sa section, son tube et son délai, saisir ses paramètres mesurés et leurs valeurs de référence, puis activez-la. Une analyse sans paramètre ne peut pas être activée.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-[auto_auto_1fr] gap-2">
+              <select aria-label="Filtrer par statut" className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={suivi.filtre} onChange={e => setSuivi({ ...suivi, filtre: e.target.value as FiltreCatalogue })}><option value="toutes">Toutes ({avancement.total})</option><option value="a_valider">À valider ({avancement.a_valider})</option><option value="actives">Prêtes ({avancement.actives})</option></select>
+              <select aria-label="Filtrer par section" className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={suivi.section} onChange={e => setSuivi({ ...suivi, section: e.target.value })}><option value="">Toutes les sections</option>{sections.map(x => <option key={x} value={x}>{x}</option>)}</select>
+              <Input aria-label="Rechercher une analyse" className="h-9" placeholder="Rechercher par code ou libellé" value={suivi.q} onChange={e => setSuivi({ ...suivi, q: e.target.value })} />
+            </div>
+          </div>
+          {visibles.length === 0 && <p className="text-xs text-fg3">Aucune analyse ne correspond à ces filtres.</p>}
+          {visibles.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_analyses', a.id, a.actif)}><span className="flex-1 min-w-0"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle} <span className="text-xs text-fg3">· {a.section} · rendu {a.delai_heures} h · {a.nb_parametres} paramètre{a.nb_parametres > 1 ? 's' : ''}</span>{aValider(a) && <span className="ml-2 text-xs text-destructive">à valider</span>}</span><Button size="sm" variant="outline" onClick={() => setFiche(a.id)}>Fiche</Button><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_analyses', a.id, e.target.value)} /></Ligne>)}
+        </>}
       </section>
       <AnalyseDetail structureId={structureId} analyseId={fiche} onClose={() => setFiche(null)} onSaved={() => void load()} />
       </>}

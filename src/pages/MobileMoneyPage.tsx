@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -119,7 +120,7 @@ export default function MobileMoneyPage() {
   };
 
   const deleteMoyen = async (m: Moyen) => {
-    if (!confirm(`Supprimer "${m.libelle}" et toutes ses transactions ?`)) return;
+    if (!(await confirmer(`Supprimer "${m.libelle}" et toutes ses transactions ?`))) return;
     await supabase.from('moyens_paiement').delete().eq('id', m.id);
     toast.success('Supprimé'); load();
   };
@@ -219,7 +220,7 @@ export default function MobileMoneyPage() {
   };
 
   const supprimerTrx = async (t: Trx) => {
-    if (!confirm('Supprimer cette transaction ?')) return;
+    if (!(await confirmer('Supprimer cette transaction ?'))) return;
     await supabase.from('transactions_mm').delete().eq('id', t.id);
     load();
   };

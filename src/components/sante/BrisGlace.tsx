@@ -1,3 +1,4 @@
+import { saisir } from '@/components/Confirmation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ShieldAlert } from 'lucide-react';
@@ -89,7 +90,7 @@ export function SecuriteFacturationCard({ structureId }: { structureId: string }
     if (error) toast.error(error.message); else toast.success("Règles d'accès enregistrées.");
   };
   const revoir = async (id: string) => {
-    const c = window.prompt('Commentaire de revue (obligatoire) :') ?? '';
+    const c = (await saisir('Commentaire de revue (obligatoire) :')) ?? '';
     if (!c.trim()) return;
     const { error } = await supabase.rpc('sante_revoir_bris_glace', { _id: id, _commentaire: c });
     if (error) toast.error(error.message); else void load();

@@ -554,6 +554,111 @@
       "when": 1793410515688,
       "tag": "0078_analyse_activation_parametre",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1793411151127,
+      "tag": "0079_sante_bibliotheque_consentements",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1793413113171,
+      "tag": "0080_sante_catalogue_import_references",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1793413714513,
+      "tag": "0081_sante_invitation_controles",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1793414304191,
+      "tag": "0082_sante_export_structure_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1793460000000,
+      "tag": "0083_plan_comptable_unicite",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1793461000000,
+      "tag": "0084_lettrage_unicite",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1793462000000,
+      "tag": "0085_stock_mouvement_serveur",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1793463000000,
+      "tag": "0086_suppression_lecture_anonyme_demo",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1793464000000,
+      "tag": "0087_sante_factures_ouvertes_organisme",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1793465000088,
+      "tag": "0088_role_comptable_membres_sante",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1793465000089,
+      "tag": "0089_sante_praticien_relier_moi",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1793465000090,
+      "tag": "0090_sante_demandes_accueil",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1793465000091,
+      "tag": "0091_sante_ca_avoirs",
+      "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1793493000092,
+      "tag": "0092_sante_signataire_cr",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1793496000093,
+      "tag": "0093_sante_rejet_administratif",
+      "breakpoints": true
     }
   ]
 }
