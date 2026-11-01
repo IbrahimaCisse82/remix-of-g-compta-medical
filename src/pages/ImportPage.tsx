@@ -193,7 +193,7 @@ export default function ImportPage() {
               <button
                 onClick={handleImport}
                 disabled={importing}
-                className="px-4 py-1.5 rounded-md text-[11px] font-bold bg-success text-white hover:bg-success/90 disabled:opacity-50"
+                className="px-4 py-1.5 rounded-md text-[11px] font-bold bg-success text-success-foreground hover:bg-success/90 disabled:opacity-50"
               >
                 {importing ? '⏳ Import en cours...' : `✅ Importer ${preview.length} écritures`}
               </button>
