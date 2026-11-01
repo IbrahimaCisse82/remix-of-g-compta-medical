@@ -81,7 +81,7 @@ ${g.ab?.length ? `<table><thead><tr><th>Antibiotique</th><th>CMI</th><th>Interpr
 <div style="display:flex;justify-content:space-between;margin:14px 0"><div><strong>${esc(p.nom)} ${esc(p.prenoms)}</strong><br><small>Dossier ${esc(p.numero_dossier)} · ${p.sexe === 'F' ? 'Féminin' : 'Masculin'}${p.date_naissance ? ' · né(e) le ' + new Date(p.date_naissance).toLocaleDateString('fr-FR') : ''}</small></div>
 <div style="text-align:right"><small>Prescripteur : ${esc(d.prescripteur ?? '—')}<br>Prélevé le : ${d.preleve_le ? new Date(d.preleve_le).toLocaleString('fr-FR') : '—'}${dd.prelev_site ? ' (' + esc(dd.prelev_site) + ')' : ''}<br>Rendu le : ${d.validee_le ? new Date(d.validee_le).toLocaleString('fr-FR') : '—'}</small></div></div>
 ${mentions}${blocs}${micro}
-<div class="sig">${definitif ? `Validé biologiquement le ${new Date(d.validee_le).toLocaleString('fr-FR')}<br>Signature électronique du biologiste${dd.cr_hash ? `<br><small style="font-family:monospace">Empreinte ${esc(String(dd.cr_hash).slice(0, 16))}… · vérifiable par le QR code</small>` : ''}` : '<em>Compte rendu non encore validé biologiquement</em>'}</div>${pied(s)}`);
+<div class="sig">${definitif ? `Validé biologiquement le ${new Date(d.validee_le).toLocaleString('fr-FR')}<br>${dd.signataire_nom ? `<strong>${esc(dd.signataire_nom)}</strong>${dd.signataire_ordre ? ` · n° d’ordre ${esc(dd.signataire_ordre)}` : ''}<br>` : ''}Signature électronique du biologiste${dd.cr_hash ? `<br><small style="font-family:monospace">Empreinte ${esc(String(dd.cr_hash).slice(0, 16))}… · vérifiable par le QR code</small>` : ''}` : '<em>Compte rendu non encore validé biologiquement</em>'}</div>${pied(s)}`);
 }
 
 /** Étiquettes code-barres (Code 128) : une par tube/contenant distinct de la demande. */
