@@ -52,7 +52,9 @@ export async function imprimerCompteRendu(demandeId: string) {
   const dd: any = d;
   const definitif = d.statut === 'validee';
   // Le QR renvoie vers la page publique de vérification (jeton aléatoire posé à la validation biologique)
-  const verif = dd.cr_token ? `${window.location.origin}/verifier/${dd.cr_token}` : `${window.location.origin}/`;
+  // Adresse publique fixe : un QR imprimé depuis l'aperçu ne doit pas pointer vers une adresse privée.
+  const publique = /(^|\.)g-sante\.app$/.test(window.location.hostname) ? window.location.origin : 'https://g-sante.app';
+  const verif = dd.cr_token ? `${publique}/verifier/${dd.cr_token}` : `${publique}/`;
   const qr = await QRCode.toDataURL(verif, { width: 140, margin: 0 });
   const blocs = (das ?? []).map((x: any) => {
     const a = x.analyse;
