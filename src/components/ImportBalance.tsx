@@ -29,7 +29,7 @@ export default function ImportBalance() {
       const { lignes, ecartes } = ecarterSousTotaux(brut);
       const { controles } = controlerBalance(lignes);
       const { count } = await supabase.from('ecritures').select('id', { count: 'exact', head: true })
-        .eq('exercice_id', exercice.id).neq('statut', 'annulee');
+        .eq('exercice_id', exercice.id).neq('statut', 'annulee').is('contrepasse_par', null).neq('origine', 'contrepassation');
       const dejaSaisies = count ?? 0;
       controles.push({ ok: dejaSaisies === 0, message: dejaSaisies ? `L'exercice ${exercice.annee} contient déjà ${dejaSaisies} écriture(s) : la reprise se fait dans un exercice vide` : `Exercice ${exercice.annee} vide`, bloquant: true });
       setAnalyse({ lignes, ecartes, controles, dejaSaisies });
@@ -44,11 +44,12 @@ export default function ImportBalance() {
     try {
       const { aNouveaux, mouvements } = ecrituresDeReprise(analyse.lignes);
       const base = { entreprise_id: entreprise.id, exercice_id: exercice.id };
-      // Pièces propres à l'exercice (une reprise par exercice) ; vérifiées avant toute écriture
+      // Pièces propres à l'exercice ; exercice revérifié avant toute écriture (une reprise annulée
+      // par contre-passation le laisse vide)
       // pour ne jamais laisser une reprise à moitié faite.
       const pieces = { an: `REPRISE-AN-${exercice.annee}`, od: `REPRISE-BAL-${exercice.annee}` };
       const { count } = await supabase.from('ecritures').select('id', { count: 'exact', head: true })
-        .eq('exercice_id', exercice.id).neq('statut', 'annulee');
+        .eq('exercice_id', exercice.id).neq('statut', 'annulee').is('contrepasse_par', null).neq('origine', 'contrepassation');
       if (count) throw new Error(`L'exercice ${exercice.annee} contient déjà ${count} écriture(s)`);
       if (aNouveaux.length) await enregistrerLignesJournal(aNouveaux.map(l => ({ ...base, ...l, journal_code: 'AN' as const, date_ecriture: exercice.date_debut, piece: pieces.an })), { origine: 'import' });
       if (mouvements.length) await enregistrerLignesJournal(mouvements.map(l => ({ ...base, ...l, journal_code: 'OD' as const, date_ecriture: exercice.date_fin, piece: pieces.od })), { origine: 'import' });
