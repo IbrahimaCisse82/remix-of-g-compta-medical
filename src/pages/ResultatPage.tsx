@@ -2,7 +2,7 @@ import ControleComptable from '@/components/ControleComptable';
 import { useApp } from '@/stores/app-store';
 import { calc, CR, fmt, fmtSigned } from '@/lib/accounting';
 import { exportEtatCsv } from '@/lib/csv-export';
-import { exportCRPdf } from '@/lib/pdf-export';
+import ExportEtatsFinanciers from '@/components/ExportEtatsFinanciers';
 
 export default function ResultatPage() {
   const { balance, balanceN1, entreprise, exercice } = useApp();
@@ -18,17 +18,13 @@ export default function ResultatPage() {
     exportEtatCsv(lines, `compte_resultat_${exercice?.annee}`);
   };
 
-  const handlePdf = () => {
-    if (!entreprise || !exercice) return;
-    exportCRPdf(entreprise, exercice, CR, vCR, vCRN1, hasN1);
-  };
 
   return (
     <div>
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div><div className="font-serif text-[17px]">Compte de Résultat</div><div className="text-[10px] text-fg3 font-mono">{entreprise?.nom} — {exercice?.date_debut} au {exercice?.date_fin}</div></div>
         <div className="flex items-center gap-2">
-          <button onClick={handlePdf} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-primary/30 text-primary hover:bg-primary/10">📄 PDF</button>
+          <ExportEtatsFinanciers etats={['cr']} />
           <button onClick={handleExport} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-border text-fg2 hover:bg-bg3">📥 CSV</button>
         </div>
       </div>
