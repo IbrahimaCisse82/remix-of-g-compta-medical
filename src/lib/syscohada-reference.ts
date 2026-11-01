@@ -8,7 +8,7 @@ export const UNVALIDATED_MAPPINGS = mapping.rows.filter(r => r.verification.incl
 
 export function accountReference(account: string) {
   if (/^(20|6811|1374)/.test(account)) return undefined;
-  return reference.rows.filter(r => account === r.compte || (r.compte.length >= 4 && account.startsWith(r.compte)))
+  return reference.rows.filter(r => account === r.compte || (r.compte.length >= 3 && account.startsWith(r.compte)))
     .sort((a, b) => b.compte.length - a.compte.length)[0];
 }
 
