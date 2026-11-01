@@ -1,3 +1,4 @@
+import { confirmer, saisir } from '@/components/Confirmation';
 import LienPortailButton from './LienPortailButton';
 import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
@@ -200,7 +201,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         </dl>{medicalRoles.some(r => ['medecin','secretaire'].includes(r)) && <IdentitePatient patient={{...p,id}} onSaved={() => { void supabase.from('sante_patients').select('*').eq('id',id).single().then(({data}) => { if (data) setP(data); }); }} />}</div>
       ) : (
         <div className="space-y-3">
-          {onglet === 'Consentements' && <ConsentementPatient patientId={id} onSaved={loadItems} />}
+          {onglet === 'Consentements' && <ConsentementPatient patientId={id} structureId={p.structure_id} onSaved={loadItems} />}
           {onglet !== 'Consentements' && (
             <div className="flex flex-wrap gap-2 border border-border rounded-md p-3">
               <Input className="flex-1 min-w-40" placeholder={onglet === 'Assurances' ? 'Organisme' : 'Libellé'} value={ajout.a} onChange={e => setAjout(s => ({ ...s, a: e.target.value }))} />
@@ -244,19 +245,19 @@ function FusionPatient({ patientId, structureId, onDone }: { patientId: string; 
     const { data } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: numero.trim(), _limit: 2 });
     const cible = (data ?? []).find(d => d.numero_dossier === numero.trim().toUpperCase());
     if (!cible || cible.id === patientId) return toast.error('Dossier en double introuvable');
-    if (!confirm(`Proposer la fusion de ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ?\nLa fusion ne sera appliquée qu'après confirmation par un autre médecin ou secrétaire.`)) return;
+    if (!(await confirmer(`Proposer la fusion de ${cible.numero_dossier} (${cible.nom} ${cible.prenoms}) dans ce dossier ?\nLa fusion ne sera appliquée qu'après confirmation par un autre médecin ou secrétaire.`))) return;
     const { error } = await supabase.rpc('sante_proposer_fusion', { _conserve: patientId, _fusionne: cible.id, _motif: motif });
     if (error) return toast.error(error.message);
     toast.success('Fusion proposée — confirmation par une autre personne requise'); setNumero(''); setMotif(''); void charger();
   };
   const confirmer = async (id: string) => {
-    if (!confirm('Confirmer la fusion ? Les antécédents, assurances et consentements du dossier en double seront transférés.')) return;
+    if (!(await confirmer('Confirmer la fusion ? Les antécédents, assurances et consentements du dossier en double seront transférés.'))) return;
     const { error } = await supabase.rpc('sante_confirmer_fusion', { _fusion_id: id });
     if (error) return toast.error(error.message);
     toast.success('Dossiers fusionnés'); onDone();
   };
   const annuler = async (id: string) => {
-    const m = prompt('Motif d’annulation (10 caractères minimum) — réservé à l’administrateur :');
+    const m = (await saisir('Motif d’annulation (10 caractères minimum) — réservé à l’administrateur :'));
     if (!m) return;
     const { error } = await supabase.rpc('sante_annuler_fusion', { _fusion_id: id, _motif: m });
     if (error) return toast.error(error.message);

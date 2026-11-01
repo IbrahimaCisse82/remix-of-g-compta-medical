@@ -1,3 +1,4 @@
+import { saisir } from '@/components/Confirmation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BordereauCompta from './BordereauCompta';
 import { OutboxCard, RemboursementsCard, ReglementOrganismeCard, ConventionsCard, BonsPecCard, CreancesOrganismesCard, AnalytiqueSanteCard, SaisieSecoursCard } from './FinanceSante';
-import { MODES_PAIEMENT, fcfa, resteDu, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
+import { MODES_PAIEMENT, fcfa, resteAEncaisser, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
 import { montantCaisse } from '@/lib/caisse-montant';
 import { escapeHtml } from '@/lib/impression';
 import { OrganismesPayeurs, CouverturePatient } from './TiersPayantSaisie';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useApp } from '@/stores/app-store';
+import { peut, type ActionSante } from '@/domain/sante/droits';
 
 type Item = { code: string; libelle: string; tarif: number };
 type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; envoye_tiers_le: string | null; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
@@ -21,6 +24,8 @@ const db = supabase as any;
 const TIERS: Record<string, string> = { sans: '—', a_facturer: 'À facturer', envoye: 'Envoyé', paye: 'Payé', rejete: 'Rejeté' };
 
 export default function FacturationPage({ structureId }: { structureId: string }) {
+  const { medicalRoles } = useApp();
+  const droit = (a: ActionSante) => peut(medicalRoles, a);
   const [session, setSession] = useState<Session>(null);
   const [fond, setFond] = useState('0');
   const [factures, setFactures] = useState<Facture[]>([]);
@@ -74,6 +79,14 @@ export default function FacturationPage({ structureId }: { structureId: string }
     setAssurances((data ?? []).filter((a: any) => (!a.date_debut || a.date_debut <= today) && (!a.date_fin || a.date_fin >= today))); setAssuranceId('aucune');
   };
 
+  // Rejet signalé par l'organisme : motif obligatoire, enregistré comme rejet administratif (dossier à corriger
+  // puis à renvoyer). Les rejets avec montant (non-prise en charge, perte) se font depuis l'onglet Tiers payant.
+  const rejeterTiers = async (f: Facture) => {
+    const motif = await saisir(`Motif du rejet de ${f.numero} par ${f.organisme} (5 caractères minimum)`);
+    if (motif === null) return;
+    if (motif.trim().length < 5) { toast.error('Motif trop court'); return; }
+    await run('sante_rejet_tiers', { _facture_id: f.id, _type: 'administratif', _motif: motif.trim(), _montant: null }, 'Rejet enregistré : corrigez le dossier puis renvoyez-le.');
+  };
   const run = async (fn: string, args: object, ok: string) => {
     if (pending.current || loadError) return false;
     pending.current = true; setBusy(true);
@@ -116,7 +129,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
       db.from('sante_encaissements').select('mode, montant, created_at').eq('facture_id', f.id).order('created_at'),
     ]);
     const w = window.open('', '_blank'); if (!w) { toast.error('Autorisez les fenêtres pour imprimer'); return; }
-    const reste = resteDu(f.part_patient, f.encaisse);
+    const reste = resteAEncaisser(f);
     const titre = f.type === 'avoir' ? 'AVOIR' : 'FACTURE';
     const lignesHtml = (lignes ?? []).map((l: any) =>
       `<tr><td>${esc(l.libelle)}${l.code ? ` <small>(${esc(l.code)})</small>` : ''}</td><td style="text-align:center">${esc(l.quantite)}</td><td style="text-align:right">${fcfa(Number(l.prix_unitaire))}</td><td style="text-align:right">${fcfa(Number(l.montant))}</td></tr>`).join('');
@@ -176,20 +189,20 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
         <CreancesOrganismesCard refresh={refresh} structureId={structureId} />
         <ConventionsCard key={`conventions-${organismesRefresh}`} structureId={structureId} />
       </> : <>
-      <section className="border border-border bg-bg2 rounded-md p-5 flex flex-wrap items-end gap-3">
+      {droit('gerer_caisse') && <section className="border border-border bg-bg2 rounded-md p-5 flex flex-wrap items-end gap-3">
         {session ? (<>
           <p className="text-sm flex-1">Caisse ouverte depuis {new Date(session.ouverte_le).toLocaleTimeString('fr-FR')} · fond {fcfa(Number(session.fond_initial))}</p>
           <div><Label htmlFor="caisse-compte">Espèces comptées</Label><Input id="caisse-compte" type="number" min={0} step={1} value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
           <Button variant="outline" disabled={busy || !!loadError} onClick={fermer}>Clôturer et imprimer le rapport</Button>
-          <Button variant="ghost" onClick={() => run('sante_remettre_cheques', { _structure_id: structureId }, 'Remise de chèques enregistrée.')}>Remise de chèques en banque</Button>
+          {droit('remettre_cheques') && <Button variant="ghost" onClick={() => run('sante_remettre_cheques', { _structure_id: structureId }, 'Remise de chèques enregistrée.')}>Remise de chèques en banque</Button>}
         </>) : (<>
           <p className="text-sm flex-1">Votre caisse est fermée.</p>
           <div><Label htmlFor="caisse-fond">Fond de caisse</Label><Input id="caisse-fond" type="number" min={0} step={1} value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
           <Button disabled={busy || !!loadError} onClick={ouvrir}>Ouvrir la caisse</Button>
         </>)}
-      </section>
+      </section>}
 
-      <section className="border border-border bg-bg2 rounded-md p-5 space-y-4">
+      {droit('creer_facture') && <section className="border border-border bg-bg2 rounded-md p-5 space-y-4">
         <h2 className="font-semibold">Nouvelle facture</h2>
         {patient ? <p className="text-sm">Patient : <b>{patient.label}</b> <Button size="sm" variant="ghost" onClick={() => setPatient(null)}>Changer</Button></p> : (
           <div><div className="flex gap-2"><Input placeholder="Nom, téléphone ou n° de dossier" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && chercher()} /><Button onClick={chercher}>Chercher</Button></div>
@@ -201,19 +214,42 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
         {panier.length > 0 && <ul className="text-sm space-y-1">{panier.map((p, k) => <li key={k} className="flex justify-between border-b border-border py-1"><span>{p.libelle}</span><span>{fcfa(p.tarif)} <button className="text-destructive ml-2" onClick={() => setPanier(panier.filter((_, j) => j !== k))}>×</button></span></li>)}</ul>}
         <div className="grid sm:grid-cols-3 gap-3">
           <div><Label>Prise en charge</Label><Select value={assuranceId} onValueChange={setAssuranceId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="aucune">Aucune</SelectItem>{assurances.map(a => <SelectItem key={a.id} value={a.id}>{a.organisme} ({a.taux_couverture} %)</SelectItem>)}</SelectContent></Select></div>
-          <div><Label>Remise (administrateur)</Label><Input type="number" value={remise} onChange={e => setRemise(e.target.value)} /></div>
+          {droit('accorder_remise') && <>
+          <div><Label>Remise</Label><Input type="number" value={remise} onChange={e => setRemise(e.target.value)} /></div>
           <div><Label>Motif de remise</Label><Input value={motifRemise} onChange={e => setMotifRemise(e.target.value)} /></div>
+          </>}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <span>Estimation : total {fcfa(total)} · Organisme {fcfa(apercu.organisme)} · <b>Patient {fcfa(apercu.patient)}</b>{ass && <span className="block text-xs text-fg3">Répartition définitive sur la facture, selon la convention, les exclusions et le bon de prise en charge.</span>}</span>
           <Button disabled={busy || !!loadError || !patient || panier.length === 0} onClick={creer}>Émettre la facture</Button>
         </div>
-      </section>
+      </section>}
 
       <section className="border border-border bg-bg2 rounded-md overflow-x-auto">
-        <table className="w-full text-sm"><thead className="text-xs text-fg3 text-left"><tr><th className="p-3">N°</th><th>Patient</th><th>Total</th><th>Patient / reste</th><th>Tiers-payant</th><th className="p-3">Actions</th></tr></thead>
+        {/* Écran étroit : une carte par facture, les actions restent visibles sans défilement horizontal */}
+        <div className="sm:hidden divide-y divide-border">{factures.length === 0 ? <p className="p-4 text-sm text-fg3">Aucune facture.</p> : factures.map(f => {
+          const reste = resteAEncaisser(f); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
+          return <div key={f.id} className="p-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-2"><span className="font-mono">{f.numero}{f.annulee && <span className="block text-xs text-destructive">Annulée</span>}</span><span>{fcfa(f.total)}</span></div>
+            <div className="flex justify-between gap-2"><span>{f.patient?.nom} {f.patient?.prenoms}</span><span className="text-xs text-fg3">reste {fcfa(reste)}</span></div>
+            {f.organisme && <div className="text-xs">{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}{f.envoye_tiers_le ? ` · envoyé le ${new Date(f.envoye_tiers_le).toLocaleDateString("fr-FR")}` : ""}</span>
+                {f.statut_tiers === 'a_facturer' || f.statut_tiers === 'rejete' ? <Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'envoye' }, 'Envoyé.')}>Envoyer</Button> : null}
+                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button>{droit('rejeter_tiers') && <Button size="sm" variant="ghost" onClick={() => void rejeterTiers(f)}>Rejeté</Button>}</>}
+              </> : '—'}</div>}
+            <div className="space-y-1">
+                {f.type === 'facture' && !f.annulee && reste > 0 && droit('gerer_caisse') && <div className="flex flex-wrap gap-1">
+                  <Select value={p.mode} onValueChange={v => setPaiement({ ...paiement, [f.id]: { ...p, mode: v } })}><SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger><SelectContent>{MODES_PAIEMENT.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select>
+                  <Input aria-label={`Montant ${f.numero}`} className="h-8 w-24" type="number" value={p.montant} onChange={e => setPaiement({ ...paiement, [f.id]: { ...p, montant: e.target.value } })} />
+                  <Button size="sm" disabled={busy || !!loadError} onClick={() => encaisser(f, p)}>Encaisser</Button>
+                </div>}
+                <div className="flex gap-1"><Button size="sm" variant="outline" onClick={() => imprimer(f)}>Reçu</Button>
+                  {f.type === 'facture' && !f.annulee && droit('annuler_facture') && <Button size="sm" variant="ghost" onClick={async () => { const m = (await saisir("Motif d'annulation (un avoir sera émis)")); if (m) void run('sante_annuler_facture', { _facture_id: f.id, _motif: m }, 'Avoir émis.'); }}>Annuler</Button>}</div>
+              </div>
+          </div>;
+        })}</div>
+        <table className="w-full text-sm hidden sm:table"><thead className="text-xs text-fg3 text-left"><tr><th className="p-3">N°</th><th>Patient</th><th>Total</th><th>Patient / reste</th><th>Tiers-payant</th><th className="p-3">Actions</th></tr></thead>
           <tbody>{factures.length === 0 ? <tr><td colSpan={6} className="p-4 text-fg3">Aucune facture.</td></tr> : factures.map(f => {
-            const reste = resteDu(f.part_patient, f.encaisse); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
+            const reste = resteAEncaisser(f); const p = paiement[f.id] ?? { mode: 'especes', montant: String(reste) };
             return <tr key={f.id} className="border-t border-border align-top">
               <td className="p-3 font-mono">{f.numero}{f.annulee && <span className="block text-xs text-destructive">Annulée</span>}</td>
               <td>{f.patient?.nom} {f.patient?.prenoms}</td>
@@ -221,23 +257,23 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
               <td>{fcfa(f.part_patient)}<span className="block text-xs text-fg3">reste {fcfa(reste)}</span></td>
               <td>{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}{f.envoye_tiers_le ? ` · envoyé le ${new Date(f.envoye_tiers_le).toLocaleDateString("fr-FR")}` : ""}</span>
                 {f.statut_tiers === 'a_facturer' || f.statut_tiers === 'rejete' ? <Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'envoye' }, 'Envoyé.')}>Envoyer</Button> : null}
-                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'rejete' }, 'Rejet noté.')}>Rejeté</Button></>}
+                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button>{droit('rejeter_tiers') && <Button size="sm" variant="ghost" onClick={() => void rejeterTiers(f)}>Rejeté</Button>}</>}
               </> : '—'}</td>
               <td className="p-3 space-y-1">
-                {f.type === 'facture' && !f.annulee && reste > 0 && <div className="flex gap-1">
+                {f.type === 'facture' && !f.annulee && reste > 0 && droit('gerer_caisse') && <div className="flex gap-1">
                   <Select value={p.mode} onValueChange={v => setPaiement({ ...paiement, [f.id]: { ...p, mode: v } })}><SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger><SelectContent>{MODES_PAIEMENT.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select>
                   <Input aria-label={`Montant ${f.numero}`} className="h-8 w-24" type="number" value={p.montant} onChange={e => setPaiement({ ...paiement, [f.id]: { ...p, montant: e.target.value } })} />
                   <Button size="sm" disabled={busy || !!loadError} onClick={() => encaisser(f, p)}>Encaisser</Button>
                 </div>}
                 <div className="flex gap-1"><Button size="sm" variant="outline" onClick={() => imprimer(f)}>Reçu</Button>
-                  {f.type === 'facture' && !f.annulee && <Button size="sm" variant="ghost" onClick={() => { const m = prompt("Motif d'annulation (un avoir sera émis)"); if (m) void run('sante_annuler_facture', { _facture_id: f.id, _motif: m }, 'Avoir émis.'); }}>Annuler</Button>}</div>
+                  {f.type === 'facture' && !f.annulee && droit('annuler_facture') && <Button size="sm" variant="ghost" onClick={async () => { const m = (await saisir("Motif d'annulation (un avoir sera émis)")); if (m) void run('sante_annuler_facture', { _facture_id: f.id, _motif: m }, 'Avoir émis.'); }}>Annuler</Button>}</div>
               </td>
             </tr>;
           })}</tbody></table>
       </section>
       <RemboursementsCard structureId={structureId} refresh={refresh} onChanged={() => { void load(); setRefresh(v => v + 1); }} />
       <SaisieSecoursCard structureId={structureId} />
-      <AnalytiqueSanteCard structureId={structureId} />
+      {droit('analyse_chiffre_affaires') && <AnalytiqueSanteCard structureId={structureId} refresh={refresh} />}
       <OutboxCard key={refresh} structureId={structureId} />
       <BordereauCompta structureId={structureId} />
       </>}

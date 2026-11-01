@@ -6,6 +6,8 @@ import { calc, calculateActif, CR, ACTIF, PASSIF, TFT, fmt, fmtSigned, type MapL
 import { useNotesData } from '@/hooks/use-notes-data';
 import { buildAnnexesHtml } from '@/lib/dsf-annexes-export';
 import { escapeHtml } from '@/lib/impression';
+import { imprimerEtatsFinanciers } from '@/lib/pdf-export';
+import ExportEtatsFinanciers from '@/components/ExportEtatsFinanciers';
 
 function buildHeader(entreprise: any, exercice: any): string {
   // Toutes les données issues de la base sont échappées avant insertion dans le HTML.
@@ -73,77 +75,7 @@ export default function LiasseFiscalePage() {
   const handleExportDSF = () => {
     if (!entreprise || !exercice) return;
     try { assertExportable(balance, balanceN1); } catch (error) { toast.error(error instanceof Error ? error.message : 'États non validés'); return; }
-
-    const html = `
-      ${buildHeader(entreprise, exercice)}
-      <div style="text-align:center;margin-bottom:20px;">
-        <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">DÉCLARATION STATISTIQUE ET FISCALE (DSF)</div>
-        <div style="font-size:10px;color:#555;">Exercice clos le ${escapeHtml(exercice.date_fin)} · ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
-      </div>
-
-      <!-- Fiche signalétique -->
-      <h2 style="font-size:12px;font-weight:bold;color:#0B1F3A;margin:16px 0 8px;">FICHE SIGNALÉTIQUE</h2>
-      <table>
-        <tbody>
-          <tr><td style="width:200px;font-weight:bold;">Raison sociale</td><td>${escapeHtml(entreprise.nom)}</td></tr>
-          <tr><td style="font-weight:bold;">Sigle</td><td>${escapeHtml(entreprise.sigle || '—')}</td></tr>
-          <tr><td style="font-weight:bold;">Forme juridique</td><td>${escapeHtml(entreprise.forme_juridique || '—')}</td></tr>
-          <tr><td style="font-weight:bold;">NINEA</td><td>${escapeHtml(entreprise.ninea || '—')}</td></tr>
-          <tr><td style="font-weight:bold;">RCCM</td><td>${escapeHtml(entreprise.rccm || '—')}</td></tr>
-          <tr><td style="font-weight:bold;">Adresse</td><td>${escapeHtml(entreprise.adresse || '—')}</td></tr>
-          <tr><td style="font-weight:bold;">Téléphone</td><td>${escapeHtml(entreprise.tel || '—')}</td></tr>
-          <tr><td style="font-weight:bold;">Secteur</td><td>${escapeHtml(entreprise.secteur || '—')}</td></tr>
-          <tr><td style="font-weight:bold;">Exercice</td><td>${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</td></tr>
-          <tr><td style="font-weight:bold;">Monnaie</td><td>${escapeHtml(entreprise.monnaie || 'FCFA')}</td></tr>
-        </tbody>
-      </table>
-
-      ${buildTable('BILAN — ACTIF', ACTIF, vA, vAN1, hasN1, { brut: vABrut, amort: vAAmort })}
-      ${buildTable('BILAN — PASSIF', PASSIF, vP, vPN1, hasN1)}
-
-      <div style="text-align:center;padding:8px;font-weight:bold;font-size:11px;border-radius:4px;margin:8px 0;${Math.abs((vA['BZ']||0) - (vP['DZ']||0)) < 1 ? 'background:#e8f4e8;color:#0a6' : 'background:#fde8e8;color:#c00'}">
-        ${Math.abs((vA['BZ']||0) - (vP['DZ']||0)) < 1 ? '✓ BILAN ÉQUILIBRÉ' : '⚠ BILAN NON ÉQUILIBRÉ'} — Actif: ${fmt(vA['BZ']||0)} / Passif: ${fmt(vP['DZ']||0)}
-      </div>
-
-      <div style="page-break-before: always;"></div>
-      ${buildTable('COMPTE DE RÉSULTAT', CR, vCR, vCRN1, hasN1)}
-
-      <div style="text-align:center;padding:8px;font-weight:bold;font-size:12px;border-radius:4px;margin:8px 0;${rn >= 0 ? 'background:#e8f4e8;color:#0a6' : 'background:#fde8e8;color:#c00'}">
-        RÉSULTAT NET : ${fmtSigned(rn)} ${entreprise.monnaie || 'FCFA'}
-      </div>
-
-      <div style="page-break-before: always;"></div>
-      ${buildTable('TABLEAU DES FLUX DE TRÉSORERIE', TFT, vT, vTN1, hasN1)}
-
-      <div style="margin-top:30px;padding-top:8px;border-top:1px solid #ccc;text-align:center;font-size:8px;color:#999;">
-        G-Compta · DSF SYSCOHADA Révisé · Généré le ${new Date().toLocaleDateString('fr-FR')}
-      </div>
-    `;
-
-    const w = window.open('', '_blank', 'width=900,height=700');
-    if (!w) { alert('Veuillez autoriser les popups.'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><title>DSF ${escapeHtml(entreprise.nom)} ${escapeHtml(exercice.annee)}</title>
-      <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #222; padding: 12mm; }
-        table { width:100%; border-collapse:collapse; margin-bottom:10px; }
-        th { background:#0B1F3A; color:#fff; font-size:8px; text-transform:uppercase; letter-spacing:0.5px; padding:4px 5px; text-align:left; }
-        td { padding:2px 5px; border-bottom:1px solid #e0e0e0; font-size:9px; }
-        tr:nth-child(even) { background:#f9f9f9; }
-        .tot { background:#e8f4e8 !important; font-weight:bold; border-top:2px solid #0B1F3A; }
-        .gtot { background:#0B1F3A !important; color:#fff !important; font-weight:bold; }
-        .sect { background:#f0f0f0; font-weight:bold; font-size:8px; text-transform:uppercase; letter-spacing:1px; color:#555; }
-        .r { text-align:right; font-family: 'Courier New', monospace; }
-        .neg { color:#c00; }
-        h2 { page-break-after: avoid; }
-        @media print { body { padding: 8mm 6mm; } @page { size: A4; margin: 8mm; } }
-        @media screen { body { max-width:900px; margin:0 auto; } .no-print { display:block; text-align:center; margin-bottom:15px; } }
-      </style>
-    </head><body>
-      <div class="no-print"><button onclick="window.print()" style="padding:8px 24px;background:#0B1F3A;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;">📥 Imprimer / Enregistrer en PDF</button></div>
-      ${html}
-    </body></html>`);
-    w.document.close();
+    imprimerEtatsFinanciers({ entreprise, exercice, balance, balanceN1 }, ['garde', 'bilan', 'cr', 'tft']);
   };
 
   const handleExportDSFComplete = () => {
@@ -279,11 +211,15 @@ export default function LiasseFiscalePage() {
         <div className="text-center space-y-2">
           <div className="flex flex-wrap justify-center gap-3">
             <button onClick={handleExportDSF} className="px-6 py-2.5 rounded-lg text-sm font-bold border border-primary/40 text-primary hover:bg-primary/10 transition-all">
-              📄 DSF seule (Bilan + CR + TFT)
+              📄 États financiers (page de garde, bilan, CR, TFT)
             </button>
             <button onClick={handleExportDSFComplete} className="px-6 py-2.5 rounded-lg text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all">
               📚 DSF + 54 Notes Annexes (dossier complet)
             </button>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2 pt-2">
+            <span className="text-[10px] text-fg3 self-center">Version de travail (mention « provisoire » tant que les contrôles ne sont pas satisfaits) :</span>
+            <ExportEtatsFinanciers etats={['garde', 'bilan', 'cr', 'tft']} />
           </div>
           <p className="text-[10px] text-fg3 mt-2">Le document s'ouvrira dans une nouvelle fenêtre pour impression / enregistrement PDF (A4).</p>
         </div>

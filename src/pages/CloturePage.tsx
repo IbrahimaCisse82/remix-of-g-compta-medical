@@ -1,3 +1,4 @@
+import { saisir } from '@/components/Confirmation';
 import ControleComptable from '@/components/ControleComptable';
 import { controlesSyscohada } from '@/lib/conformite-syscohada';
 import { useApp } from '@/stores/app-store';
@@ -33,7 +34,7 @@ export default function CloturePage() {
   const handleReopen = async (excId: string) => {
     if (confirmReopen !== excId) { setConfirmReopen(excId); return; }
     setConfirmReopen(null);
-    const motif = window.prompt('Motif de réouverture (obligatoire, 5 caractères minimum) :') || '';
+    const motif = (await saisir('Motif de réouverture (obligatoire, 5 caractères minimum) :')) || '';
     if (motif.trim().length < 5) { toast.error('Motif obligatoire'); return; }
     const { error } = await supabase.rpc('fn_rouvrir_exercice', { _exercice_id: excId, _motif: motif.trim() });
     if (error) { toast.error(error.message); return; }

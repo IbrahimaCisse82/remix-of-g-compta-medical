@@ -1,3 +1,4 @@
+import { confirmer, saisir } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -80,7 +81,7 @@ export default function ProvisionsPage() {
     const lines = lignesDotationProvision(p, ctx)
       .map(l => ({ ...l, piece: `${l.piece}-${exercice.annee}` }));
     try {
-      await enregistrerLignesJournal(lines as any, { origine: 'provision' });
+      await enregistrerLignesJournal(lines as any, { origine: 'provision', pieceUnique: true });
       toast.success(`Dotation ${fmt(p.montant_actuel)} comptabilisée (${lines[0].piece})`);
     } catch (e) { toast.error((e as Error).message); }
   };
@@ -105,7 +106,7 @@ export default function ProvisionsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Supprimer cette provision ?')) return;
+    if (!(await confirmer('Supprimer cette provision ?'))) return;
     const { error } = await supabase.from('provisions').delete().eq('id', id);
     if (error) toast.error(error.message);
     else { toast.success('Supprimée'); load(); }
@@ -178,8 +179,8 @@ export default function ProvisionsPage() {
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">💾 Doter</button>
                       {p.statut !== 'reprise_totale' && (
                         <>
-                          <button onClick={() => {
-                            const m = prompt(`Montant à reprendre (max ${fmt(p.montant_actuel)}) :`, String(p.montant_actuel));
+                          <button onClick={async () => {
+                            const m = (await saisir(`Montant à reprendre (max ${fmt(p.montant_actuel)}) :`, String(p.montant_actuel)));
                             if (m) reprendre(p, Number(m), Number(m) >= p.montant_actuel);
                           }} title="Reprendre la provision"
                             className="text-[10px] px-2 py-1 rounded border border-warning/40 text-warning hover:bg-warning/10">↩ Reprise</button>

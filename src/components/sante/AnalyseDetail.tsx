@@ -9,13 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { referenceValide, type ReferenceSaisie } from '@/lib/catalogue-analyse';
 
 const SECTIONS = ['biochimie', 'hematologie', 'serologie', 'bacteriologie', 'parasitologie', 'hormonologie', 'urines'];
-type Analyse = { id: string; code: string; libelle: string; section: string; tube: string | null; echantillon: string | null; delai_heures: number; jeune: boolean };
+type Analyse = { id: string; code: string; libelle: string; section: string; tube: string | null; echantillon: string | null; delai_heures: number; jeune: boolean; sensible: boolean };
 type Ref = { id: string; sexe: string | null; age_min_jours: number; age_max_jours: number; bas: number | null; haut: number | null; critique_bas: number | null; critique_haut: number | null };
 type Param = { id: string; code: string; libelle: string; unite: string | null; type: string; decimales: number; ordre: number; refs: Ref[] };
 
 const REF_VIDE: ReferenceSaisie = { sexe: '', ageMin: '0', ageMax: '150', bas: '', haut: '', critiqueBas: '', critiqueHaut: '' };
 const msg = (e: { message: string }) => e.message.includes('row-level') ? 'Réservé à l’administrateur ou au biologiste de la structure' : e.message;
 const ans = (j: number) => Math.round(j / 365.25);
+const fr = (v: number | string | null) => (v == null ? '—' : Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 4 }));
 
 /** Fiche analyse : identité, paramètres mesurés et valeurs de référence, saisis par le biologiste. Aucune valeur proposée par le logiciel. */
 export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved }: { structureId: string; analyseId: string | null; onClose: () => void; onSaved: () => void }) {
@@ -28,7 +29,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
   const load = useCallback(async () => {
     if (!analyseId) return;
     const [x, p] = await Promise.all([
-      supabase.from('sante_analyses').select('id, code, libelle, section, tube, echantillon, delai_heures, jeune').eq('id', analyseId).single(),
+      supabase.from('sante_analyses').select('id, code, libelle, section, tube, echantillon, delai_heures, jeune, sensible').eq('id', analyseId).single(),
       supabase.from('sante_analyse_parametres').select('id, code, libelle, unite, type, decimales, ordre, refs:sante_valeurs_reference(id, sexe, age_min_jours, age_max_jours, bas, haut, critique_bas, critique_haut)').eq('analyse_id', analyseId).order('ordre'),
     ]);
     if (x.error || p.error) { toast.error('Fiche analyse indisponible. Réessayez.'); return; }
@@ -46,13 +47,13 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
     e.preventDefault(); if (!a) return;
     if (!a.libelle.trim()) return toast.error('Libellé obligatoire');
     if (!Number.isSafeInteger(a.delai_heures) || a.delai_heures <= 0) return toast.error('Délai de rendu positif obligatoire');
-    await run(async () => supabase.from('sante_analyses').update({ libelle: a.libelle.trim(), section: a.section, tube: a.tube?.trim() || null, echantillon: a.echantillon?.trim() || null, delai_heures: a.delai_heures, jeune: a.jeune }).eq('id', a.id), 'Analyse mise à jour');
+    await run(async () => supabase.from('sante_analyses').update({ libelle: a.libelle.trim(), section: a.section, tube: a.tube?.trim() || null, echantillon: a.echantillon?.trim() || null, delai_heures: a.delai_heures, jeune: a.jeune, sensible: a.sensible }).eq('id', a.id), 'Analyse mise à jour');
   };
   const addParam = async (e: React.FormEvent) => {
     e.preventDefault(); if (!a) return;
     const d = Number(np.decimales);
     if (!np.code.trim() || !np.libelle.trim()) return toast.error('Code et libellé du paramètre obligatoires');
-    if (!Number.isInteger(d) || d < 0 || d > 6) return toast.error('Décimales entre 0 et 6');
+    if (!Number.isInteger(d) || d < 0 || d > 4) return toast.error('Décimales entre 0 et 4');
     const ordre = params.reduce((m, p) => Math.max(m, p.ordre), 0) + 1;
     if (await run(async () => supabase.from('sante_analyse_parametres').insert({ structure_id: structureId, analyse_id: a.id, code: np.code.trim().toUpperCase(), libelle: np.libelle.trim(), unite: np.unite.trim() || null, type: np.type, decimales: d, ordre }), 'Paramètre ajouté'))
       setNp({ code: '', libelle: '', unite: '', type: 'numerique', decimales: '1' });
@@ -76,6 +77,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
           <div><Label htmlFor="an-tube">Tube</Label><Input id="an-tube" value={a.tube ?? ''} onChange={e => setA({ ...a, tube: e.target.value })} /></div>
           <div><Label htmlFor="an-echantillon">Échantillon</Label><Input id="an-echantillon" value={a.echantillon ?? ''} onChange={e => setA({ ...a, echantillon: e.target.value })} /></div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={a.jeune} onChange={e => setA({ ...a, jeune: e.target.checked })} />À jeun requis</label>
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={a.sensible} onChange={e => setA({ ...a, sensible: e.target.checked })} /><span>Résultat sensible<br /><span className="text-xs text-fg3">Jamais publié sur le portail patient : remise en main propre uniquement (ex. VIH, grossesse). À confirmer par le biologiste.</span></span></label>
           <div className="sm:col-span-2"><Button type="submit" size="sm" disabled={busy}>Enregistrer l’analyse</Button></div>
         </form>
 
@@ -88,7 +90,7 @@ export default function AnalyseDetail({ structureId, analyseId, onClose, onSaved
               {p.type === 'numerique' && <>
                 {p.refs.length === 0 ? <p className="text-xs text-fg3">Aucune valeur de référence.</p> :
                   <ul className="space-y-1">{p.refs.map(r => <li key={r.id} className="flex items-center justify-between text-xs border border-border rounded px-2 py-1">
-                    <span>{r.sexe ?? 'Tous'} · {ans(r.age_min_jours)}–{ans(r.age_max_jours)} ans · normal {r.bas ?? '—'} à {r.haut ?? '—'}{(r.critique_bas != null || r.critique_haut != null) && <> · critique &lt; {r.critique_bas ?? '—'} / &gt; {r.critique_haut ?? '—'}</>}</span>
+                    <span>{r.sexe ?? 'Tous'} · {ans(r.age_min_jours)}–{ans(r.age_max_jours)} ans · normal {fr(r.bas)} à {fr(r.haut)}{(r.critique_bas != null || r.critique_haut != null) && <> · critique &lt; {fr(r.critique_bas)} / &gt; {fr(r.critique_haut)}</>}</span>
                     <Button size="sm" variant="ghost" aria-label="Supprimer la valeur de référence" disabled={busy} onClick={() => void delRef(r.id)}><Trash2 /></Button></li>)}</ul>}
                 <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 items-end">
                   <select aria-label={`Sexe ${p.code}`} className="h-9 rounded-md border border-border bg-background px-2 text-xs" value={f.sexe} onChange={e => set('sexe', e.target.value)}><option value="">Tous</option><option value="M">Homme</option><option value="F">Femme</option></select>

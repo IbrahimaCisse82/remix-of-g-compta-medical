@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,7 +31,7 @@ export default function ConformiteCard({ structureId }: { structureId: string })
     if (error) toast.error(error.message); else { toast.success('Durée enregistrée'); load(); }
   };
   const purger = async () => {
-    if (!confirm('Supprimer définitivement les documents dont la durée de conservation est échue ? Cette action est tracée.')) return;
+    if (!(await confirmer('Supprimer définitivement les documents dont la durée de conservation est échue ? Cette action est tracée.'))) return;
     const { data, error } = await supabase.rpc('sante_purger_documents_echus', { _structure_id: structureId });
     if (error) toast.error(error.message); else toast.success(`${data ?? 0} document(s) purgé(s)`);
   };

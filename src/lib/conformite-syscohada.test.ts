@@ -22,7 +22,9 @@ describe('Régression chiffrée SYSCOHADA révisé', () => {
   it('stocks dépréciés : 100 000 moins 20 000',()=>expect(calc([b('311',{sfd:100000}),b('391',{sfc:20000})],ACTIF).BB).toBe(80000));
   it('compte partagé 2919 bloque tant que non affecté',()=>expect(calculateActif([b('2919',{sfc:10000})]).issues).toContain('C08 : 2919 exige un poste cible'));
   it('2919 affecté ne peut être compté quatre fois',()=>{const a=calculateActif([b('2919',{sfc:10000,poste_cible:'AF'})]);expect(a.amort.AF).toBe(10000);expect(a.amort.BZ).toBe(10000);});
-  it('dette de location 172 ne constitue pas un encaissement',()=>expect(calc([b('172',{mc:100000,sfc:100000})],TFT).FP).toBe(0));
+  it('dette de location 172 ne constitue pas un encaissement',()=>{const v=calc([b('172',{mc:100000,sfc:100000}),b('2416',{md:100000,sfd:100000})],TFT);expect(v.FP).toBe(0);expect(v.FO).toBe(0);expect(v.ZG).toBe(0);});
+  it('signale un solde fournisseur débiteur repris dans aucun poste (C09)',()=>{const c=controlesSyscohada([b('401',{sfd:50000}),b('101',{sfc:50000})]).find(x=>x.code==='C09');expect(c?.ok).toBe(false);expect(c?.detail).toContain('401');});
+  it('C09 accepte une balance entièrement reprise',()=>expect(controlesSyscohada([b('521',{sfd:50000}),b('101',{sfc:50000}),b('2844',{sfc:1000}),b('2441',{sfd:1000})]).find(x=>x.code==='C09')?.ok).toBe(true));
   it('détecte un TFT différent du découvert réel de 100 000',()=>expect(controlesSyscohada([b('521',{sfc:100000})]).find(c=>c.code==='C05')?.ok).toBe(false));
   it('amortissement incorporel utilise 6812',()=>expect(compteDotationFrom('213')).toBe('6812'));
   it('charge 87 de 10 000 participe au résultat',()=>expect(calc([b('871',{md:10000})],CR).XI).toBe(-10000));

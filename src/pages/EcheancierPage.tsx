@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -150,7 +151,7 @@ export default function EcheancierPage() {
   };
 
   const supprimer = async (id: string) => {
-    if (!confirm('Supprimer cette échéance ?')) return;
+    if (!(await confirmer('Supprimer cette échéance ?'))) return;
     const { error } = await supabase.from('echeances_fiscales').delete().eq('id', id);
     if (error) toast.error(error.message);
     else reload();
@@ -169,7 +170,7 @@ export default function EcheancierPage() {
 
   const genererCalendrierAnnee = async () => {
     if (!entreprise || !exercice) return;
-    if (!confirm(`Générer toutes les échéances récurrentes pour l'année ${exercice.annee} ?`)) return;
+    if (!(await confirmer(`Générer toutes les échéances récurrentes pour l'année ${exercice.annee} ?`))) return;
     const inserts: any[] = [];
     const annee = exercice.annee;
     for (const t of TYPES) {

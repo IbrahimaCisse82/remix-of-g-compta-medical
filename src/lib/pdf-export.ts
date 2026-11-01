@@ -1,142 +1,170 @@
 /**
- * Professional PDF Export via Print — G-Compta SYSCOHADA
- * Generates clean HTML in a new window and triggers print/save-as-PDF
+ * Impression / PDF des états financiers SYSCOHADA révisé (système normal), sur la contexture des
+ * plaquettes « États comptables et fiscaux » et du modèle DGID : page de garde, bilan paysage
+ * (actif et passif côte à côte), compte de résultat et tableau des flux de trésorerie, avec
+ * références, renvois de notes, exercices N et N-1. Noir et blanc, dates françaises.
+ *
+ * Les montants viennent du moteur commun (accounting.ts, tft-syscohada.ts) ; tant qu'un contrôle
+ * bloquant échoue, chaque page porte la mention « ÉTATS PROVISOIRES ».
  */
-import type { Entreprise, Exercice, MapLine } from './accounting';
-import { fmt, fmtSigned } from './accounting';
-import { escapeHtml } from './impression';
+import { calc, calculateActif, CR, PASSIF } from './accounting';
+import { controlesSyscohada } from './conformite-syscohada';
+import { BILAN_ACTIF, BILAN_PASSIF, COMPTE_RESULTAT, type LigneEtat } from './etats-presentation';
+import { dureeMois, type DonneesDgid } from './export-dgid';
+import { escapeHtml as h } from './impression';
+import { calculerTft, LIGNES_TFT } from './tft-syscohada';
 
-function buildHeader(entreprise: Entreprise, exercice: Exercice, title: string): string {
-  // Toutes les données issues de la base sont échappées avant insertion dans le HTML.
-  return `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #0B1F3A;padding-bottom:12px;">
-      <div>
-        <div style="font-size:20px;font-weight:bold;color:#0B1F3A;">${escapeHtml(entreprise.nom)}</div>
-        <div style="font-size:10px;color:#555;margin-top:4px;">
-          ${escapeHtml(entreprise.forme_juridique || '')} ${entreprise.sigle ? `(${escapeHtml(entreprise.sigle)})` : ''}
-          ${entreprise.ninea ? ` · NINEA: ${escapeHtml(entreprise.ninea)}` : ''}
-          ${entreprise.rccm ? ` · RCCM: ${escapeHtml(entreprise.rccm)}` : ''}
-        </div>
-        <div style="font-size:10px;color:#555;">${escapeHtml(entreprise.adresse || '')} ${entreprise.tel ? `· Tél: ${escapeHtml(entreprise.tel)}` : ''}</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:9px;color:#888;">Monnaie: ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
-        <div style="font-size:9px;color:#888;">Exercice: ${escapeHtml(exercice.date_debut)} au ${escapeHtml(exercice.date_fin)}</div>
-      </div>
-    </div>
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:16px;font-weight:bold;color:#0B1F3A;text-transform:uppercase;letter-spacing:3px;">${escapeHtml(title)}</div>
-      <div style="font-size:11px;color:#555;">Exercice clos le ${escapeHtml(exercice.date_fin)} · ${escapeHtml(entreprise.monnaie || 'FCFA')}</div>
-    </div>`;
+export type EtatPlaquette = 'garde' | 'bilan' | 'cr' | 'tft';
+
+const nombre = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+/** Montant au format de la plaquette : séparateur de milliers espace, négatif avec « − », zéro vide. */
+export const montant = (x: number | undefined) => {
+  const v = Math.round(x ?? 0);
+  return v === 0 ? '' : (v < 0 ? '-' : '') + nombre.format(Math.abs(v)).replace(/\s/g, ' ');
+};
+export const dateFr = (iso: string) => { const [a, m, j] = iso.slice(0, 10).split('-'); return `${j}/${m}/${a}`; };
+const veille = (iso: string) => { const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
+
+interface Contexte { d: DonneesDgid; n1: boolean; closN: string; closN1: string; provisoire: string[] }
+
+function entete(x: Contexte, titre: string) {
+  const { entreprise: e, exercice } = x.d;
+  return `<table class="ident"><tr>
+      <td>Désignation de l'entité : <b>${h(e.nom)}</b></td><td>Exercice clos le : <b>${dateFr(exercice.date_fin)}</b></td></tr><tr>
+      <td>Numéro d'identification fiscale : <b>${h(e.ninea || '')}</b></td><td>Durée (en mois) : <b>${dureeMois(exercice.date_debut, exercice.date_fin)}</b></td></tr></table>
+    <h1>${h(titre)}</h1>${x.provisoire.length ? '<div class="provisoire">ÉTATS PROVISOIRES</div>' : ''}`;
+}
+const pied = (x: Contexte) => `<div class="pied">${x.provisoire.length ? `États provisoires — contrôles non satisfaits : ${h(x.provisoire.join(', '))}. ` : ''}Montants en ${h(x.d.entreprise.monnaie || 'FCFA')}.</div>`;
+const classe = (l: LigneEtat) => l.niveau === 'total' ? 'total' : l.niveau === 'rubrique' ? 'rubrique' : '';
+
+function pageGarde(x: Contexte, etats: EtatPlaquette[]) {
+  const { entreprise: e, exercice } = x.d;
+  const coche = (k: EtatPlaquette | 'fiche' | 'notes') => (k === 'fiche' || k === 'notes' ? '' : etats.includes(k) ? 'X' : '');
+  return `<section class="page garde">
+    <div class="etat">RÉPUBLIQUE DU SÉNÉGAL<br>MINISTÈRE DES FINANCES ET DU BUDGET<br>DIRECTION GÉNÉRALE DES IMPÔTS ET DES DOMAINES</div>
+    <div class="cadre-titre">ÉTATS FINANCIERS NORMALISÉS<br>SYSTÈME COMPTABLE OHADA (SYSCOHADA RÉVISÉ)</div>
+    <p class="exercice">EXERCICE CLOS LE : <b>${dateFr(exercice.date_fin)}</b></p>
+    <table class="garde-ident">
+      <tr><th colspan="2">DÉSIGNATION DE L'ENTREPRISE</th></tr>
+      <tr><td>DÉNOMINATION SOCIALE :<br><small>(ou nom et prénoms de l'exploitant)</small></td><td>${h(e.nom)}</td></tr>
+      <tr><td>SIGLE USUEL :</td><td>${h(e.sigle || '')}</td></tr>
+      <tr><td>ADRESSE COMPLÈTE :</td><td>${h(e.adresse || '')}</td></tr>
+      <tr><td>N° D'IDENTIFICATION FISCALE :</td><td>${h(e.ninea || '')}</td></tr>
+    </table>
+    <p class="systeme">SYSTÈME NORMAL</p>
+    <table class="depot"><tr><th>Documents déposés</th><th></th><th>Réservé à la Direction Générale des Impôts</th></tr>
+      <tr><td>Fiche d'identification et renseignements divers</td><td class="case">${coche('fiche')}</td><td rowspan="5" class="reserve">Date de dépôt :<br><br>Nom de l'agent ayant réceptionné le dépôt :<br><br>Signature de l'agent et cachet du service :</td></tr>
+      <tr><td>Bilan</td><td class="case">${coche('bilan')}</td></tr>
+      <tr><td>Compte de résultat</td><td class="case">${coche('cr')}</td></tr>
+      <tr><td>Tableau des flux de trésorerie</td><td class="case">${coche('tft')}</td></tr>
+      <tr><td>Notes annexes</td><td class="case">${coche('notes')}</td></tr>
+    </table>
+    ${x.provisoire.length ? '<div class="provisoire">ÉTATS PROVISOIRES</div>' : ''}
+  </section>`;
 }
 
-function buildFooter(): string {
-  return `<div style="margin-top:20px;padding-top:8px;border-top:1px solid #ccc;text-align:center;font-size:8px;color:#999;">
-    G-Santé ERP · États provisoires SYSCOHADA révisé — validation officielle requise · Généré le ${new Date().toLocaleDateString('fr-FR')}
-  </div>`;
+function pageBilan(x: Contexte) {
+  const a = calculateActif(x.d.balance), a1 = calculateActif(x.d.balanceN1);
+  const p = calc(x.d.balance, PASSIF), p1 = calc(x.d.balanceN1, PASSIF);
+  const n = Math.max(BILAN_ACTIF.length, BILAN_PASSIF.length);
+  let lignes = '';
+  for (let i = 0; i < n; i++) {
+    const la = BILAN_ACTIF[i], lp = BILAN_PASSIF[i];
+    const gauche = la ? `<td class="ref ${classe(la)}">${la.ref}</td><td class="lib ${classe(la)}">${h(la.libelle)}</td><td class="note ${classe(la)}">${la.note}</td>
+      <td class="mt ${classe(la)}">${montant(a.brut[la.ref])}</td><td class="mt ${classe(la)}">${montant(a.amort[la.ref])}</td><td class="mt ${classe(la)}">${montant(a.net[la.ref])}</td><td class="mt ${classe(la)}">${x.n1 ? montant(a1.net[la.ref]) : ''}</td>`
+      : '<td colspan="7"></td>';
+    const droite = lp ? `<td class="ref ${classe(lp)}">${lp.ref}</td><td class="lib ${classe(lp)}">${h(lp.libelle)}</td><td class="note ${classe(lp)}">${lp.note}</td>
+      <td class="mt ${classe(lp)}">${montant(p[lp.ref])}</td><td class="mt ${classe(lp)}">${x.n1 ? montant(p1[lp.ref]) : ''}</td>`
+      : '<td colspan="5"></td>';
+    lignes += `<tr>${gauche}<td class="sep"></td>${droite}</tr>`;
+  }
+  return `<section class="page paysage">${entete(x, 'BILAN')}
+    <table class="etat bilan"><thead>
+      <tr><th rowspan="2">REF</th><th rowspan="2">ACTIF</th><th rowspan="2">Note</th><th colspan="3">EXERCICE AU ${x.closN}</th><th>EXERCICE AU ${x.closN1}</th>
+          <th class="sep" rowspan="2"></th><th rowspan="2">REF</th><th rowspan="2">PASSIF</th><th rowspan="2">Note</th><th>EXERCICE AU ${x.closN}</th><th>EXERCICE AU ${x.closN1}</th></tr>
+      <tr><th>BRUT</th><th>AMORT. et DÉPRÉC.</th><th>NET</th><th>NET</th><th>NET</th><th>NET</th></tr>
+    </thead><tbody>${lignes}</tbody></table>${pied(x)}</section>`;
 }
 
-function openPrintWindow(html: string, title: string) {
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) { alert('Veuillez autoriser les popups pour exporter en PDF.'); return; }
-  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(title)}</title>
-    <style>
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #222; padding: 15mm; }
-      table { width:100%; border-collapse:collapse; margin-bottom:12px; }
-      th { background:#0B1F3A; color:#fff; font-size:8px; text-transform:uppercase; letter-spacing:0.5px; padding:5px 6px; text-align:left; }
-      td { padding:3px 6px; border-bottom:1px solid #e0e0e0; font-size:9px; }
-      tr:nth-child(even) { background:#f9f9f9; }
-      .tot { background:#e8f4e8 !important; font-weight:bold; border-top:2px solid #0B1F3A; }
-      .gtot { background:#0B1F3A !important; color:#fff !important; font-weight:bold; }
-      .sect { background:#f0f0f0; font-weight:bold; font-size:8px; text-transform:uppercase; letter-spacing:1px; color:#555; }
-      .right { text-align:right; font-family: 'Courier New', monospace; }
-      .neg { color:#c00; }
-      @media print { body { padding: 10mm 8mm; } * { color: #000 !important; background: #fff !important; border-color: #000 !important; } .no-print { display:none !important; } @page { size: A4; margin: 10mm; } }
-      @media screen { body { max-width:900px; margin:0 auto; } .no-print { display:block; text-align:center; margin-bottom:15px; } }
-    </style>
-  </head><body>
-    <div class="no-print"><button onclick="window.print()" style="padding:8px 24px;background:#0B1F3A;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;">📥 Imprimer / Enregistrer en PDF</button></div>
-    ${html}
-  </body></html>`);
+function pageCr(x: Contexte) {
+  const v = calc(x.d.balance, CR), v1 = calc(x.d.balanceN1, CR);
+  const lignes = COMPTE_RESULTAT.map(l => `<tr class="${classe(l)}"><td class="ref">${l.ref}</td><td class="lib">${h(l.libelle)}</td><td class="lettre">${l.lettre ?? ''}</td><td class="signe">${l.signe ?? ''}</td><td class="note">${l.note}</td>
+      <td class="mt">${montant(v[l.ref])}</td><td class="mt">${x.n1 ? montant(v1[l.ref]) : ''}</td></tr>`).join('');
+  return `<section class="page">${entete(x, 'COMPTE DE RÉSULTAT')}
+    <table class="etat"><thead><tr><th>REF</th><th>LIBELLÉS</th><th></th><th></th><th>NOTE</th><th>EXERCICE AU ${x.closN}<br>NET</th><th>EXERCICE AU ${x.closN1}<br>NET</th></tr></thead>
+    <tbody>${lignes}</tbody></table>${pied(x)}</section>`;
+}
+
+function pageTft(x: Contexte) {
+  const v = calculerTft(x.d.balance).valeurs, v1 = x.n1 ? calculerTft(x.d.balanceN1).valeurs : {};
+  const lignes = LIGNES_TFT.map(l => {
+    if (l.titre) return `<tr class="titre"><td class="ref"></td><td class="lib" colspan="6">${h(l.libelle)}</td></tr>`;
+    const cls = l.total ? 'total' : '';
+    return `<tr class="${cls}"><td class="ref">${l.code === 'VO' ? '' : l.code}</td><td class="lib">${h(l.libelle)}</td><td class="lettre">${l.lettre ?? ''}</td><td class="note"></td>
+      <td class="mt">${montant(v[l.code])}</td><td class="mt">${x.n1 ? montant(v1[l.code]) : ''}</td></tr>`;
+  }).join('');
+  return `<section class="page">${entete(x, 'TABLEAU DES FLUX DE TRÉSORERIE')}
+    <table class="etat"><thead><tr><th>REF</th><th>LIBELLÉS</th><th></th><th>NOTE</th><th>EXERCICE AU ${x.closN}<br>NET</th><th>EXERCICE AU ${x.closN1}<br>NET</th></tr></thead>
+    <tbody>${lignes}</tbody></table>
+    <p class="renvoi">(1) À l'exception des variations des dettes et créances liées aux opérations d'investissement et de financement. Encaissements (+), décaissements (−).</p>${pied(x)}</section>`;
+}
+
+const STYLE = `
+  @page { size: A4 portrait; margin: 10mm; }
+  @page paysage { size: A4 landscape; margin: 8mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; color: #000; background: #fff; }
+  .page { position: relative; break-after: page; padding: 2mm 0; }
+  .page:last-child { break-after: auto; }
+  .paysage { page: paysage; }
+  h1 { text-align: center; font-size: 12pt; letter-spacing: 1px; margin: 3mm 0; }
+  table { border-collapse: collapse; width: 100%; }
+  .ident td { border: 1px solid #000; padding: 1.2mm 2mm; width: 50%; }
+  .etat th { border: 1px solid #000; padding: 1mm; font-size: 7.5pt; text-align: center; font-weight: bold; }
+  .etat td { border: 1px solid #000; padding: .8mm 1.2mm; vertical-align: middle; }
+  .bilan td, .bilan th { font-size: 6.8pt; }
+  .bilan td { padding: .5mm 1mm; }
+  .paysage h1 { margin: 1.5mm 0; }
+  .paysage .ident td { padding: .8mm 2mm; }
+  td.ref, td.note, td.lettre, td.signe { text-align: center; white-space: nowrap; }
+  td.ref { width: 9mm; } td.note { width: 12mm; } td.lettre, td.signe { width: 7mm; }
+  td.mt { text-align: right; white-space: nowrap; width: 25mm; font-variant-numeric: tabular-nums; }
+  .bilan td.mt { width: 19mm; }
+  .bilan td.note { width: 8mm; }
+  .sep { border: none !important; width: 2mm; }
+  tr.total td, td.total { font-weight: bold; background: #e6e6e6; }
+  td.rubrique { font-weight: bold; }
+  tr.titre td { font-weight: bold; font-style: italic; }
+  .pied { margin-top: 2mm; font-size: 7pt; }
+  .renvoi { margin-top: 1.5mm; font-size: 7pt; }
+  .provisoire { position: absolute; top: 40%; left: 0; right: 0; text-align: center; font-size: 46pt; font-weight: bold; color: rgba(0,0,0,.08); transform: rotate(-25deg); pointer-events: none; }
+  .garde { text-align: center; }
+  .garde .etat { font-weight: bold; line-height: 1.6; margin: 6mm 0 12mm; text-align: left; }
+  .cadre-titre { border: 2px solid #000; padding: 5mm; font-size: 13pt; font-weight: bold; line-height: 1.6; margin: 0 15mm; }
+  .exercice { margin: 8mm 0; font-size: 11pt; }
+  .garde-ident td, .garde-ident th { border: 1px solid #000; padding: 3mm; text-align: left; }
+  .garde-ident th { text-align: center; }
+  .garde-ident td:first-child { width: 42%; font-weight: bold; }
+  .systeme { margin: 8mm 0; font-size: 12pt; font-weight: bold; }
+  .depot td, .depot th { border: 1px solid #000; padding: 2mm; text-align: left; }
+  .depot .case { width: 10mm; text-align: center; font-weight: bold; }
+  .depot .reserve { width: 45%; vertical-align: top; }
+  @media screen { body { background: #f2f2f2; } .page { background: #fff; width: 210mm; margin: 6mm auto; padding: 10mm; box-shadow: 0 0 3px #999; } .paysage { width: 297mm; } .barre { text-align: center; padding: 3mm; } }
+  @media print { .barre { display: none; } }
+`;
+
+/** Document HTML complet (testable sans navigateur). */
+export function htmlEtatsFinanciers(d: DonneesDgid, etats: EtatPlaquette[]): string {
+  const provisoire = controlesSyscohada(d.balance, d.balanceN1).filter(c => c.bloquant && !c.ok).map(c => c.code);
+  const x: Contexte = { d, n1: d.balanceN1.length > 0, closN: dateFr(d.exercice.date_fin), closN1: dateFr(veille(d.exercice.date_debut)), provisoire };
+  const pages = etats.map(e => e === 'garde' ? pageGarde(x, etats) : e === 'bilan' ? pageBilan(x) : e === 'cr' ? pageCr(x) : pageTft(x)).join('');
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>États financiers ${h(d.entreprise.nom)} ${d.exercice.annee}</title><style>${STYLE}</style></head>
+    <body><div class="barre"><button onclick="window.print()">Imprimer / Enregistrer en PDF</button></div>${pages}</body></html>`;
+}
+
+export function imprimerEtatsFinanciers(d: DonneesDgid, etats: EtatPlaquette[]) {
+  const w = window.open('', '_blank', 'width=1100,height=800');
+  if (!w) { alert('Veuillez autoriser les fenêtres surgissantes pour imprimer les états.'); return; }
+  w.document.write(htmlEtatsFinanciers(d, etats));
   w.document.close();
-}
-
-export function exportBilanPdf(
-  entreprise: Entreprise, exercice: Exercice,
-  actifDef: MapLine[], passifDef: MapLine[],
-  vA: Record<string, number>, vP: Record<string, number>,
-  vAN1: Record<string, number>, vPN1: Record<string, number>,
-  vABrut: Record<string, number>, vAAmort: Record<string, number>,
-) {
-  const hasN1 = Object.values(vAN1).some(v => v !== 0);
-  
-  let actifHtml = `<table><thead><tr><th style="width:40px">Réf</th><th>ACTIF</th><th class="right" style="width:90px">Brut</th><th class="right" style="width:90px">Amort/Dép.</th><th class="right" style="width:90px">Net N</th>${hasN1 ? '<th class="right" style="width:90px">Net N-1</th>' : ''}</tr></thead><tbody>`;
-  for (const l of actifDef) {
-    if (l.type === 'sect') { actifHtml += `<tr class="sect"><td colspan="${hasN1 ? 6 : 5}">${escapeHtml(l.label)}</td></tr>`; continue; }
-    const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
-    actifHtml += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right">${fmtSigned(vABrut[l.id] || 0)}</td><td class="right ${(vAAmort[l.id] || 0) > 0 ? 'neg' : ''}">${vAAmort[l.id] ? fmtSigned(-(vAAmort[l.id] || 0)) : '—'}</td><td class="right">${fmtSigned(vA[l.id] || 0)}</td>${hasN1 ? `<td class="right">${fmtSigned(vAN1[l.id] || 0)}</td>` : ''}</tr>`;
-  }
-  actifHtml += '</tbody></table>';
-
-  let passifHtml = `<table><thead><tr><th style="width:40px">Réf</th><th>PASSIF</th><th class="right" style="width:100px">Net N</th>${hasN1 ? '<th class="right" style="width:100px">Net N-1</th>' : ''}</tr></thead><tbody>`;
-  for (const l of passifDef) {
-    if (l.type === 'sect') { passifHtml += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${escapeHtml(l.label)}</td></tr>`; continue; }
-    const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
-    passifHtml += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right">${fmtSigned(vP[l.id] || 0)}</td>${hasN1 ? `<td class="right">${fmtSigned(vPN1[l.id] || 0)}</td>` : ''}</tr>`;
-  }
-  passifHtml += '</tbody></table>';
-
-  const eq = Math.abs((vA['BZ'] || 0) - (vP['DZ'] || 0)) < 1;
-  const eqHtml = `<div style="text-align:center;padding:8px;font-weight:bold;font-size:11px;border-radius:4px;${eq ? 'background:#e8f4e8;color:#0a6' : 'background:#fde8e8;color:#c00'}">
-    ${eq ? '✓ BILAN ÉQUILIBRÉ' : '⚠ BILAN NON ÉQUILIBRÉ'} — Actif: ${fmt(vA['BZ'] || 0)} / Passif: ${fmt(vP['DZ'] || 0)}
-  </div>`;
-
-  openPrintWindow(
-    buildHeader(entreprise, exercice, 'BILAN — Système Normal') + actifHtml + passifHtml + eqHtml + buildFooter(),
-    `Bilan ${entreprise.nom} ${exercice.annee}`
-  );
-}
-
-export function exportCRPdf(
-  entreprise: Entreprise, exercice: Exercice,
-  crDef: MapLine[], vCR: Record<string, number>, vCRN1: Record<string, number>, hasN1: boolean,
-) {
-  let html = `<table><thead><tr><th style="width:50px">Réf</th><th>Libellé</th><th class="right" style="width:110px">Exercice N</th>${hasN1 ? '<th class="right" style="width:110px">N-1</th>' : ''}</tr></thead><tbody>`;
-  for (const l of crDef) {
-    if (l.type === 'sect') { html += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${escapeHtml(l.label)}</td></tr>`; continue; }
-    const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
-    const v = vCR[l.id] || 0;
-    html += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="right">${fmt(vCRN1[l.id] || 0)}</td>` : ''}</tr>`;
-  }
-  html += '</tbody></table>';
-
-  const rn = vCR['XI'] || 0;
-  html += `<div style="text-align:center;padding:8px;font-weight:bold;font-size:12px;border-radius:4px;margin-top:8px;${rn >= 0 ? 'background:#e8f4e8;color:#0a6' : 'background:#fde8e8;color:#c00'}">
-    RÉSULTAT NET : ${fmtSigned(rn)} ${escapeHtml(entreprise.monnaie || 'FCFA')}
-  </div>`;
-
-  openPrintWindow(
-    buildHeader(entreprise, exercice, 'COMPTE DE RÉSULTAT — Système Normal') + html + buildFooter(),
-    `CR ${entreprise.nom} ${exercice.annee}`
-  );
-}
-
-export function exportTFTPdf(
-  entreprise: Entreprise, exercice: Exercice,
-  tftDef: MapLine[], vT: Record<string, number>, vTN1: Record<string, number>, hasN1: boolean,
-) {
-  let html = `<table><thead><tr><th style="width:50px">Réf</th><th>Libellé</th><th class="right" style="width:110px">N</th>${hasN1 ? '<th class="right" style="width:110px">N-1</th>' : ''}</tr></thead><tbody>`;
-  for (const l of tftDef.filter(x => !x.id.startsWith('_'))) {
-    if (l.type === 'sect') { html += `<tr class="sect"><td colspan="${hasN1 ? 4 : 3}">${escapeHtml(l.label)}</td></tr>`; continue; }
-    const cls = l.type === 'gtotal' ? 'gtot' : l.type === 'total' ? 'tot' : '';
-    const v = vT[l.id] || 0;
-    html += `<tr class="${cls}"><td>${escapeHtml(l.id)}</td><td>${escapeHtml(l.label)}</td><td class="right ${v < 0 ? 'neg' : ''}">${fmt(v)}</td>${hasN1 ? `<td class="right">${fmt(vTN1[l.id] || 0)}</td>` : ''}</tr>`;
-  }
-  html += '</tbody></table>';
-
-  openPrintWindow(
-    buildHeader(entreprise, exercice, 'TABLEAU DES FLUX DE TRÉSORERIE') + html + buildFooter(),
-    `TFT ${entreprise.nom} ${exercice.annee}`
-  );
 }

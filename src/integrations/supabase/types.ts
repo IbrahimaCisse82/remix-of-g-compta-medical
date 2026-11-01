@@ -3712,13 +3712,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "sante_consentements_modele_id_fkey"
-            columns: ["modele_id"]
-            isOneToOne: false
-            referencedRelation: "sante_consentement_modeles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "sante_consentements_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
@@ -7896,25 +7889,6 @@ export type Database = {
         Args: { _cle: string; _compte: string; _structure_id: string }
         Returns: undefined
       }
-      sante_demandes_accueil: {
-        Args: {
-          _limit?: number
-          _offset?: number
-          _statut?: string
-          _structure_id: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          numero: string
-          numero_dossier: string
-          patient_id: string
-          patient_nom: string
-          patient_prenoms: string
-          statut: string
-          urgence: boolean
-        }[]
-      }
       sante_demarrer_consultation: {
         Args: {
           _motif?: string
@@ -8016,18 +7990,6 @@ export type Database = {
       sante_escalader_bris_glace: { Args: never; Returns: number }
       sante_export_dossier: { Args: { _patient_id: string }; Returns: Json }
       sante_export_structure: { Args: { _structure_id: string }; Returns: Json }
-      sante_factures_ouvertes_organisme: {
-        Args: { _organisme: string; _structure_id: string }
-        Returns: {
-          created_at: string
-          id: string
-          numero: string
-          organisme: string
-          part_organisme: number
-          reste: number
-          statut_tiers: string
-        }[]
-      }
       sante_factures_rapprochables: {
         Args: { _structure_id: string }
         Returns: {
@@ -8046,10 +8008,6 @@ export type Database = {
         Returns: undefined
       }
       sante_germe_definitif: { Args: { _germe_id: string }; Returns: undefined }
-      sante_import_nombre: {
-        Args: { _champ: string; _ligne: number; _v: string }
-        Returns: number
-      }
       sante_importer_reglements: {
         Args: { _lignes: Json; _structure_id: string }
         Returns: Json
@@ -8084,17 +8042,6 @@ export type Database = {
         Returns: undefined
       }
       sante_lettrer_facture: { Args: { _facture_id: string }; Returns: number }
-      sante_lignes_ca: {
-        Args: { _debut: string; _fin: string; _structure_id: string }
-        Returns: {
-          categorie: string
-          code: string
-          facture_id: string
-          montant: number
-          praticien_id: string
-          site_id: string
-        }[]
-      }
       sante_lignes_compta_facture: {
         Args: { _facture_id: string }
         Returns: Json
@@ -8150,10 +8097,6 @@ export type Database = {
           membership_id: string
           nom: string
         }[]
-      }
-      sante_praticien_relier_moi: {
-        Args: { _praticien_id: string }
-        Returns: undefined
       }
       sante_prelever: {
         Args: {
@@ -8417,6 +8360,10 @@ export type Database = {
       }
       set_secteur_activite: {
         Args: { _entreprise_id: string; _secteur: string }
+        Returns: undefined
+      }
+      sante_praticien_relier_moi: {
+        Args: { _praticien_id: string }
         Returns: undefined
       }
       stock_enregistrer_mouvement: {

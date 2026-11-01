@@ -1,3 +1,4 @@
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -47,9 +48,16 @@ export default function PaiePage() {
   const periode = `${annee}-${String(mois).padStart(2, '0')}`;
   const refDate = useMemo(() => new Date(annee, mois - 1, 28), [annee, mois]);
 
+  // Primes de garde/astreinte validées dans G-Santé (Personnel) pour le mois, par salarié.
+  const [primesGardes, setPrimesGardes] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!entreprise) return;
+    void supabase.rpc('sante_primes_gardes_paie', { _entreprise_id: entreprise.id, _annee: annee, _mois: mois })
+      .then(({ data, error }) => setPrimesGardes(error ? {} : Object.fromEntries((data ?? []).map(r => [r.employee_id, Number(r.montant) || 0]))));
+  }, [entreprise, annee, mois]);
   const bulletins = useMemo(
-    () => employees.map(e => ({ emp: e, paie: calculerPaie(e, params, refDate) })),
-    [employees, params, refDate],
+    () => employees.map(e => ({ emp: e, paie: calculerPaie({ ...e, prime_gardes: (e.id && primesGardes[e.id]) || 0 }, params, refDate) })),
+    [employees, params, refDate, primesGardes],
   );
 
   const totaux = useMemo(() => bulletins.reduce((a, b) => ({
@@ -66,7 +74,9 @@ export default function PaiePage() {
   async function saveEmp() {
     if (!entreprise) return;
     if (!form.matricule || !form.prenom || !form.nom) { toast.error('Matricule, prénom, nom obligatoires'); return; }
-    const payload = { ...form, entreprise_id: entreprise.id, salaire_base: Number(form.salaire_base), sursalaire: Number(form.sursalaire), femmes: Number(form.femmes), enfants: Number(form.enfants) };
+    // prime_gardes est calculée chaque mois depuis G-Santé : elle n'est jamais stockée sur la fiche salarié.
+    const { prime_gardes: _primeGardes, ...fiche } = form;
+    const payload = { ...fiche, entreprise_id: entreprise.id, salaire_base: Number(form.salaire_base), sursalaire: Number(form.sursalaire), femmes: Number(form.femmes), enfants: Number(form.enfants) };
     if (editing) {
       const { error } = await supabase.from('employees').update(payload).eq('id', editing.id);
       if (error) return toast.error(error.message);
@@ -82,7 +92,7 @@ export default function PaiePage() {
   }
 
   async function deleteEmp(id: string) {
-    if (!confirm('Supprimer cet employé ?')) return;
+    if (!(await confirmer('Supprimer cet employé ?'))) return;
     const { error } = await supabase.from('employees').delete().eq('id', id);
     if (error) return toast.error(error.message);
     setEmployees(s => s.filter(x => x.id !== id));
@@ -106,7 +116,7 @@ export default function PaiePage() {
       employee_id: emp.id,
       periode, annee, mois,
       salaire_base: paie.salaire_base, sursalaire: paie.sursalaire,
-      prime_anciennete: paie.prime_anciennete, brut: paie.brut,
+      prime_anciennete: paie.prime_anciennete, prime_gardes: paie.prime_gardes, brut: paie.brut,
       ir: paie.ir, trimf: paie.trimf,
       ipres_rg_s: paie.ipres_rg_s, ipres_rc_s: paie.ipres_rc_s, ipm_s: paie.ipm_s,
       total_retenues: paie.total_retenues,
@@ -122,12 +132,16 @@ export default function PaiePage() {
 
   async function comptabiliserPaie() {
     if (!entreprise || !exercice) return;
+    const { data: deja, error: errDeja } = await supabase.from('bulletins_paie').select('id, comptabilise').eq('entreprise_id', entreprise.id).eq('periode', periode);
+    if (errDeja) return toast.error(errDeja.message);
+    if (!deja?.length) return toast.error(`Générez d’abord les bulletins de ${MOIS[mois - 1]} ${annee}.`);
+    if (deja.some(b => b.comptabilise)) return toast.error(`La paie de ${MOIS[mois - 1]} ${annee} est déjà comptabilisée : contre-passez l’écriture avant de recommencer.`);
     const lignes = genererEcrituresPaie(bulletins.map(b => b.paie), periode, exercice.id, entreprise.id);
     const totDebit = lignes.reduce((s, l) => s + l.debit, 0);
     const totCredit = lignes.reduce((s, l) => s + l.credit, 0);
     if (Math.abs(totDebit - totCredit) > 1) return toast.error(`Écriture déséquilibrée: D=${fmtMoney(totDebit)} C=${fmtMoney(totCredit)}`);
     try {
-      await enregistrerLignesJournal(lignes as any, { origine: 'paie' });
+      await enregistrerLignesJournal(lignes as any, { origine: 'paie', pieceUnique: true });
     } catch (e) { return toast.error((e as Error).message); }
     await supabase.from('bulletins_paie').update({ comptabilise: true }).eq('entreprise_id', entreprise.id).eq('periode', periode);
     toast.success(`Écritures journal PA générées (${fmtMoney(totDebit)} FCFA)`);
@@ -249,6 +263,7 @@ export default function PaiePage() {
                     <Row l="Salaire de base" v={paie.salaire_base} />
                     <Row l="Sursalaire" v={paie.sursalaire} />
                     <Row l={`Prime ancienneté (${paie.anciennete} ans · ${(paie.taux_anciennete*100).toFixed(0)}%)`} v={paie.prime_anciennete} />
+                    {paie.prime_gardes > 0 && <Row l="Primes de garde / astreinte" v={paie.prime_gardes} />}
                     <Row l="SALAIRE BRUT" v={paie.brut} bold />
                     <Row l="IR (parts: " v={paie.ir} neg suffix={`${paie.parts_ir})`} />
                     <Row l={`TRIMF (parts: ${paie.parts_trimf})`} v={paie.trimf} neg />

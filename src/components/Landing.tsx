@@ -23,7 +23,7 @@ const CHAIN = ['Accueil patient', 'Consultation', 'Analyses', 'Facture', 'Encais
 const DEMO_DISPONIBLE = !import.meta.env.PROD || import.meta.env.VITE_DEMO_ENABLED === 'true';
 
 export default function Landing() {
-  const { launchHealth } = useApp();
+  const { launchHealth, loading: ouverture } = useApp();
   const { user } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [demoBusy, setDemoBusy] = useState(false);
@@ -84,7 +84,7 @@ export default function Landing() {
             {user ? (
               <>
                 <p className="text-xs text-fg2 text-center leading-relaxed mb-4">Connecté : <strong className="text-primary">{user.email}</strong></p>
-                <Button variant="secondary" className="w-full" onClick={() => void launchHealth()}>Accéder à mon espace</Button>
+                <Button variant="secondary" className="w-full" disabled={ouverture} onClick={() => void launchHealth()}>{ouverture ? 'Ouverture…' : 'Accéder à mon espace'}</Button>
               </>
             ) : (
               <>

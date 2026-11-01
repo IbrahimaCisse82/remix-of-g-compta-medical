@@ -2,7 +2,7 @@ import ControleComptable from '@/components/ControleComptable';
 import { useApp } from '@/stores/app-store';
 import { calc, calculateActif, ACTIF, PASSIF, fmt, fmtSigned, type MapLine, type BalanceLine } from '@/lib/accounting';
 import { exportCsv } from '@/lib/csv-export';
-import { exportBilanPdf } from '@/lib/pdf-export';
+import ExportEtatsFinanciers from '@/components/ExportEtatsFinanciers';
 
 function BilanTable({ def, vals, valsN1, valsBrut, valsAmort, title, acColor }: {
   def: MapLine[];
@@ -97,17 +97,13 @@ export default function BilanPage() {
     );
   };
 
-  const handlePdf = () => {
-    if (!entreprise || !exercice) return;
-    exportBilanPdf(entreprise, exercice, ACTIF, PASSIF, vA, vP, vAN1, vPN1, vABrut, vAAmort);
-  };
 
   return (
     <div>
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div><div className="font-serif text-[17px]">Bilan</div><div className="text-[10px] text-fg3 font-mono">{entreprise?.nom} — Au {exercice?.date_fin || exercice?.annee}</div></div>
         <div className="flex items-center gap-2">
-          <button onClick={handlePdf} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-primary/30 text-primary hover:bg-primary/10">📄 PDF</button>
+          <ExportEtatsFinanciers etats={['bilan']} />
           <button onClick={handleExport} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-border text-fg2 hover:bg-bg3">📥 CSV</button>
         </div>
       </div>
