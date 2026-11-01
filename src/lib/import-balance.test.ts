@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calc, CR, PASSIF, calculateActif } from './accounting';
-import { analyserCsv, analyserLignesPositionnees, controlerBalance, ecarterSousTotaux, ecrituresDeReprise, montantTexte, versBalanceApplication, type LigneTexte } from './import-balance';
+import { decoderTexte, analyserCsv, analyserLignesPositionnees, controlerBalance, ecarterSousTotaux, ecrituresDeReprise, montantTexte, versBalanceApplication, type LigneTexte } from './import-balance';
 
 // Mise en page « Balance des comptes » Sage 100 : six colonnes Débit / Crédit (bords droits ci-dessous).
 const X = [324, 416, 504, 596, 685, 776];
@@ -56,6 +56,14 @@ describe('reprise de balance', () => {
     const l = analyserCsv('Compte;Intitulé;Mvt débit;Mvt crédit;Solde débit;Solde crédit\n5211;Banque;100 000;40 000;160 000;0\n101;Capital;0;0;0;100 000\n');
     expect(l[0]).toMatchObject({ compte: '5211', ouvD: 100_000, mvtD: 100_000, mvtC: 40_000 });
     expect(() => analyserCsv('a;b\n1;2')).toThrow(/En-tête/);
+  });
+  it('lit un export texte Sage sans en-tête (totaux et soldes) en Windows-1252', () => {
+    const texte = '10100000\tCAPITAL SOCIAL\t0\t1000000\t0\t1000000\n63270000\tRémunérations\t500\t0\t500\t0\n52100003\tBANQUE\t999500\t0\t999500\t0\n';
+    const octets = new Uint8Array([...texte].map(c => c.charCodeAt(0)));
+    const l = analyserCsv(decoderTexte(octets.buffer));
+    expect(l).toHaveLength(3);
+    expect(l[1]).toMatchObject({ intitule: 'Rémunérations', mvtD: 500, solD: 500, ouvD: 0 });
+    expect(controlerBalance(l).controles.every(c => c.ok)).toBe(true);
   });
   it('montants Sage et français', () => {
     expect(montantTexte('1.000.000')).toBe(1_000_000);

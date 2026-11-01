@@ -29,6 +29,34 @@ export function comptesNonRepris(balance: BalanceLine[]): { compte: string; sold
 }
 
 
+/**
+ * C02 : l'ouverture de N reprend la clôture de N-1, compte par compte. Le résultat de N-1 (comptes de
+ * gestion, ou 13 s'il était déjà constaté) est affecté à l'ouverture en réserves, report à nouveau ou
+ * dividendes : l'écart sur les comptes 11, 12, 13 et 465 doit donc égaler ce résultat.
+ */
+function controleOuverture(balance: BalanceLine[], previous: BalanceLine[]): [boolean, string] {
+  if (!previous.length) return [false, 'Correspondance ouverture / clôture précédente ; non vérifiable sans N−1'];
+  const bilan = (c: string) => /^[1-5]/.test(c);
+  const affectation = (c: string) => /^(11|12|13|465)/.test(c);
+  const ouv = new Map<string, number>(), clo = new Map<string, number>();
+  for (const b of balance) if (bilan(b.compte)) ouv.set(b.compte, (ouv.get(b.compte) ?? 0) + (b.sd || 0) - (b.sc || 0));
+  for (const b of previous) if (bilan(b.compte)) clo.set(b.compte, (clo.get(b.compte) ?? 0) + (b.sfd || 0) - (b.sfc || 0));
+  const ecarts: string[] = [];
+  let ecartAffectation = 0;
+  for (const c of new Set([...ouv.keys(), ...clo.keys()])) {
+    const e = Math.round((ouv.get(c) ?? 0) - (clo.get(c) ?? 0));
+    if (!e) continue;
+    if (affectation(c)) ecartAffectation += e; else ecarts.push(`${c} (${e})`);
+  }
+  const resultatN1 = previous.filter(b => /^[6-8]/.test(b.compte)).reduce((s, b) => s + (b.mc || 0) - (b.md || 0), 0);
+  const affecte = Math.round(-ecartAffectation - resultatN1) === 0;
+  const ok = ecarts.length === 0 && affecte;
+  return [ok, ok ? `Ouverture = clôture N-1 ; résultat N-1 (${Math.round(resultatN1)}) affecté` : [
+    ecarts.length ? `Ouverture ≠ clôture N-1 : ${ecarts.join(', ')}` : '',
+    affecte ? '' : `Affectation du résultat N-1 : ${Math.round(-ecartAffectation)} au lieu de ${Math.round(resultatN1)}`,
+  ].filter(Boolean).join(' ; ')];
+}
+
 export interface ControleSyscohada { code: string; ok: boolean; detail: string; bloquant: boolean }
 export function controlesSyscohada(balance: BalanceLine[], previous: BalanceLine[] = []): ControleSyscohada[] {
   const a = calculateActif(balance), p = calc(balance, PASSIF), cr = calc(balance, CR), tft = calculerTft(balance), t = tft.valeurs;
@@ -40,10 +68,7 @@ export function controlesSyscohada(balance: BalanceLine[], previous: BalanceLine
   const unsupported = balance.filter(b => /^(17|106|154|19|2714|404|481|482|414|485|465)/.test(b.compte) && (b.md || b.mc));
   return [
     check('C01', sum('md') === sum('mc') && sum('sfd') === sum('sfc'), 'Équilibre des mouvements et des soldes'),
-    check('C02', previous.length > 0 && balance.filter(b => /^[1-5]/.test(b.compte)).every(b => {
-      const old = previous.find(p => p.compte === b.compte);
-      return b.sd - b.sc === (old?.sfd ?? 0) - (old?.sfc ?? 0);
-    }) && previous.filter(b => /^[1-5]/.test(b.compte) && (b.sfd || b.sfc)).every(b => balance.some(n => n.compte === b.compte && n.sd-n.sc === b.sfd-b.sfc)), 'Correspondance ouverture / clôture précédente ; non vérifiable sans N−1'),
+    check('C02', ...controleOuverture(balance, previous)),
     check('C03', a.net.BZ === p.DZ, `Actif ${a.net.BZ} / passif ${p.DZ}`),
     check('C04', p.CJ === cr.XI, `Résultat bilan ${p.CJ} / résultat de gestion ${cr.XI}`),
     check('C05', t.ZH === tft.tresorerieCloture && tft.comptesNonAffectes.length === 0, `Trésorerie du TFT ${t.ZH} / trésorerie de clôture (50 à 58) ${tft.tresorerieCloture}${tft.comptesNonAffectes.length ? ` ; comptes non affectés : ${tft.comptesNonAffectes.join(', ')}` : ''}`),

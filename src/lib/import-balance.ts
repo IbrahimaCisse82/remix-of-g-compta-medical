@@ -31,6 +31,12 @@ export const montantTexte = (s: string) => {
   return Number(t.replace(/\./g, '').replace(',', '.')) || 0;
 };
 
+/** Texte d'un fichier : UTF-8, ou Windows-1252 (exports Sage) si l'UTF-8 est invalide. */
+export function decoderTexte(donnees: ArrayBuffer): string {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(donnees); }
+  catch { return new TextDecoder('windows-1252').decode(donnees); }
+}
+
 const normaliser = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /**
@@ -78,7 +84,15 @@ export function analyserCsv(texte: string): LigneBalanceImport[] {
   const sep = texte.includes('\t') ? '\t' : texte.split('\n')[0].includes(';') ? ';' : ',';
   const lignes = texte.split(/\r?\n/).filter(l => l.trim()).map(l => l.split(sep).map(c => c.replace(/^"|"$/g, '').trim()));
   const iEntete = lignes.findIndex(l => l.some(c => /^compte|n.*compte/.test(normaliser(c))) && l.some(c => normaliser(c).includes('debit')));
-  if (iEntete < 0) throw new Error('En-tête introuvable : colonnes « Compte », « Débit », « Crédit » attendues');
+  if (iEntete < 0) {
+    // Sans en-tête (export texte de Sage) : compte, intitulé, puis 2, 4 ou 6 montants.
+    const donnees = lignes.filter(l => COMPTE.test(l[0] ?? '') && l.slice(2).length > 0 && l.slice(2).every(c => c === '' || MONTANT.test(c)));
+    const n = Math.max(0, ...donnees.map(l => l.length - 2));
+    if (!donnees.length || ![2, 4, 6].includes(n) || donnees.length < lignes.filter(l => COMPTE.test(l[0] ?? '')).length) {
+      throw new Error('En-tête introuvable : colonnes « Compte », « Débit », « Crédit » attendues');
+    }
+    return donnees.map(l => versLigne(l[0], l[1] ?? '', l.slice(2, 2 + n).map(c => montantTexte(c || '0'))));
+  }
   const entete = lignes[iEntete].map(normaliser);
   const iCompte = entete.findIndex(c => /compte/.test(c) && !/intitule|libelle/.test(c));
   const iIntitule = entete.findIndex(c => /intitule|libelle/.test(c));

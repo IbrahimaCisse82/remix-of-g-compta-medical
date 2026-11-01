@@ -31,5 +31,12 @@ describe('Régression chiffrée SYSCOHADA révisé', () => {
   it('référentiel intégral conservé',()=>{expect(REFERENCE_ACCOUNTS).toHaveLength(1422);expect(REFERENCE_MAPPING).toHaveLength(119);expect(REFERENCE_ACCOUNTS.filter(r=>r.classe==='9')).toHaveLength(52);});
   it.each(['201','6811','1374'])('rejette le compte supprimé %s', c=>expect(accountReference(c)).toBeUndefined());
   it('rattache 604110 au compte 6041',()=>expect(accountReference('604110')?.compte).toBe('6041'));
+  it('C02 : ouverture = clôture N-1 avec affectation du résultat N-1 en report à nouveau',()=>{
+    const n1=[b('101',{mc:100000,sfc:100000}),b('521',{md:150000,sfd:150000}),b('706',{mc:50000,sfc:50000})];
+    const ok=[b('101',{sc:100000,mc:100000,sfc:100000}),b('121',{sc:50000,mc:50000,sfc:50000}),b('521',{sd:150000,md:150000,sfd:150000})];
+    expect(controlesSyscohada(ok,n1).find(c=>c.code==='C02')?.ok).toBe(true);
+    const faux=[b('101',{sc:100000,mc:100000,sfc:100000}),b('121',{sc:40000,mc:40000,sfc:40000}),b('521',{sd:140000,md:140000,sfd:140000})];
+    expect(controlesSyscohada(faux,n1).find(c=>c.code==='C02')?.detail).toContain('521');
+  });
   it('ne certifie pas des lignes encore à valider',()=>expect(controlesSyscohada([]).find(c=>c.code==='REF-VISA')?.ok).toBe(false));
 });

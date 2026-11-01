@@ -5,7 +5,7 @@ import { useApp } from '@/stores/app-store';
 import { calc, calculateActif, CR, PASSIF, fmt } from '@/lib/accounting';
 import { enregistrerLignesJournal } from '@/lib/ecritures';
 import {
-  analyserCsv, analyserLignesPositionnees, controlerBalance, ecarterSousTotaux, ecrituresDeReprise, lignesPdf,
+  analyserCsv, analyserLignesPositionnees, decoderTexte, controlerBalance, ecarterSousTotaux, ecrituresDeReprise, lignesPdf,
   versBalanceApplication, type ControleImport, type LigneBalanceImport,
 } from '@/lib/import-balance';
 
@@ -25,7 +25,7 @@ export default function ImportBalance() {
     if (!f || !exercice) return;
     setNom(f.name); setAnalyse(null); setEnCours(true);
     try {
-      const brut = /\.pdf$/i.test(f.name) ? analyserLignesPositionnees(await lignesPdf(await f.arrayBuffer())) : analyserCsv(await f.text());
+      const brut = /\.pdf$/i.test(f.name) ? analyserLignesPositionnees(await lignesPdf(await f.arrayBuffer())) : analyserCsv(decoderTexte(await f.arrayBuffer()));
       const { lignes, ecartes } = ecarterSousTotaux(brut);
       const { controles } = controlerBalance(lignes);
       const { count } = await supabase.from('ecritures').select('id', { count: 'exact', head: true })
