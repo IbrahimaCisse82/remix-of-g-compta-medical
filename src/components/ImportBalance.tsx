@@ -44,9 +44,8 @@ export default function ImportBalance() {
     try {
       const { aNouveaux, mouvements } = ecrituresDeReprise(analyse.lignes);
       const base = { entreprise_id: entreprise.id, exercice_id: exercice.id };
-      // Pièces propres à l'exercice ; exercice revérifié avant toute écriture (une reprise annulée
-      // par contre-passation le laisse vide)
-      // pour ne jamais laisser une reprise à moitié faite.
+      // Pièces propres à l'exercice ; exercice revérifié juste avant d'écrire pour ne jamais laisser une reprise
+      // à moitié faite (une reprise annulée par contre-passation le laisse vide).
       const pieces = { an: `REPRISE-AN-${exercice.annee}`, od: `REPRISE-BAL-${exercice.annee}` };
       const { count } = await supabase.from('ecritures').select('id', { count: 'exact', head: true })
         .eq('exercice_id', exercice.id).neq('statut', 'annulee').is('contrepasse_par', null).neq('origine', 'contrepassation');
