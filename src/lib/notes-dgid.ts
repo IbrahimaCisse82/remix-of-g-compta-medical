@@ -231,8 +231,8 @@ export function calculerNotes(balance: BalanceLine[], balanceN1: BalanceLine[]):
   // ── Notes 17 à 20 : passif circulant et trésorerie passif ──
   nn1('Note 17', BCD, [[9, 'SC:401,404!4012'], [10, 'SC:402!4022'], [11, 'SC:4012,4022'], [12, 'SC:408!4082'], [13, 'SC:4082'], [14, somme(9, 13)],
     [16, 'SD:409!4092'], [17, 'SD:4092'], [18, 'SD:401,402,404,408'], [19, somme(16, 18)]]);
-  nn1('Note 18', { n: 'B', n1: 'C', abs: 'D', pct: 'E' }, [[9, 'SC:4281'], [10, 'SC:422'], [11, 'SC:421,423,424,425,426,427,428!4281'], [12, 'SC:431'],
-    [13, 'SC:432'], [14, 'SC:433,438'], [15, somme(9, 14)], [17, 'SC:441'], [18, 'SC:442'], [19, 'SC:443,444,445'], [20, 'SC:447'],
+  nn1('Note 18', { n: 'B', n1: 'C', abs: 'D', pct: 'E' }, [[9, 'SC:4281'], [10, 'SC:422'], [11, 'SC:421,423,424,425,426,427,428!4281'], [12, 'SC:431!4313'],
+    [13, 'SC:432,4313'], [14, 'SC:433,438'], [15, somme(9, 14)], [17, 'SC:441'], [18, 'SC:442'], [19, 'SC:443,444,445'], [20, 'SC:447'],
     [21, 'SC:446,448,449'], [22, somme(17, 21)], [24, 'L15 + L22']]);
   nn1('Note 19', { n: 'B', n1: 'C', abs: 'D', pct: 'E' }, [[9, 'SC:45'], [11, 'SC:461'], [12, 'SC:462'], [13, 'SC:465'], [14, 'SC:466'],
     [15, 'SC:463,467,469'], [16, somme(11, 15)], [18, 'SC:4712'], [19, 'SC:4713'], [20, 'SC:4715'], [21, 'SC:4716'], [22, 'SC:4726'],
@@ -305,19 +305,21 @@ export function calculerNotes(balance: BalanceLine[], balanceN1: BalanceLine[]):
   // ── Note 34 : fiche de synthèse (en milliers) ──
   {
     const lig: Lignes = [
-      [10, 'K:CR:XB'], [11, 'K:CR:XA'], [12, 'K:CR:XC'], [13, 'K:CR:XD'], [14, 'K:CR:XE'], [15, 'K:CR:XF'], [16, 'K:CR:XG'], [17, 'K:CR:XH'], [18, 'K:CR:XI'],
-      [20, 'K:CR:XD'], [21, 'K:CH:654'], [22, 'K:PR:754'], [23, 'L20 + L21 - L22'],
-      [24, 'K:PR:771,772,773,774,775,777,778'], [25, 'K:PR:776'], [26, 'K:PR:787'], [27, 'K:PR:841,843,844,845,846,847,88'], [28, 'K:PR:848'],
-      [29, 'K:CH:671,672,673,674,675,677,678'], [30, 'K:CH:676'], [31, 'K:CH:831,833,834,835,836,837'], [32, 'K:CH:87'], [33, 'K:CH:89'],
-      [34, 'L23 + L24 + L25 + L26 + L27 + L28 - L29 - L30 - L31 - L32 - L33'], [35, 'K:MD:465'], [36, 'L34 - L35'],
-      [41, 'K:BIL:CP'], [42, 'K:BIL:DD'], [43, 'L41 + L42'], [44, 'K:-BIL:AZ'], [45, 'L43 + L44'],
-      [46, 'K:BIL:BB + BIL:BG'], [47, 'K:-BIL:DP + BIL:DH'], [48, 'L46 + L47'], [49, 'K:BIL:BA'], [50, 'K:-BIL:DH'], [51, 'L49 + L50'],
-      [52, 'L48 + L51'], [54, 'L45 - L52'], [55, 'K:BIL:BT - BIL:DT'],
-      [57, 'K:TFT:ZB'], [58, 'K:TFT:ZC'], [59, 'K:TFT:ZF'], [60, 'L57 + L58 + L59'],
-      [62, 'K:BIL:DD + BIL:DT'], [63, 'K:BIL:DD + BIL:DT - BIL:BT'],
+      [10, 'CR:XB'], [11, 'CR:XA'], [12, 'CR:XC'], [13, 'CR:XD'], [14, 'CR:XE'], [15, 'CR:XF'], [16, 'CR:XG'], [17, 'CR:XH'], [18, 'CR:XI'],
+      [20, 'CR:XD'], [21, 'CH:654'], [22, 'PR:754'], [23, 'L20 + L21 - L22'],
+      [24, 'PR:771,772,773,774,775,777,778'], [25, 'PR:776'], [26, 'PR:787'], [27, 'PR:841,843,844,845,846,847,88'], [28, 'PR:848'],
+      [29, 'CH:671,672,673,674,675,677,678'], [30, 'CH:676'], [31, 'CH:831,833,834,835,836,837'], [32, 'CH:87'], [33, 'CH:89'],
+      [34, 'L23 + L24 + L25 + L26 + L27 + L28 - L29 - L30 - L31 - L32 - L33'], [35, 'MD:465'], [36, 'L34 - L35'],
+      [41, 'BIL:CP'], [42, 'BIL:DD'], [43, 'L41 + L42'], [44, '-BIL:AZ'], [45, 'L43 + L44'],
+      [46, 'BIL:BB + BIL:BG'], [47, '-BIL:DP + BIL:DH'], [48, 'L46 + L47'], [49, 'BIL:BA'], [50, '-BIL:DH'], [51, 'L49 + L50'],
+      [52, 'L48 + L51'], [54, 'L45 - L52'], [55, 'BIL:BT - BIL:DT'],
+      [57, 'TFT:ZB'], [58, 'TFT:ZC'], [59, 'TFT:ZF'], [60, 'L57 + L58 + L59'],
+      [62, 'BIL:DD + BIL:DT'], [63, 'BIL:DD + BIL:DT - BIL:BT'],
     ];
     nn1('Note 34', BCD, lig);
     const f = s['Note 34'];
+    // Calculée en unités, présentée en milliers (arrondi une seule fois par cellule).
+    for (const [r] of lig) for (const col of ['B', 'C']) { const v = f[`${col}${r}`]; if (typeof v === 'number') f[`${col}${r}`] = Math.round(v / 1000) || null; }
     const taux = (num: number, den: number) => den ? `${(Math.round(num / den * 1000) / 10).toLocaleString('fr-FR')} %` : null;
     f.A38 = "Rentabilité économique = Résultat d'exploitation (a) / (Capitaux propres + dettes financières)";
     f.A39 = 'Rentabilité financière = Résultat net / Capitaux propres';

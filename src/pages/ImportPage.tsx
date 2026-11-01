@@ -4,6 +4,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { enregistrerLignesJournal } from '@/lib/ecritures';
+import ImportBalance from '@/components/ImportBalance';
 
 interface ImportLine {
   date_ecriture: string;
@@ -148,11 +149,12 @@ export default function ImportPage() {
     <div>
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div>
-          <div className="font-serif text-[17px]">Import FEC / CSV</div>
+          <div className="font-serif text-[17px]">Import balance / FEC / CSV</div>
           <div className="text-[10px] text-fg3 font-mono">Fichier des Écritures Comptables — {entreprise?.nom}</div>
         </div>
       </div>
       <div className="p-5 space-y-4">
+        <ImportBalance />
         <div className="bg-bg2 border border-border rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-bold text-primary">📂 Importer un fichier comptable</h3>
           <p className="text-[11px] text-fg2">
