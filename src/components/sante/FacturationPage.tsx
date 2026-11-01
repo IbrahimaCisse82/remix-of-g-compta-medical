@@ -79,6 +79,14 @@ export default function FacturationPage({ structureId }: { structureId: string }
     setAssurances((data ?? []).filter((a: any) => (!a.date_debut || a.date_debut <= today) && (!a.date_fin || a.date_fin >= today))); setAssuranceId('aucune');
   };
 
+  // Rejet signalé par l'organisme : motif obligatoire, enregistré comme rejet administratif (dossier à corriger
+  // puis à renvoyer). Les rejets avec montant (non-prise en charge, perte) se font depuis l'onglet Tiers payant.
+  const rejeterTiers = async (f: Facture) => {
+    const motif = await saisir(`Motif du rejet de ${f.numero} par ${f.organisme} (5 caractères minimum)`);
+    if (motif === null) return;
+    if (motif.trim().length < 5) { toast.error('Motif trop court'); return; }
+    await run('sante_rejet_tiers', { _facture_id: f.id, _type: 'administratif', _motif: motif.trim(), _montant: null }, 'Rejet enregistré : corrigez le dossier puis renvoyez-le.');
+  };
   const run = async (fn: string, args: object, ok: string) => {
     if (pending.current || loadError) return false;
     pending.current = true; setBusy(true);
@@ -226,7 +234,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
             <div className="flex justify-between gap-2"><span>{f.patient?.nom} {f.patient?.prenoms}</span><span className="text-xs text-fg3">reste {fcfa(reste)}</span></div>
             {f.organisme && <div className="text-xs">{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}{f.envoye_tiers_le ? ` · envoyé le ${new Date(f.envoye_tiers_le).toLocaleDateString("fr-FR")}` : ""}</span>
                 {f.statut_tiers === 'a_facturer' || f.statut_tiers === 'rejete' ? <Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'envoye' }, 'Envoyé.')}>Envoyer</Button> : null}
-                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'rejete' }, 'Rejet noté.')}>Rejeté</Button></>}
+                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button>{droit('rejeter_tiers') && <Button size="sm" variant="ghost" onClick={() => void rejeterTiers(f)}>Rejeté</Button>}</>}
               </> : '—'}</div>}
             <div className="space-y-1">
                 {f.type === 'facture' && !f.annulee && reste > 0 && droit('gerer_caisse') && <div className="flex flex-wrap gap-1">
@@ -249,7 +257,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
               <td>{fcfa(f.part_patient)}<span className="block text-xs text-fg3">reste {fcfa(reste)}</span></td>
               <td>{f.organisme ? <>{f.organisme} · {fcfa(f.part_organisme)}<span className="block text-xs">{TIERS[f.statut_tiers]}{f.envoye_tiers_le ? ` · envoyé le ${new Date(f.envoye_tiers_le).toLocaleDateString("fr-FR")}` : ""}</span>
                 {f.statut_tiers === 'a_facturer' || f.statut_tiers === 'rejete' ? <Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'envoye' }, 'Envoyé.')}>Envoyer</Button> : null}
-                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button><Button size="sm" variant="ghost" onClick={() => run('sante_statut_tiers', { _facture_id: f.id, _statut: 'rejete' }, 'Rejet noté.')}>Rejeté</Button></>}
+                {f.statut_tiers === 'envoye' && <><Button size="sm" variant="ghost" onClick={() => setVue('tiers')}>Enregistrer un règlement</Button>{droit('rejeter_tiers') && <Button size="sm" variant="ghost" onClick={() => void rejeterTiers(f)}>Rejeté</Button>}</>}
               </> : '—'}</td>
               <td className="p-3 space-y-1">
                 {f.type === 'facture' && !f.annulee && reste > 0 && droit('gerer_caisse') && <div className="flex gap-1">
