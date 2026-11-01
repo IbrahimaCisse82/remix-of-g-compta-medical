@@ -22,6 +22,13 @@ describe('bordereau', () => {
     const r = bordereauParOrganisme([{ ...b('IPM', 8000), annulee: true }, b('IPM', 10000), b('IPM', -2000)]);
     expect(r[0].total).toBe(8000); expect(r[0].lignes).toHaveLength(2);
   });
+  it('écarte la facture annulée et son avoir du même mois, garde l’avoir d’un mois précédent', () => {
+    const r = bordereauParOrganisme([
+      { ...b('IPM', 8000), id: 'f1', annulee: true }, { ...b('IPM', -8000), id: 'a1', origine_id: 'f1' },
+      { ...b('IPM', -3000), id: 'a2', origine_id: 'f-sept' }, { ...b('IPM', 10000), id: 'f2' },
+    ]);
+    expect(r[0].total).toBe(7000); expect(r[0].lignes.map(l => l.id)).toEqual(['a2', 'f2']);
+  });
 });
 
 describe('resteAEncaisser', () => {
