@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resteDu, totalLignes, ventiler } from './tiers-payant';
+import { resteAEncaisser, resteDu, totalLignes, ventiler } from './tiers-payant';
 
 describe('tiers-payant', () => {
   it('additionne les lignes', () => expect(totalLignes([{ prix_unitaire: 10000 }, { quantite: 2, prix_unitaire: 3000 }])).toBe(16000));
@@ -21,5 +21,15 @@ describe('bordereau', () => {
   it('exclut les factures annulées sans exclure les avoirs valides', () => {
     const r = bordereauParOrganisme([{ ...b('IPM', 8000), annulee: true }, b('IPM', 10000), b('IPM', -2000)]);
     expect(r[0].total).toBe(8000); expect(r[0].lignes).toHaveLength(2);
+  });
+});
+
+describe('resteAEncaisser', () => {
+  it('ne réclame rien sur une facture annulée ni sur un avoir', () => {
+    expect(resteAEncaisser({ type: 'facture', annulee: true, part_patient: 3000, encaisse: 0 })).toBe(0);
+    expect(resteAEncaisser({ type: 'avoir', annulee: false, part_patient: -3000, encaisse: 0 })).toBe(0);
+  });
+  it('calcule le reste d’une facture active', () => {
+    expect(resteAEncaisser({ type: 'facture', annulee: false, part_patient: 3000, encaisse: 1000 })).toBe(2000);
   });
 });

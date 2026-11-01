@@ -18,6 +18,11 @@ export function resteDu(partPatient: number, encaisse: number) {
   return Math.max(0, partPatient - encaisse);
 }
 
+/** Reste à encaisser d'une pièce : rien sur une facture annulée (l'avoir l'a soldée) ni sur un avoir. */
+export function resteAEncaisser(f: { type: string; annulee: boolean; part_patient: number; encaisse: number }) {
+  return f.type !== 'facture' || f.annulee ? 0 : resteDu(f.part_patient, f.encaisse);
+}
+
 export const MODES_PAIEMENT = [
   ['especes', 'Espèces'], ['wave', 'Wave'], ['orange_money', 'Orange Money'], ['free_money', 'Free Money'],
   ['wizall', 'Wizall'], ['carte', 'Carte'], ['cheque', 'Chèque'], ['virement', 'Virement'],
