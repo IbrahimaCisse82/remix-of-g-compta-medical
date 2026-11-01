@@ -22,6 +22,8 @@ Suivi de la liste transmise le 29/10. Une case cochée indique un élément fina
 ### Laboratoire et catalogue réel
 - [x] Vérifier le parcours jusqu’à la remise, les résultats typés et les corrections historisées.
 - [x] 31/10 : nomenclature SOLABSEN 2022 importée dans le catalogue réel de SOLABSEN (192 analyses désactivées « à valider », tarif particulier + 576 tarifs des grilles 2022 Société/Assurance, IPM, Hôpital ; section provisoire biochimie, aucun paramètre ni référence inventés).
+- [x] 01/11 : fiche analyse (bouton « Ouvrir ») pour corriger libellé/section/tube/échantillon/délai et saisir paramètres et valeurs de référence ; activation refusée sans paramètre, références incohérentes refusées côté serveur. 5 tests métier + 1 test API.
+- [x] 01/11 : couleurs harmonisées sur la charte (alerte, avertissement, succès, info) dans les écrans gestion/compta, bilan, compte de résultat et tableau de bord ; impressions A4 et fonds de fenêtres inchangés.
 - [ ] Confirmer les tarifs 2022, corriger sections, ajouter paramètres/unités/valeurs de référence/tubes, puis activer les analyses validées ; rattacher les grilles aux vrais organismes.
 - [ ] Obtenir la validation du biologiste sur ces données et le parcours réel.
 
