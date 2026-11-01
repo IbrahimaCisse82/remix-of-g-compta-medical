@@ -24,7 +24,7 @@ export default function ExportEtatsFinanciers({ etats }: { etats: EtatPlaquette[
 
   return (
     <>
-      <button onClick={() => imprimerEtatsFinanciers(donnees, etats)} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-primary/30 text-primary hover:bg-primary/10">📄 PDF</button>
+      <button onClick={() => void imprimerEtatsFinanciers(donnees, etats)} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-primary/30 text-primary hover:bg-primary/10">📄 PDF</button>
       <button onClick={excel} disabled={enCours} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-50">{enCours ? '… Excel' : '📊 Excel DGID'}</button>
     </>
   );

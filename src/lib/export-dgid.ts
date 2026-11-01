@@ -11,28 +11,13 @@
  * le navigateur plusieurs minutes ; la retouche du XML prend moins d'une seconde.
  */
 import type JSZip from 'jszip';
-import { calc, calculateActif, CR, PASSIF, type BalanceLine, type Entreprise, type Exercice } from './accounting';
-import { controlesSyscohada } from './conformite-syscohada';
-import { calculerTft } from './tft-syscohada';
+import { calculerLiasse, dureeMois, evaluerFormule, type DonneesDgid } from './liasse-dgid';
 
+export { dureeMois, type DonneesDgid };
 export const MODELE_DGID = 'modeles/etats-financiers-dgid.xlsx';
-
-export interface DonneesDgid {
-  entreprise: Entreprise;
-  exercice: Exercice;
-  balance: BalanceLine[];
-  balanceN1: BalanceLine[];
-}
 
 type Valeur = number | string | Date | null;
 
-const date = (iso: string) => { const [a, m, j] = iso.slice(0, 10).split('-').map(Number); return new Date(Date.UTC(a, m - 1, j)); };
-export function dureeMois(debut: string, fin: string): number {
-  const d = date(debut), f = date(fin);
-  f.setUTCDate(f.getUTCDate() + 1);
-  return (f.getUTCFullYear() - d.getUTCFullYear()) * 12 + f.getUTCMonth() - d.getUTCMonth();
-}
-const arrondi = (x: number | undefined) => Math.round(x ?? 0);
 const serieExcel = (d: Date) => Math.round((d.getTime() - Date.UTC(1899, 11, 30)) / 86_400_000);
 const echapper = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const desechapper = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
@@ -106,18 +91,16 @@ export class Classeur {
   }
 
   /**
-   * Les renvois simples du modèle (ex. ='Page de garde'!L35) reçoivent leur valeur en cache : un
-   * lecteur qui ne recalcule pas à l'ouverture (LibreOffice, aperçus) affiche ainsi l'identification.
+   * Les formules simples du modèle (renvois d'en-tête, SUM) reçoivent leur valeur en cache : un
+   * lecteur qui ne recalcule pas à l'ouverture (LibreOffice, aperçus) affiche ainsi les bons montants.
    */
   resoudreRenvois() {
-    const renvoi = /^\+?(?:'?([^'!]+)'?!)?\$?([A-Z]{1,3})\$?(\d+)$/;
     for (let passe = 0; passe < 3; passe++) {
       for (const onglet of this.onglets()) {
         const xml = this.xml.get(onglet)!;
         const nouveau = xml.replace(/<c r="([A-Z]+\d+)"([^>]*?)><f>([^<]*)<\/f>(?:<v>[\s\S]*?<\/v>)?<\/c>/g, (tout, addr: string, attrs: string, f: string) => {
-          const m = renvoi.exec(desechapper(f));
-          if (!m) return tout;
-          const cible = this.lire(m[1] ? desechapper(m[1]) : onglet, `${m[2]}${m[3]}`);
+          const cible = evaluerFormule(desechapper(f), onglet, (o, a) => this.lire(o, a));
+          if (cible === undefined) return tout;
           const sansType = attrs.replace(/\s*\bt="[^"]*"/, '');
           if (cible === null || cible === '') return `<c r="${addr}"${sansType}><f>${f}</f></c>`;
           return typeof cible === 'number'
@@ -139,63 +122,12 @@ export class Classeur {
   }
 }
 
-/** Écrit les montants d'un état : colonne des références → colonnes de valeurs. */
-function remplirParReference(c: Classeur, onglet: string, colRef: string, valeurs: Record<string, number | undefined>[], colonnes: string[], lignes: [number, number]) {
-  for (let r = lignes[0]; r <= lignes[1]; r++) {
-    const ref = String(c.lire(onglet, `${colRef}${r}`) ?? '').trim();
-    if (!/^[A-Z]{2}$/.test(ref)) continue;
-    colonnes.forEach((col, i) => c.ecrire(onglet, `${col}${r}`, arrondi(valeurs[i][ref])));
-  }
-}
-
-const R1_EXEMPLES = ['W24', 'G28', 'Q36', 'Y36', 'AA36', 'AE36', 'D48', 'D52', 'D56', 'S64', 'AK64', 'D69', 'T71', 'AD71', 'D72', 'D75'];
-const R2_EXEMPLES = ['F14', 'G14', 'F16', 'G16', 'F18', 'G18', 'F20', 'G20', 'F22', 'G22', 'E25', 'F25', 'G25', 'H25', 'Q16', 'B33', 'D33', 'E33', 'F33', 'G33', 'H33', 'I33', 'M33'];
-
 /** Remplit le modèle ; renvoie le fichier et les contrôles bloquants non satisfaits (états alors marqués provisoires). */
 export async function genererClasseurDgid(modele: ArrayBuffer | Uint8Array, d: DonneesDgid): Promise<{ fichier: Uint8Array; provisoire: string[] }> {
-  const { entreprise: e, exercice: x, balance, balanceN1 } = d;
-  const n1 = balanceN1.length > 0;
-  const aN = calculateActif(balance), aN1 = calculateActif(balanceN1);
-  const pN = calc(balance, PASSIF), pN1 = calc(balanceN1, PASSIF);
-  const crN = calc(balance, CR), crN1 = calc(balanceN1, CR);
-  const provisoire = controlesSyscohada(balance, balanceN1).filter(c => c.bloquant && !c.ok).map(c => c.code);
-  const tN = calculerTft(balance).valeurs, tN1 = n1 ? calculerTft(balanceN1).valeurs : {};
+  const { cellules, provisoire } = calculerLiasse(d);
   const c = await Classeur.ouvrir(modele);
-
-  const PG = 'Page de garde';
-  c.ecrire(PG, 'B17', 'CENTRE DE DEPOT : ');
-  if (provisoire.length) c.ecrire(PG, 'B19', `ÉTATS PROVISOIRES — contrôles non satisfaits : ${provisoire.join(', ')}`);
-  c.ecrire(PG, 'M27', date(x.date_fin));
-  c.ecrire(PG, 'L35', e.nom || '');
-  c.ecrire(PG, 'H41', e.sigle || '');
-  c.ecrire(PG, 'J46', e.adresse || '');
-  c.ecrire(PG, 'N51', e.ninea || '');
-
-  const R1 = 'Fiche de renseignement R1';
-  const veille = date(x.date_debut); veille.setUTCDate(veille.getUTCDate() - 1);
-  c.ecrire(R1, 'AH10', dureeMois(x.date_debut, x.date_fin));
-  c.ecrire(R1, 'Y13', date(x.date_debut));
-  c.ecrire(R1, 'AH13', date(x.date_fin));
-  c.ecrire(R1, 'Q20', n1 ? veille : null);
-  c.ecrire(R1, 'AL20', n1 ? 12 : null);
-  c.ecrire(R1, 'I24', e.rccm || null);
-  c.ecrire(R1, 'G36', e.tel || null);
-  c.ecrire(R1, 'D40', e.adresse || null);
-  c.ecrire(R1, 'D44', e.secteur || null);
-  for (const a of R1_EXEMPLES) c.ecrire(R1, a, null);
-  for (const a of R2_EXEMPLES) c.ecrire("Activités de l'entreprise R2", a, null);
-
-  for (const o of ['BILAN PAYSAGE', 'COMPTE DE RESULTAT', 'FLUX DE TRESORERIE']) c.ecrire(o, 'A4', e.nom || '');
-  remplirParReference(c, 'BILAN PAYSAGE', 'A', [aN.brut, aN.amort, aN.net, n1 ? aN1.net : {}], ['D', 'E', 'F', 'G'], [9, 37]);
-  remplirParReference(c, 'BILAN PAYSAGE', 'H', [pN, n1 ? pN1 : {}], ['K', 'L'], [9, 37]);
-  remplirParReference(c, 'COMPTE DE RESULTAT', 'A', [crN, n1 ? crN1 : {}], ['E', 'F'], [8, 49]);
-  remplirParReference(c, 'FLUX DE TRESORERIE', 'A', [tN, tN1], ['E', 'F'], [8, 37]);
-  for (let r = 8; r <= 37; r++) {
-    if (String(c.lire('FLUX DE TRESORERIE', `B${r}`) ?? '').startsWith('Variation du BF')) {
-      c.ecrire('FLUX DE TRESORERIE', `E${r}`, arrondi(tN.VO));
-      c.ecrire('FLUX DE TRESORERIE', `F${r}`, n1 ? arrondi(tN1.VO) : 0);
-    }
-  }
+  for (const [feuille, valeurs] of Object.entries(cellules))
+    for (const [addr, v] of Object.entries(valeurs)) c.ecrire(feuille, addr, v);
   c.resoudreRenvois();
   return { fichier: await c.enregistrer(), provisoire };
 }
