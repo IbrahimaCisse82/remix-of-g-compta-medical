@@ -34,10 +34,10 @@ const TYPES = [
 ];
 
 const STATUT_COLORS: Record<string, string> = {
-  a_declarer: 'text-amber-500',
-  declaree: 'text-blue-500',
-  payee: 'text-emerald-500',
-  en_retard: 'text-red-500',
+  a_declarer: 'text-warning',
+  declaree: 'text-info',
+  payee: 'text-success',
+  en_retard: 'text-destructive',
 };
 
 const STATUT_LABELS: Record<string, string> = {
@@ -255,17 +255,17 @@ export default function EcheancierPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <StatCard label="Total" value={String(stats.total)} color="text-foreground" />
-          <StatCard label="À déclarer" value={String(stats.aDeclarer)} color="text-amber-500" />
-          <StatCard label="En retard" value={String(stats.enRetard)} color="text-red-500" />
-          <StatCard label="Payées" value={String(stats.payees)} color="text-emerald-500" />
+          <StatCard label="À déclarer" value={String(stats.aDeclarer)} color="text-warning" />
+          <StatCard label="En retard" value={String(stats.enRetard)} color="text-destructive" />
+          <StatCard label="Payées" value={String(stats.payees)} color="text-success" />
           <StatCard label="Total dû (FCFA)" value={fmt(stats.montantTotal)} color="text-primary" />
-          <StatCard label="Reste à payer" value={fmt(stats.restantDu)} color="text-orange-500" />
+          <StatCard label="Reste à payer" value={fmt(stats.restantDu)} color="text-warning" />
         </div>
 
         {/* Alertes */}
         {alertes.length > 0 && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-            <div className="font-semibold text-sm text-amber-600 dark:text-amber-400 mb-2">
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
+            <div className="font-semibold text-sm text-warning dark:text-warning mb-2">
               ⚠️ Alertes — Échéances ≤ 7 jours
             </div>
             <div className="space-y-1">
@@ -276,7 +276,7 @@ export default function EcheancierPage() {
                     <span>
                       <span className="font-mono font-bold text-primary">{e.type_declaration}</span> · {e.libelle}
                     </span>
-                    <span className={j < 0 ? 'text-red-500 font-bold' : j <= 3 ? 'text-orange-500 font-bold' : 'text-amber-500'}>
+                    <span className={j < 0 ? 'text-destructive font-bold' : j <= 3 ? 'text-warning font-bold' : 'text-warning'}>
                       {j < 0 ? `Retard ${-j}j` : j === 0 ? "Aujourd'hui" : `J-${j}`} · {e.date_limite}
                     </span>
                   </div>
@@ -326,13 +326,13 @@ export default function EcheancierPage() {
                     <td className="px-3 py-2 font-mono">
                       {e.date_limite}
                       {e.statut !== 'payee' && (
-                        <span className={`ml-2 text-[9px] ${j < 0 ? 'text-red-500' : j <= 7 ? 'text-amber-500' : 'text-fg3'}`}>
+                        <span className={`ml-2 text-[9px] ${j < 0 ? 'text-destructive' : j <= 7 ? 'text-warning' : 'text-fg3'}`}>
                           {j < 0 ? `(${-j}j retard)` : `(J-${j})`}
                         </span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-right font-mono">{fmt(e.montant_du)}</td>
-                    <td className="px-3 py-2 text-right font-mono text-emerald-500">{fmt(e.montant_paye)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-success">{fmt(e.montant_paye)}</td>
                     <td className={`px-3 py-2 text-center font-semibold ${STATUT_COLORS[e.statut]}`}>
                       {STATUT_LABELS[e.statut]}
                     </td>
@@ -340,18 +340,18 @@ export default function EcheancierPage() {
                       <div className="flex gap-1 justify-center">
                         {e.statut === 'a_declarer' || e.statut === 'en_retard' ? (
                           <button onClick={() => updateStatut(e.id, 'declaree')}
-                            className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-500 hover:bg-blue-500/30">
+                            className="text-[10px] px-2 py-0.5 rounded bg-info/20 text-info hover:bg-info/30">
                             Déclarer
                           </button>
                         ) : null}
                         {e.statut !== 'payee' && (
                           <button onClick={() => updateStatut(e.id, 'payee', { montant_paye: e.montant_du })}
-                            className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30">
+                            className="text-[10px] px-2 py-0.5 rounded bg-success/20 text-success hover:bg-success/30">
                             Payer
                           </button>
                         )}
                         <button onClick={() => supprimer(e.id)}
-                          className="text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20">
+                          className="text-[10px] px-2 py-0.5 rounded bg-destructive/10 text-destructive hover:bg-destructive/20">
                           ✕
                         </button>
                       </div>

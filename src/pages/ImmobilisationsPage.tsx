@@ -254,7 +254,7 @@ export default function ImmobilisationsPage() {
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">💾</button>}
                       {canWrite && it.statut !== 'cede' && it.date_cession && (
                         <button onClick={() => comptabiliserCession(it)} title="Comptabiliser cession HAO"
-                          className="text-[10px] px-2 py-1 rounded border border-purple-500/40 text-purple-500 hover:bg-purple-500/10">💸</button>
+                          className="text-[10px] px-2 py-1 rounded border border-purple/40 text-purple hover:bg-purple/10">💸</button>
                       )}
                       {canWrite && <button onClick={() => edit(it)}
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">✏️</button>}

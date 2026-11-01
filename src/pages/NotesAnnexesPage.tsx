@@ -145,7 +145,7 @@ function ValidationPanel({ balance, onJump }: { balance: any[]; onJump: (tab: st
 
   const badge = (s: string) => {
     if (s === 'ok') return 'bg-success/15 text-success border-success/30';
-    if (s === 'warning') return 'bg-amber-500/15 text-amber-500 border-amber-500/30';
+    if (s === 'warning') return 'bg-warning/15 text-warning border-warning/30';
     if (s === 'empty') return 'bg-destructive/10 text-destructive border-destructive/30';
     return 'bg-bg3 text-fg3 border-border';
   };
@@ -157,7 +157,7 @@ function ValidationPanel({ balance, onJump }: { balance: any[]; onJump: (tab: st
         <span className="text-xs font-bold text-primary">🔎 Validation mapping SYSCOHADA — Notes 22 à 40</span>
         <div className="flex items-center gap-1.5 text-[10px] font-mono">
           <span className="text-success">✓ {counts.ok}</span>
-          <span className="text-amber-500">⚠ {counts.warning}</span>
+          <span className="text-warning">⚠ {counts.warning}</span>
           <span className="text-destructive">✕ {counts.empty}</span>
           <span className="text-fg3">ℹ {counts.info}</span>
         </div>
@@ -185,8 +185,8 @@ function ValidationPanel({ balance, onJump }: { balance: any[]; onJump: (tab: st
         })}
       </div>
       {orphans.length > 0 && (
-        <div className="px-3.5 py-2 border-t border-border bg-amber-500/5">
-          <div className="text-[10px] font-bold text-amber-500 mb-1">
+        <div className="px-3.5 py-2 border-t border-border bg-warning/5">
+          <div className="text-[10px] font-bold text-warning mb-1">
             ⚠ {orphans.length} compte(s) classe 6/7/8 non rattaché(s) à une note 22-34 :
           </div>
           <div className="flex flex-wrap gap-1">
