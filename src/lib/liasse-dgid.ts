@@ -80,7 +80,9 @@ export function calculerLiasse(d: DonneesDgid): { cellules: CellulesLiasse; prov
   const aN = calculateActif(balance), aN1 = calculateActif(bilanN1);
   const pN = calc(balance, PASSIF), pN1 = calc(bilanN1, PASSIF);
   const crN = calc(balance, CR), crN1 = calc(balanceN1, CR);
-  const tN = calculerTft(balance).valeurs, tN1 = n1 ? calculerTft(balanceN1).valeurs : {};
+  // TFT N-1 : il faut les soldes d'ouverture de N-1 ; une balance N-1 reprise sans à-nouveaux ne le permet pas.
+  const tftN1 = n1 && balanceN1.some(l => (l.sd || 0) || (l.sc || 0));
+  const tN = calculerTft(balance).valeurs, tN1 = tftN1 ? calculerTft(balanceN1).valeurs : {};
   const B = 'BILAN PAYSAGE';
   for (const [ref, r] of ACTIF_LIGNES) {
     ecrire(B, `D${r}`, arrondi(aN.brut[ref])); ecrire(B, `E${r}`, arrondi(aN.amort[ref]));
@@ -88,10 +90,12 @@ export function calculerLiasse(d: DonneesDgid): { cellules: CellulesLiasse; prov
   }
   for (const [ref, r] of PASSIF_LIGNES) { ecrire(B, `K${r}`, arrondi(pN[ref])); ecrire(B, `L${r}`, arrondi(pN1[ref])); }
   for (const [ref, r] of CR_LIGNES) { ecrire('COMPTE DE RESULTAT', `E${r}`, arrondi(crN[ref])); ecrire('COMPTE DE RESULTAT', `F${r}`, n1 ? arrondi(crN1[ref]) : 0); }
-  for (const [ref, r] of TFT_LIGNES) { ecrire('FLUX DE TRESORERIE', `E${r}`, arrondi(tN[ref])); ecrire('FLUX DE TRESORERIE', `F${r}`, n1 ? arrondi(tN1[ref]) : 0); }
+  for (const [ref, r] of TFT_LIGNES) { ecrire('FLUX DE TRESORERIE', `E${r}`, arrondi(tN[ref])); ecrire('FLUX DE TRESORERIE', `F${r}`, tftN1 ? arrondi(tN1[ref]) : null); }
 
   // Notes annexes
-  for (const [feuille, cellules] of Object.entries(calculerNotes(balance, balanceN1)))
+  const notes = calculerNotes(balance, balanceN1);
+  if (!tftN1) for (const r of [57, 58, 59, 60]) { notes['Note 34'][`C${r}`] = null; notes['Note 34'][`D${r}`] = null; }
+  for (const [feuille, cellules] of Object.entries(notes))
     for (const [addr, v] of Object.entries(cellules)) ecrire(feuille, addr, typeof v === 'number' ? Math.round(v) : v);
   return { cellules: c, provisoire };
 }
