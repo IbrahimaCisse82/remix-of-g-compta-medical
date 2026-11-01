@@ -645,6 +645,13 @@
       "when": 1793465000091,
       "tag": "0091_sante_ca_avoirs",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1793493000092,
+      "tag": "0092_sante_signataire_cr",
+      "breakpoints": true
     }
   ]
 }

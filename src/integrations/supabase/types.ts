@@ -4284,6 +4284,8 @@ export type Database = {
           prescripteur: string | null
           recue_le: string | null
           renseignements: string | null
+          signataire_nom: string | null
+          signataire_ordre: string | null
           statut: string
           structure_id: string
           urgence: boolean
@@ -4316,6 +4318,8 @@ export type Database = {
           prescripteur?: string | null
           recue_le?: string | null
           renseignements?: string | null
+          signataire_nom?: string | null
+          signataire_ordre?: string | null
           statut?: string
           structure_id: string
           urgence?: boolean
@@ -4348,6 +4352,8 @@ export type Database = {
           prescripteur?: string | null
           recue_le?: string | null
           renseignements?: string | null
+          signataire_nom?: string | null
+          signataire_ordre?: string | null
           statut?: string
           structure_id?: string
           urgence?: boolean
