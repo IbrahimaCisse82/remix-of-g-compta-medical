@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LabotestCatalogue from './LabotestCatalogue';
+import AnalyseDetail from './AnalyseDetail';
 
 const VALID_MAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
@@ -20,6 +21,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
   const [ac, setAc] = useState({ code: '', libelle: '', tarif: '' });
   const [analyseBusy, setAnalyseBusy] = useState(false);
   const [vue, setVue] = useState('structure');
+  const [fiche, setFiche] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [a, b, c] = await Promise.all([
@@ -96,8 +98,9 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
           <Button size="sm" className="md:col-span-4" aria-label="Ajouter l’analyse" disabled={analyseBusy}><Plus /> Ajouter l’analyse</Button>
         </form>
         {analyses.length === 0 && <p className="text-xs text-fg3">Aucune analyse.</p>}
-        {analyses.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_analyses', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle} <span className="text-xs text-fg3">· {a.section} · rendu {a.delai_heures} h</span></span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_analyses', a.id, e.target.value)} /></Ligne>)}
+        {analyses.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_analyses', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle} <span className="text-xs text-fg3">· {a.section} · rendu {a.delai_heures} h</span></span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_analyses', a.id, e.target.value)} /><Button size="sm" variant="outline" aria-label={`Ouvrir la fiche ${a.code}`} onClick={() => setFiche(a.id)}>Ouvrir</Button></Ligne>)}
       </section>
+      <AnalyseDetail structureId={structureId} analyseId={fiche} onClose={() => setFiche(null)} onSaved={() => void load()} />
       </>}
     </div>
   );
