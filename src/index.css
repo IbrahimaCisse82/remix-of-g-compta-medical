@@ -38,6 +38,12 @@
     --success: 160 64% 52%;
     --success-foreground: 0 0% 0%;
 
+    --warning: 38 92% 58%;
+    --warning-foreground: 0 0% 0%;
+
+    --info: 199 89% 60%;
+    --info-foreground: 0 0% 0%;
+
     --purple: 263 65% 76%;
     --purple-foreground: 0 0% 0%;
 
@@ -100,6 +106,12 @@
 
     --success: 160 64% 38%;
     --success-foreground: 0 0% 100%;
+
+    --warning: 32 95% 40%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 199 89% 38%;
+    --info-foreground: 0 0% 100%;
 
     --purple: 263 65% 56%;
     --purple-foreground: 0 0% 100%;

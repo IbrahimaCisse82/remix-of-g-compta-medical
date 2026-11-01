@@ -239,7 +239,7 @@ export default function StocksPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="Nb articles" value={String(totals.count)} />
           <Stat label="Valeur du stock (FCFA)" value={fmt(totals.valeur)} />
-          <Stat label="Ruptures (≤ stock min)" value={String(totals.alerteRupture)} color={totals.alerteRupture > 0 ? 'text-red-500' : ''} />
+          <Stat label="Ruptures (≤ stock min)" value={String(totals.alerteRupture)} color={totals.alerteRupture > 0 ? 'text-destructive' : ''} />
           <Stat label="Exercice" value={String(exercice?.annee || '—')} />
         </div>
 
@@ -266,13 +266,13 @@ export default function StocksPage() {
               {articles.map(a => {
                 const rupture = a.quantite_stock <= a.stock_minimum;
                 return (
-                  <tr key={a.id} className={`border-t border-border hover:bg-bg3/50 ${rupture ? 'bg-red-500/5' : ''}`}>
+                  <tr key={a.id} className={`border-t border-border hover:bg-bg3/50 ${rupture ? 'bg-destructive/5' : ''}`}>
                     <td className="p-2 font-mono">{a.code}</td>
                     <td className="p-2">{a.designation}</td>
                     <td className="p-2 text-center text-fg2">{a.unite}</td>
                     <td className="p-2 text-center"><span className="text-[10px] px-2 py-0.5 rounded bg-bg3 font-mono">{a.methode_valorisation}</span></td>
                     <td className="p-2 font-mono text-[10px]">{a.compte_stock}</td>
-                    <td className={`p-2 text-right font-mono ${rupture ? 'text-red-500 font-bold' : ''}`}>
+                    <td className={`p-2 text-right font-mono ${rupture ? 'text-destructive font-bold' : ''}`}>
                       {a.quantite_stock.toFixed(2)}{rupture && ' ⚠'}
                     </td>
                     <td className="p-2 text-right font-mono">{fmt(a.prix_achat_moyen)}</td>
@@ -283,7 +283,7 @@ export default function StocksPage() {
                       <button onClick={() => { setSelected(a); setShowMvt(true); }}
                         className="text-[10px] px-2 py-1 rounded border border-primary text-primary hover:bg-primary/10">+ Mvt</button>
                       <button onClick={() => { setSelected(a); setDepForm({ valeur_realisation: Math.round(a.quantite_stock * a.prix_achat_moyen), date: new Date().toISOString().slice(0, 10) }); setShowDep(true); }}
-                        className="text-[10px] px-2 py-1 rounded border border-amber-500/50 text-amber-500 hover:bg-amber-500/10" title="Dépréciation (valeur nette de réalisation)">📉</button>
+                        className="text-[10px] px-2 py-1 rounded border border-warning/50 text-warning hover:bg-warning/10" title="Dépréciation (valeur nette de réalisation)">📉</button>
                       <button onClick={() => { setForm(a); setShowForm(true); }}
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">✏️</button>
                       <button onClick={() => remove(a.id)}
@@ -322,9 +322,9 @@ export default function StocksPage() {
                     <td className="p-2 font-mono">{m.date_mvt}</td>
                     <td className="p-2">
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                        m.type_mvt === 'entree' ? 'bg-emerald-500/20 text-emerald-500' :
-                        m.type_mvt === 'sortie' ? 'bg-red-500/20 text-red-500' :
-                        'bg-blue-500/20 text-blue-500'
+                        m.type_mvt === 'entree' ? 'bg-success/20 text-success' :
+                        m.type_mvt === 'sortie' ? 'bg-destructive/20 text-destructive' :
+                        'bg-info/20 text-info'
                       }`}>{m.type_mvt}</span>
                     </td>
                     <td className="p-2 font-mono text-fg2">{m.reference || '—'}</td>

@@ -16,7 +16,7 @@ const bgColorMap: Record<string, string> = {
   accent: 'bg-accent',
 };
 
-const CHART_COLORS = ['#38bdf8', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'];
+const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--destructive))', 'hsl(var(--warning))', 'hsl(var(--purple))', 'hsl(var(--info))'];
 
 export default function Dashboard() {
   const { entreprise, exercice, balance, balanceN1 } = useApp();
@@ -132,8 +132,8 @@ export default function Dashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 9 }} tickFormatter={v => v >= 1000000 ? `${(v/1000000).toFixed(0)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                   <Tooltip formatter={(v: number) => fmt(v)} labelStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="N" fill="#38bdf8" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="N-1" fill="#38bdf8" opacity={0.3} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="N" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="N-1" fill="hsl(var(--primary))" opacity={0.3} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

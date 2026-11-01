@@ -18,7 +18,7 @@ function BilanTable({ def, vals, valsN1, valsBrut, valsAmort, title, acColor }: 
 
   return (
     <div className="bg-bg2 border border-border rounded-lg overflow-hidden">
-      <div className="px-3 py-2 text-center font-bold text-[11px] tracking-[3px] uppercase" style={{ background: acColor, color: '#fff' }}>{title}</div>
+      <div className="px-3 py-2 text-center font-bold text-[11px] tracking-[3px] uppercase" style={{ background: acColor, color: 'hsl(var(--primary-foreground))' }}>{title}</div>
       <div className={`grid ${isActif ? (hasN1 ? 'grid-cols-[40px_1fr_80px_80px_80px_80px]' : 'grid-cols-[40px_1fr_80px_80px_80px]') : (hasN1 ? 'grid-cols-[40px_1fr_90px_90px]' : 'grid-cols-[40px_1fr_90px]')} text-[9px] font-bold text-fg3 uppercase tracking-[0.5px] font-mono bg-bg3 px-3 py-1 border-b border-border`}>
         <span>Réf</span>
         <span>Libellé</span>
@@ -114,8 +114,8 @@ export default function BilanPage() {
       <div className="p-5">
         <ControleComptable balance={balance} previous={balanceN1} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-          <BilanTable def={ACTIF} vals={vA} valsN1={vAN1} valsBrut={vABrut} valsAmort={vAAmort} title="ACTIF" acColor="#0B1F3A" />
-          <BilanTable def={PASSIF} vals={vP} valsN1={vPN1} valsBrut={{}} valsAmort={{}} title="PASSIF" acColor="#163158" />
+          <BilanTable def={ACTIF} vals={vA} valsN1={vAN1} valsBrut={vABrut} valsAmort={vAAmort} title="ACTIF" acColor="hsl(var(--primary))" />
+          <BilanTable def={PASSIF} vals={vP} valsN1={vPN1} valsBrut={{}} valsAmort={{}} title="PASSIF" acColor="hsl(var(--accent))" />
         </div>
         <div className={`rounded-lg px-4 py-2 text-center font-bold text-sm ${eq ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
           {eq ? '✓ BILAN ÉQUILIBRÉ' : '⚠ BILAN NON ÉQUILIBRÉ'} — Actif: {fmt(tA)} / Passif: {fmt(tP)}

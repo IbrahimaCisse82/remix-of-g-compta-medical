@@ -169,7 +169,7 @@ export default function PaiePage() {
             ['Brut total', fmtMoney(totaux.brut), 'text-accent'],
             ['Retenues', fmtMoney(totaux.ret), 'text-destructive'],
             ['Charges patronales', fmtMoney(totaux.ch), 'text-purple'],
-            ['Net à payer', fmtMoney(totaux.net), 'text-green-500'],
+            ['Net à payer', fmtMoney(totaux.net), 'text-success'],
           ].map(([l, v, c]) => (
             <div key={l as string} className="bg-bg2 border border-border rounded-lg p-3">
               <div className="text-[10px] text-fg3 uppercase tracking-wider">{l}</div>
@@ -387,7 +387,7 @@ function Row({ l, v, neg, pos, bold, accent, suffix }: { l: string; v: number; n
   return (
     <div className={`flex justify-between py-1 ${bold ? 'border-y border-border/30 font-bold' : ''}`}>
       <span className={accent ? 'text-primary' : 'text-fg2'}>{l}{suffix}</span>
-      <span className={`font-mono ${neg ? 'text-destructive' : pos ? 'text-green-500' : accent ? 'text-primary' : 'text-foreground'}`}>{neg ? '−' : ''}{fmtMoney(v)}</span>
+      <span className={`font-mono ${neg ? 'text-destructive' : pos ? 'text-success' : accent ? 'text-primary' : 'text-foreground'}`}>{neg ? '−' : ''}{fmtMoney(v)}</span>
     </div>
   );
 }

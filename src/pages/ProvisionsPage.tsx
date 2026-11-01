@@ -168,8 +168,8 @@ export default function ProvisionsPage() {
                     <td className="p-2 text-right font-mono text-primary">{fmt(p.montant_actuel)}</td>
                     <td className="p-2 text-center">
                       <span className={`text-[10px] px-2 py-0.5 rounded ${
-                        p.statut === 'active' ? 'bg-emerald-500/20 text-emerald-500' :
-                        p.statut === 'reprise_partielle' ? 'bg-amber-500/20 text-amber-500' :
+                        p.statut === 'active' ? 'bg-success/20 text-success' :
+                        p.statut === 'reprise_partielle' ? 'bg-warning/20 text-warning' :
                         'bg-fg3/20 text-fg3'
                       }`}>{p.statut}</span>
                     </td>
@@ -182,7 +182,7 @@ export default function ProvisionsPage() {
                             const m = prompt(`Montant à reprendre (max ${fmt(p.montant_actuel)}) :`, String(p.montant_actuel));
                             if (m) reprendre(p, Number(m), Number(m) >= p.montant_actuel);
                           }} title="Reprendre la provision"
-                            className="text-[10px] px-2 py-1 rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/10">↩ Reprise</button>
+                            className="text-[10px] px-2 py-1 rounded border border-warning/40 text-warning hover:bg-warning/10">↩ Reprise</button>
                         </>
                       )}
                       <button onClick={() => { setForm(p); setShowForm(true); }}

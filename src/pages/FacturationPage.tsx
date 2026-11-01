@@ -586,7 +586,7 @@ export default function FacturationPage() {
               </div>
 
               <div className="mt-6 text-center print:hidden">
-                <button onClick={() => setViewFact(null)} className="px-4 py-2 bg-gray-200 text-black rounded mr-2">Fermer</button>
+                <button onClick={() => setViewFact(null)} className="px-4 py-2 bg-muted text-black rounded mr-2">Fermer</button>
                 <button onClick={() => window.print()} className="px-4 py-2 bg-black text-white rounded">🖨 Imprimer</button>
               </div>
             </div>

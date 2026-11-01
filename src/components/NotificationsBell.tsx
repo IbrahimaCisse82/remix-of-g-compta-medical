@@ -64,7 +64,7 @@ export default function NotificationsBell() {
       >
         🔔
         {nonLues > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-destructive text-[9px] font-bold text-white flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground flex items-center justify-center">
             {nonLues > 9 ? '9+' : nonLues}
           </span>
         )}

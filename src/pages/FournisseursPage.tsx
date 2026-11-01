@@ -369,11 +369,11 @@ export default function FournisseursPage() {
           </div>
           <div className="bg-bg2 border border-border rounded-lg p-3">
             <div className="text-[10px] text-fg3 uppercase">Restant à payer</div>
-            <div className="text-xl font-bold text-amber-500">{fmt(stats.impayees)}</div>
+            <div className="text-xl font-bold text-warning">{fmt(stats.impayees)}</div>
           </div>
           <div className="bg-bg2 border border-border rounded-lg p-3">
             <div className="text-[10px] text-fg3 uppercase">Factures en retard</div>
-            <div className="text-xl font-bold text-red-500">{stats.enRetard}</div>
+            <div className="text-xl font-bold text-destructive">{stats.enRetard}</div>
           </div>
         </div>
 
@@ -415,11 +415,11 @@ export default function FournisseursPage() {
                           <td className="p-2 text-right font-mono font-bold">{fmt(f.total_ttc)}</td>
                           <td className="p-2 text-center">
                             <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase ${
-                              f.statut === 'payee' ? 'bg-green-500/20 text-green-500' :
-                              f.statut === 'annulee' ? 'bg-gray-500/20 text-gray-500' :
-                              retard ? 'bg-red-500/20 text-red-500' :
-                              f.statut === 'validee' ? 'bg-blue-500/20 text-blue-500' :
-                              'bg-amber-500/20 text-amber-500'
+                              f.statut === 'payee' ? 'bg-success/20 text-success' :
+                              f.statut === 'annulee' ? 'bg-muted/20 text-muted-foreground' :
+                              retard ? 'bg-destructive/20 text-destructive' :
+                              f.statut === 'validee' ? 'bg-info/20 text-info' :
+                              'bg-warning/20 text-warning'
                             }`}>{retard ? 'retard' : f.statut}</span>
                           </td>
                           <td className="p-2 text-center">{f.comptabilisee ? '✓' : '—'}</td>
@@ -427,12 +427,12 @@ export default function FournisseursPage() {
                             <div className="flex gap-1 justify-end">
                               <button onClick={() => openFactEdit(f)} className="text-primary hover:underline text-[10px]">Voir</button>
                               {canWrite && !f.comptabilisee && (
-                                <button onClick={() => comptabiliser(f)} className="text-green-500 hover:underline text-[10px]">Comptab.</button>
+                                <button onClick={() => comptabiliser(f)} className="text-success hover:underline text-[10px]">Comptab.</button>
                               )}
                                {canWrite && f.statut !== 'payee' && f.statut !== 'annulee' && (
-                                 <button onClick={() => openReglement(f)} className="text-amber-500 hover:underline text-[10px]">Régler</button>
+                                 <button onClick={() => openReglement(f)} className="text-warning hover:underline text-[10px]">Régler</button>
                                )}
-                               {canWrite && <button onClick={() => deleteFact(f.id)} className="text-red-500 hover:underline text-[10px]">Suppr</button>}
+                               {canWrite && <button onClick={() => deleteFact(f.id)} className="text-destructive hover:underline text-[10px]">Suppr</button>}
                             </div>
                           </td>
                         </tr>
@@ -481,7 +481,7 @@ export default function FournisseursPage() {
                       <td className="p-2 text-right">
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => openFrnEdit(f)} className="text-primary hover:underline text-[10px]">Éditer</button>
-                          {canWrite && <button onClick={() => deleteFrn(f.id)} className="text-red-500 hover:underline text-[10px]">Suppr</button>}
+                          {canWrite && <button onClick={() => deleteFrn(f.id)} className="text-destructive hover:underline text-[10px]">Suppr</button>}
                         </div>
                       </td>
                     </tr>
@@ -642,7 +642,7 @@ export default function FournisseursPage() {
                       <td className="p-1"><input type="number" step="0.01" value={l.taux_tva} onChange={e => { const n = [...lignes]; n[i].taux_tva = parseFloat(e.target.value) || 0; setLignes(n); }} className="w-full bg-transparent text-right px-1 py-0.5" /></td>
                       <td className="p-1"><input value={l.compte_charge} onChange={e => { const n = [...lignes]; n[i].compte_charge = e.target.value; setLignes(n); }} className="w-full bg-transparent font-mono px-1 py-0.5" /></td>
                       <td className="p-1 text-right font-mono">{fmt(l.quantite * l.prix_unitaire)}</td>
-                      <td className="p-1 text-center">{lignes.length > 1 && <button onClick={() => setLignes(lignes.filter((_, j) => j !== i))} className="text-red-500 text-[10px]">×</button>}</td>
+                      <td className="p-1 text-center">{lignes.length > 1 && <button onClick={() => setLignes(lignes.filter((_, j) => j !== i))} className="text-destructive text-[10px]">×</button>}</td>
                     </tr>
                   ))}
                 </tbody>
