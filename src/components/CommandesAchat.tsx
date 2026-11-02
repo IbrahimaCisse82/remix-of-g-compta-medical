@@ -14,7 +14,8 @@ type Nature = 'charge' | 'stock' | 'immobilisation';
 interface Fournisseur { id: string; code: string; raison_sociale: string; ninea?: string | null; adresse?: string | null; telephone?: string | null; email?: string | null }
 interface Article { id: string; code: string; designation: string; compte_achat: string; unite: string }
 interface Commande { id: string; numero: string; fournisseur_id: string; date_commande: string; date_livraison_prevue: string | null; objet: string | null; notes: string | null; statut: string }
-interface LigneCmd { id?: string; ordre: number; designation: string; nature: Nature; article_id: string | null; compte_charge: string; quantite: number; prix_unitaire: number; taux_tva: number; duree_annees: number | null }
+interface LigneCmd { id?: string; ordre: number; designation: string; nature: Nature; article_id: string | null; compte_charge: string; quantite: number; prix_unitaire: number; taux_tva: number; duree_annees: number | null; reactif_id?: string | null }
+interface Reactif { id: string; nom: string; unite: string }
 interface Suivi { recue: number; facturee: number }
 interface Reception { id: string; commande_id: string; numero: string; date_reception: string; bon_livraison: string | null }
 
@@ -36,6 +37,18 @@ export default function CommandesAchat({ entreprise, exercice, fournisseurs, art
   const [lignes, setLignes] = useState<LigneCmd[]>([]);
   const [recep, setRecep] = useState<{ cmd: Commande; date: string; bl: string; q: Record<string, { quantite: number; lot: string; peremption: string }> } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reactifs, setReactifs] = useState<Reactif[]>([]);
+  // Réactifs du laboratoire des structures de santé du dossier (lisibles par l'administrateur de structure et le laboratoire).
+  useEffect(() => {
+    if (!entreprise) return;
+    void (async () => {
+      const { data: st } = await supabase.from('structures' as any).select('id').eq('entreprise_id', entreprise.id);
+      const ids = ((st ?? []) as any[]).map(x => x.id);
+      if (!ids.length) { setReactifs([]); return; }
+      const { data } = await supabase.from('sante_reactifs' as any).select('id, nom, unite').in('structure_id', ids).eq('actif', true).order('nom');
+      setReactifs((data ?? []) as unknown as Reactif[]);
+    })();
+  }, [entreprise]);
 
   const charger = useCallback(async () => {
     if (!entreprise) return;
@@ -101,6 +114,7 @@ export default function CommandesAchat({ entreprise, exercice, fournisseurs, art
         compte_charge: l.nature === 'stock' ? (articles.find(a => a.id === l.article_id)?.compte_achat || '601') : l.compte_charge,
         quantite: l.quantite, prix_unitaire: l.prix_unitaire, taux_tva: l.taux_tva,
         duree_annees: l.nature === 'immobilisation' ? (l.duree_annees || 5) : null,
+        reactif_id: l.nature === 'immobilisation' ? null : l.reactif_id ?? null,
       })));
       if (ins.error) throw new Error(ins.error.message);
       toast.success('Commande enregistrée'); setForm(null); await charger();
@@ -133,8 +147,8 @@ export default function CommandesAchat({ entreprise, exercice, fournisseurs, art
     const { data, error } = await supabase.rpc('fn_receptionner_commande' as any, { _commande_id: recep.cmd.id, _date: recep.date, _bon_livraison: recep.bl, _exercice_id: exercice.id, _lignes: lignesRec, _notes: null });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    const r = data as { numero: string; entrees_stock: number; statut: string };
-    toast.success(`Réception ${r.numero} enregistrée${r.entrees_stock ? ` — ${r.entrees_stock} entrée(s) en stock` : ''} (${STATUTS[r.statut] ?? r.statut})`);
+    const r = data as { numero: string; entrees_stock: number; lots_reactifs?: number; statut: string };
+    toast.success(`Réception ${r.numero} enregistrée${r.entrees_stock ? ` — ${r.entrees_stock} entrée(s) en stock` : ''}${r.lots_reactifs ? ` — ${r.lots_reactifs} lot(s) de réactif au laboratoire` : ''} (${STATUTS[r.statut] ?? r.statut})`);
     setRecep(null); await charger();
   };
 
@@ -258,13 +272,15 @@ export default function CommandesAchat({ entreprise, exercice, fournisseurs, art
               <tbody>{lignes.map((l, i) => (
                 <tr key={i} className="border-t border-border">
                   <td className="p-1"><input value={l.designation} onChange={e => set(i, { designation: e.target.value })} className="w-full bg-transparent px-1" /></td>
-                  <td className="p-1"><select value={l.nature} onChange={e => { const n = e.target.value as Nature; set(i, { nature: n, compte_charge: n === 'immobilisation' ? '2441' : n === 'stock' ? '601' : '605', article_id: null, duree_annees: n === 'immobilisation' ? 5 : null }); }} className="w-full bg-bg3 border border-border rounded px-1">
+                  <td className="p-1"><select value={l.nature} onChange={e => { const n = e.target.value as Nature; set(i, { nature: n, compte_charge: n === 'immobilisation' ? '2441' : n === 'stock' ? '601' : '605', article_id: null, duree_annees: n === 'immobilisation' ? 5 : null, reactif_id: n === 'immobilisation' ? null : l.reactif_id }); }} className="w-full bg-bg3 border border-border rounded px-1">
                     <option value="charge">Charge</option><option value="stock">Stock</option><option value="immobilisation">Immobilisation</option></select></td>
                   <td className="p-1">{l.nature === 'stock'
                     ? <select value={l.article_id ?? ''} onChange={e => { const a = articles.find(x => x.id === e.target.value); set(i, { article_id: e.target.value || null, designation: l.designation || a?.designation || '' }); }} className="w-full bg-bg3 border border-border rounded px-1">
                         <option value="">— Article —</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code} — {a.designation}</option>)}</select>
                     : <span className="flex gap-1 items-center"><input value={l.compte_charge} onChange={e => set(i, { compte_charge: e.target.value.trim() })} className="w-16 bg-transparent font-mono px-1" aria-label="Compte" />
-                        {l.nature === 'immobilisation' && <><input type="number" min="1" value={l.duree_annees ?? 5} onChange={e => set(i, { duree_annees: Number(e.target.value) || null })} className="w-10 bg-transparent text-right" aria-label="Durée (années)" />ans</>}</span>}</td>
+                        {l.nature === 'immobilisation' && <><input type="number" min="1" value={l.duree_annees ?? 5} onChange={e => set(i, { duree_annees: Number(e.target.value) || null })} className="w-10 bg-transparent text-right" aria-label="Durée (années)" />ans</>}</span>}
+                    {l.nature !== 'immobilisation' && reactifs.length > 0 && <select value={l.reactif_id ?? ''} onChange={e => { const r = reactifs.find(x => x.id === e.target.value); set(i, { reactif_id: e.target.value || null, designation: l.designation || r?.nom || '' }); }} className="w-full mt-0.5 bg-bg3 border border-border rounded px-1 text-[10px]" aria-label="Réactif du laboratoire">
+                      <option value="">— Réactif labo (facultatif) —</option>{reactifs.map(r => <option key={r.id} value={r.id}>{r.nom} ({r.unite})</option>)}</select>}</td>
                   <td className="p-1"><input type="number" min="0" step="0.01" value={l.quantite} onChange={e => set(i, { quantite: Number(e.target.value) || 0 })} className="w-full bg-transparent text-right" /></td>
                   <td className="p-1"><input type="number" min="0" step="0.01" value={l.prix_unitaire} onChange={e => set(i, { prix_unitaire: Number(e.target.value) || 0 })} className="w-full bg-transparent text-right" /></td>
                   <td className="p-1"><input type="number" min="0" step="0.01" value={l.taux_tva} onChange={e => set(i, { taux_tva: Number(e.target.value) || 0 })} className="w-full bg-transparent text-right" /></td>
@@ -288,7 +304,7 @@ export default function CommandesAchat({ entreprise, exercice, fournisseurs, art
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !busy && setRecep(null)}>
           <div className="bg-bg2 border border-border rounded-lg p-4 w-full max-w-4xl max-h-[90vh] overflow-auto text-[11px]" onClick={e => e.stopPropagation()}>
             <div className="font-bold text-sm mb-1">Réception — commande {recep.cmd.numero} ({nomFrn(recep.cmd.fournisseur_id)})</div>
-            <p className="text-fg3 text-[10px] mb-3">Les articles en stock entrent au prix commandé (TVA non récupérable comprise) dès l’enregistrement ; saisissez lot et péremption pour les produits de santé.</p>
+            <p className="text-fg3 text-[10px] mb-3">Les articles en stock entrent au prix commandé (TVA non récupérable comprise) dès l’enregistrement ; saisissez lot et péremption pour les produits de santé (obligatoires pour les réactifs, qui entrent au stock du laboratoire).</p>
             <div className="flex gap-3 mb-3">
               <label className="text-fg3 text-[10px] uppercase">Date de réception<input type="date" value={recep.date} onChange={e => setRecep({ ...recep, date: e.target.value })} className="block bg-bg3 border border-border rounded px-2 py-1 text-fg" /></label>
               <label className="text-fg3 text-[10px] uppercase">N° du bon de livraison<input value={recep.bl} onChange={e => setRecep({ ...recep, bl: e.target.value })} className="block bg-bg3 border border-border rounded px-2 py-1 text-fg normal-case" /></label>
@@ -300,12 +316,12 @@ export default function CommandesAchat({ entreprise, exercice, fournisseurs, art
                 const maj = (p: Partial<typeof v>) => setRecep({ ...recep, q: { ...recep.q, [l.id!]: { ...v, ...p } } });
                 return (
                   <tr key={l.id} className="border-t border-border">
-                    <td className="p-1">{l.designation} <span className="text-fg3">({l.nature})</span></td>
+                    <td className="p-1">{l.designation} <span className="text-fg3">({l.reactif_id ? 'réactif labo' : l.nature})</span></td>
                     <td className="p-1 text-center">{l.quantite}</td>
                     <td className="p-1 text-center">{suivi[l.id!]?.recue ?? 0}</td>
                     <td className="p-1"><input type="number" min="0" max={reste} step="0.01" value={v?.quantite ?? 0} disabled={reste <= 0} onChange={e => maj({ quantite: Number(e.target.value) || 0 })} className="w-full bg-bg3 border border-border rounded px-1 text-right" /></td>
-                    <td className="p-1">{l.nature === 'stock' && <input value={v?.lot ?? ''} onChange={e => maj({ lot: e.target.value })} className="w-full bg-bg3 border border-border rounded px-1" aria-label="Lot" />}</td>
-                    <td className="p-1">{l.nature === 'stock' && <input type="date" value={v?.peremption ?? ''} onChange={e => maj({ peremption: e.target.value })} className="bg-bg3 border border-border rounded px-1" aria-label="Péremption" />}</td>
+                    <td className="p-1">{(l.nature === 'stock' || l.reactif_id) && <input value={v?.lot ?? ''} onChange={e => maj({ lot: e.target.value })} className="w-full bg-bg3 border border-border rounded px-1" aria-label="Lot" />}</td>
+                    <td className="p-1">{(l.nature === 'stock' || l.reactif_id) && <input type="date" value={v?.peremption ?? ''} onChange={e => maj({ peremption: e.target.value })} className="bg-bg3 border border-border rounded px-1" aria-label="Péremption" />}</td>
                   </tr>);
               })}</tbody>
             </table>
