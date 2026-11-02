@@ -694,6 +694,13 @@
       "when": 1793496000098,
       "tag": "0098_lettrage_integrite",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1793496000099,
+      "tag": "0099_cloture_complete",
+      "breakpoints": true
     }
   ]
 }
