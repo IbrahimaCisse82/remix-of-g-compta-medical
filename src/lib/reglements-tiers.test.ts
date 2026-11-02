@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acomptesDisponibles, controlerReglement, facturesOuvertes, journalTresorerie, joursRetard, resteDu, trancheRetard, type FactureOuverte } from './reglements-tiers';
+import { acomptesDisponibles, controlerReglement, netReglement, facturesOuvertes, journalTresorerie, joursRetard, resteDu, trancheRetard, type FactureOuverte } from './reglements-tiers';
 
 const f = (p: Partial<FactureOuverte>): FactureOuverte => ({ id: 'a', numero: 'FA-1', tiers_id: 't1', date_facture: '2026-10-01', date_echeance: '2026-10-31',
   total_ttc: 1000, montant_paye: 0, statut: 'validee', comptabilisee: true, ...p });
@@ -33,7 +33,7 @@ describe('règlements tiers', () => {
   it('contrôles de saisie', () => {
     const a = f({ id: 'a', total_ttc: 1000, montant_paye: 400 });
     expect(controlerReglement({ factures: [a], montants: { a: 600 }, acompte: 0, compte: '521' })).toBeNull();
-    expect(controlerReglement({ factures: [a], montants: { a: 601 }, acompte: 0, compte: '521' })).toMatch(/restant dû/);
+    expect(controlerReglement({ factures: [a], montants: { a: 601 }, acompte: 0, compte: '521' })).toMatch(/restant/);
     expect(controlerReglement({ factures: [a], montants: { a: 100 }, acompte: 0, compte: '6011' })).toMatch(/trésorerie/);
     expect(controlerReglement({ factures: [a, f({ id: 'b', tiers_id: 't2' })], montants: { a: 1, b: 1 }, acompte: 0, compte: '521' })).toMatch(/seul tiers/);
     expect(controlerReglement({ factures: [], montants: {}, acompte: 0, compte: '521' })).toMatch(/Aucun/);
@@ -47,5 +47,14 @@ describe('règlements tiers', () => {
        { reglement_id: 'r4', origine: 'acompte', montant: 300 }],
     );
     expect(d).toEqual({ r1: 30000 });
+  });
+
+  it('avoirs : compensation et remboursement', () => {
+    const fa = f({ id: 'fa', total_ttc: 118000 }), av = f({ id: 'av', numero: 'AV-1', total_ttc: 23600, avoir: true });
+    expect(netReglement([fa, av], { fa: 23600, av: 23600 }, 0)).toBe(0);
+    expect(controlerReglement({ factures: [fa, av], montants: { fa: 23600, av: 23600 }, acompte: 0, compte: '' })).toBeNull();
+    expect(netReglement([av], { av: 23600 }, 0)).toBe(-23600);
+    expect(controlerReglement({ factures: [av], montants: { av: 23600 }, acompte: 0, compte: '' })).toMatch(/trésorerie/);
+    expect(controlerReglement({ factures: [av], montants: { av: 30000 }, acompte: 0, compte: '521' })).toMatch(/Avoir AV-1/);
   });
 });

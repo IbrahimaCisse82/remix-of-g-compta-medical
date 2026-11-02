@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
 import {
-  acomptesDisponibles, controlerReglement, facturesOuvertes, journalTresorerie, joursRetard, resteDu, trancheRetard,
+  acomptesDisponibles, controlerReglement, facturesOuvertes, netReglement, journalTresorerie, joursRetard, resteDu, trancheRetard,
   type FactureOuverte, type SensReglement,
 } from '@/lib/reglements-tiers';
 
@@ -130,7 +130,9 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
     setAnnul(null); await Promise.all([charger(), rafraichirComptabilite()]); onMaj();
   };
 
-  const totalSaisie = saisie ? saisie.factures.reduce((s, id) => s + (saisie.montants[id] ?? 0), 0) + saisie.acompte : 0;
+  const netSaisie = saisie ? netReglement(factures.filter(f => saisie.factures.includes(f.id)), saisie.montants, saisie.acompte) : 0;
+  const libNet = netSaisie === 0 ? 'Compensation (sans mouvement de trésorerie, journal OD)'
+    : (netSaisie > 0) === fourn ? `Net décaissé : ${fmt(Math.abs(netSaisie))}` : `Net encaissé : ${fmt(Math.abs(netSaisie))}`;
   const facturesTiers = (tiersId: string) => facturesOuvertes(factures).filter(f => f.tiers_id === tiersId);
   const champ = 'bg-bg3 border border-border rounded px-2 py-1 text-fg';
 
@@ -161,9 +163,9 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
                 <tr key={f.id} className="border-t border-border">
                   <td className="p-2">{canWrite && <input type="checkbox" checked={selection.has(f.id)} aria-label={`Sélectionner ${f.numero}`}
                     onChange={() => setSelection(s => { const n = new Set(s); if (n.has(f.id)) n.delete(f.id); else n.add(f.id); return n; })} className="accent-primary" />}</td>
-                  <td className="p-2 font-mono">{f.numero}</td><td className="p-2">{nomTiers(f.tiers_id)}</td><td className="p-2">{f.date_echeance ?? '—'}</td>
+                  <td className="p-2 font-mono">{f.numero}{f.avoir && <span className="ml-1 text-[9px] px-1 rounded bg-warning/20 text-warning">AVOIR</span>}</td><td className="p-2">{nomTiers(f.tiers_id)}</td><td className="p-2">{f.date_echeance ?? '—'}</td>
                   <td className="p-2 text-right font-mono">{fmt(f.total_ttc)}</td><td className="p-2 text-right font-mono">{fmt(f.montant_paye)}</td>
-                  <td className="p-2 text-right font-mono font-bold">{fmt(resteDu(f))}</td>
+                  <td className={`p-2 text-right font-mono font-bold ${f.avoir ? 'text-warning' : ''}`}>{f.avoir ? '−' : ''}{fmt(resteDu(f))}</td>
                   <td className={`p-2 ${j > 0 ? 'text-destructive font-bold' : 'text-fg3'}`}>{j > 0 ? `${j} j` : 'non échue'}</td>
                   <td className="p-2 text-right">{canWrite && <button onClick={() => setSaisie(nouvelleSaisie([f.id], f.tiers_id))} className="text-primary hover:underline">Régler</button>}</td>
                 </tr>
@@ -183,7 +185,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
               <span className="font-mono">{r.numero}</span><span>{r.date_reglement}</span><span>{nomTiers(tiersDe(r))}</span>
               <span className="font-mono">{fmt(disponibles[r.id])} disponible sur {fmt(r.acompte)}</span>
               {canWrite && <button className="ml-auto text-primary hover:underline" onClick={() => {
-                const f = facturesTiers(tiersDe(r))[0];
+                const f = facturesTiers(tiersDe(r)).find(x => !x.avoir);
                 setImput({ reglement: r, factureId: f?.id ?? '', montant: f ? Math.min(disponibles[r.id], resteDu(f)) : disponibles[r.id], date: aujourdhui > (exercice?.date_fin ?? aujourdhui) ? exercice!.date_fin : aujourdhui });
               }}>Imputer sur une facture</button>}
             </div>
@@ -236,7 +238,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
                   <option value="">— Choisir —</option>{tiers.map(t => <option key={t.id} value={t.id}>{t.code} — {t.nom}</option>)}
                 </select></label>
               <label className="text-fg3 text-[10px] uppercase">Date<input type="date" value={saisie.date} min={exercice?.date_debut} max={exercice?.date_fin} onChange={e => setSaisie({ ...saisie, date: e.target.value })} className={`block w-full ${champ}`} /></label>
-              <label className="text-fg3 text-[10px] uppercase">Compte de trésorerie (journal {journalTresorerie(saisie.compte)})
+              <label className="text-fg3 text-[10px] uppercase">Compte de trésorerie ({netSaisie === 0 ? 'inutile : compensation' : `journal ${journalTresorerie(saisie.compte)}`})
                 <input list="comptes-treso" value={saisie.compte} onChange={e => setSaisie({ ...saisie, compte: e.target.value.trim() })} className={`block w-full font-mono ${champ}`} />
                 <datalist id="comptes-treso">{comptesTreso.map(c => <option key={c.numero} value={c.numero}>{c.intitule}</option>)}</datalist></label>
               <label className="text-fg3 text-[10px] uppercase">Mode
@@ -247,9 +249,9 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
             </div>
             {saisie.factures.length > 0 && (
               <table className="w-full mb-2">
-                <thead className="text-fg3 text-[10px] uppercase"><tr><th className="text-left p-1">Facture</th><th className="text-right p-1">Reste dû</th><th className="text-right p-1 w-36">Montant réglé</th></tr></thead>
+                <thead className="text-fg3 text-[10px] uppercase"><tr><th className="text-left p-1">Document</th><th className="text-right p-1">Reste</th><th className="text-right p-1 w-36">Montant imputé</th></tr></thead>
                 <tbody>{saisie.factures.map(id => { const f = factures.find(x => x.id === id)!; return (
-                  <tr key={id} className="border-t border-border"><td className="p-1 font-mono">{f.numero}</td><td className="p-1 text-right font-mono">{fmt(resteDu(f))}</td>
+                  <tr key={id} className="border-t border-border"><td className="p-1 font-mono">{f.numero}{f.avoir && <span className="ml-1 text-[9px] text-warning">AVOIR (en déduction)</span>}</td><td className="p-1 text-right font-mono">{fmt(resteDu(f))}</td>
                     <td className="p-1"><input type="number" min="0" max={resteDu(f)} value={saisie.montants[id] ?? 0} onChange={e => setSaisie({ ...saisie, montants: { ...saisie.montants, [id]: Number(e.target.value) || 0 } })} className={`w-full text-right font-mono ${champ}`} /></td></tr>); })}</tbody>
               </table>
             )}
@@ -258,7 +260,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
                 <button key={f.id} onClick={() => setSaisie({ ...saisie, factures: [...saisie.factures, f.id], montants: { ...saisie.montants, [f.id]: resteDu(f) } })} className="mr-2 text-primary hover:underline">{f.numero} ({fmt(resteDu(f))})</button>))}</div>
             )}
             <div className="flex justify-between items-center mt-3">
-              <span className="font-mono">Total {fourn ? 'décaissé' : 'encaissé'} : <strong>{fmt(totalSaisie)}</strong></span>
+              <span className="font-mono"><strong>{libNet}</strong></span>
               <span className="flex gap-2">
                 <button onClick={() => setSaisie(null)} className="px-3 py-1.5 bg-bg3 rounded">Fermer</button>
                 <button onClick={() => void valider()} disabled={busy} className="px-3 py-1.5 bg-primary text-primary-foreground rounded font-bold disabled:opacity-50">{busy ? 'Comptabilisation…' : 'Comptabiliser'}</button>
@@ -277,7 +279,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
             <div className="grid grid-cols-3 gap-2">
               <label className="col-span-3 text-fg3 text-[10px] uppercase">Facture
                 <select value={imput.factureId} onChange={e => { const f = factures.find(x => x.id === e.target.value); setImput({ ...imput, factureId: e.target.value, montant: f ? Math.min(disponibles[imput.reglement.id] ?? 0, resteDu(f)) : imput.montant }); }} className={`block w-full normal-case ${champ}`}>
-                  <option value="">— Choisir —</option>{facturesTiers(tiersDe(imput.reglement)).map(f => <option key={f.id} value={f.id}>{f.numero} — reste {fmt(resteDu(f))}</option>)}
+                  <option value="">— Choisir —</option>{facturesTiers(tiersDe(imput.reglement)).filter(f => !f.avoir).map(f => <option key={f.id} value={f.id}>{f.numero} — reste {fmt(resteDu(f))}</option>)}
                 </select></label>
               <label className="text-fg3 text-[10px] uppercase col-span-2">Montant<input type="number" min="0" value={imput.montant} onChange={e => setImput({ ...imput, montant: Number(e.target.value) || 0 })} className={`block w-full text-right font-mono ${champ}`} /></label>
               <label className="text-fg3 text-[10px] uppercase">Date<input type="date" value={imput.date} onChange={e => setImput({ ...imput, date: e.target.value })} className={`block w-full ${champ}`} /></label>

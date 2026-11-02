@@ -64,6 +64,8 @@ interface FactureAchat {
   piece_journal?: string | null;
   notes?: string | null;
   commande_id?: string | null;
+  type_document?: 'facture' | 'avoir';
+  facture_origine_id?: string | null;
 }
 
 const emptyLigne = (i = 0): Ligne => ({
@@ -176,6 +178,28 @@ export default function FournisseursPage() {
     setShowFact(true);
   };
 
+  // Avoir fournisseur : lignes de nature Charge (retours de stock et sorties d'immobilisation dans leurs modules),
+  // reprises de la facture d'origine à ajuster ; comptabilisé en écriture inverse par fn_comptabiliser_facture_achat.
+  const openAvoir = async (origine?: FactureAchat) => {
+    if (!entreprise || !exercice) return;
+    const yr = new Date().getFullYear();
+    const next = String(factures.filter(f => f.numero_interne.startsWith(`AVF-${yr}-`)).length + 1).padStart(4, '0');
+    setFactForm({
+      numero_interne: `AVF-${yr}-${next}`, type_document: 'avoir', facture_origine_id: origine?.id ?? null,
+      fournisseur_id: origine?.fournisseur_id, date_facture: new Date().toISOString().slice(0, 10), date_reception: new Date().toISOString().slice(0, 10),
+      objet: origine ? `Avoir sur facture ${origine.numero_fournisseur || origine.numero_interne}` : '', statut: 'brouillon',
+    });
+    if (origine) {
+      const { data } = await supabase.from('factures_achat_lignes').select('*').eq('facture_id', origine.id).order('ordre');
+      const toutes = (data || []) as any[];
+      const charges = toutes.filter(l => (l.nature ?? 'charge') === 'charge' && !l.commande_ligne_id);
+      if (charges.length < toutes.length) toast.info('Lignes de stock, d’immobilisation ou de commande non reprises : retours et sorties se traitent dans leurs modules');
+      setLignes(charges.length ? charges.map((l, i) => ({ designation: l.designation, quantite: Number(l.quantite), prix_unitaire: Number(l.prix_unitaire),
+        taux_tva: Number(l.taux_tva), compte_charge: l.compte_charge, montant_ht: Number(l.montant_ht), ordre: i, nature: 'charge' as const })) : [emptyLigne()]);
+    } else setLignes([emptyLigne()]);
+    setShowFact(true);
+  };
+
   const openFactEdit = async (f: FactureAchat) => {
     setFactForm({ ...f });
     const { data } = await supabase.from('factures_achat_lignes').select('*').eq('facture_id', f.id).order('ordre');
@@ -196,6 +220,7 @@ export default function FournisseursPage() {
     if (lignes.some(l => !l.designation.trim() || l.quantite <= 0)) { toast.error('Lignes incomplètes'); return; }
     const anomalie = lignes.find(l => (l.nature === 'stock' && !l.article_id) || (l.nature === 'immobilisation' && !/^2[1-7]/.test(l.compte_charge))
       || (l.nature === 'charge' && /^[23]/.test(l.compte_charge)));
+    if (factForm.type_document === 'avoir' && lignes.some(l => l.nature !== 'charge')) { toast.error('Avoir : lignes de nature Charge uniquement'); return; }
     if (anomalie) {
       toast.error(anomalie.nature === 'stock' ? `« ${anomalie.designation} » : choisissez l’article de stock`
         : anomalie.nature === 'immobilisation' ? `« ${anomalie.designation} » : compte d’immobilisation (21 à 27) attendu`
@@ -221,6 +246,8 @@ export default function FournisseursPage() {
       statut: factForm.statut || 'brouillon',
       notes: factForm.notes || null,
       commande_id: factForm.commande_id ?? null,
+      type_document: factForm.type_document ?? 'facture',
+      facture_origine_id: factForm.facture_origine_id ?? null,
     };
     let factId = factForm.id;
     if (factId) {
@@ -324,7 +351,8 @@ export default function FournisseursPage() {
           <>
             <div className="flex justify-between items-center mb-3">
               <div className="text-[11px] text-fg3">{factures.length} facture(s)</div>
-              {canWrite && <button onClick={openFactNew} className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold">+ Nouvelle facture</button>}
+              {canWrite && <span className="flex gap-2"><button onClick={() => void openAvoir()} className="px-3 py-1.5 border border-border rounded text-[11px] hover:bg-bg3">+ Avoir</button>
+                <button onClick={openFactNew} className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold">+ Nouvelle facture</button></span>}
             </div>
             {loading ? <div className="text-center text-fg3 py-8">Chargement…</div> : (
               <div className="bg-bg2 border border-border rounded-lg overflow-hidden">
@@ -349,7 +377,7 @@ export default function FournisseursPage() {
                       const retard = f.date_echeance && new Date(f.date_echeance) < new Date() && f.statut !== 'payee' && f.statut !== 'annulee';
                       return (
                         <tr key={f.id} className="border-t border-border hover:bg-bg3">
-                          <td className="p-2 font-mono">{f.numero_interne}</td>
+                          <td className="p-2 font-mono">{f.numero_interne}{f.type_document === 'avoir' && <span className="ml-1 text-[9px] px-1 rounded bg-warning/20 text-warning">AVOIR</span>}</td>
                           <td className="p-2 font-mono text-fg3">{f.numero_fournisseur || '—'}</td>
                           <td className="p-2">{f.date_facture}</td>
                           <td className="p-2">{frn?.raison_sociale || '—'}</td>
@@ -375,6 +403,9 @@ export default function FournisseursPage() {
                                {canWrite && f.comptabilisee && f.statut !== 'payee' && f.statut !== 'annulee' && (
                                  <button onClick={() => openReglement(f)} className="text-warning hover:underline text-[10px]">Régler</button>
                                )}
+                               {canWrite && f.comptabilisee && f.type_document !== 'avoir' && f.statut !== 'annulee' && (
+                                 <button onClick={() => void openAvoir(f)} className="text-warning hover:underline text-[10px]" title="Émettre un avoir sur cette facture">Avoir</button>
+                               )}
                                {canWrite && !f.comptabilisee && <button onClick={() => deleteFact(f.id)} className="text-destructive hover:underline text-[10px]">Suppr</button>}
                             </div>
                           </td>
@@ -394,7 +425,7 @@ export default function FournisseursPage() {
         {tab === 'reglements' && (
           <ReglementsTiers sens="fournisseur" canWrite={canWrite} onMaj={load}
             tiers={fournisseurs.map(f => ({ id: f.id, code: f.code, nom: f.raison_sociale }))}
-            factures={factures.map(f => ({ id: f.id, numero: f.numero_interne, tiers_id: f.fournisseur_id, date_facture: f.date_facture, date_echeance: f.date_echeance,
+            factures={factures.map(f => ({ id: f.id, numero: f.numero_interne, tiers_id: f.fournisseur_id, avoir: f.type_document === 'avoir', date_facture: f.date_facture, date_echeance: f.date_echeance,
               total_ttc: Number(f.total_ttc), montant_paye: Number(f.montant_paye || 0), statut: f.statut, comptabilisee: f.comptabilisee }))}
             ouvrirPour={ouvrirReglement} onOuvert={() => setOuvrirReglement(null)} />
         )}
@@ -511,7 +542,7 @@ export default function FournisseursPage() {
       {showFact && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={() => setShowFact(false)}>
           <div className="bg-bg2 border border-border rounded-lg p-5 max-w-4xl w-full my-8" onClick={e => e.stopPropagation()}>
-            <div className="text-[15px] font-serif mb-4">{factForm.id ? 'Facture' : 'Nouvelle facture'} d'achat</div>
+            <div className="text-[15px] font-serif mb-4">{factForm.type_document === 'avoir' ? `Avoir fournisseur${factForm.facture_origine_id ? ` sur ${factures.find(x => x.id === factForm.facture_origine_id)?.numero_interne ?? ''}` : ''}` : `${factForm.id ? 'Facture' : 'Nouvelle facture'} d'achat`}</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px] mb-4">
               <div>
                 <label className="text-fg3 uppercase text-[10px]">N° Interne</label>
@@ -568,7 +599,7 @@ export default function FournisseursPage() {
                       <td className="p-1"><input type="number" step="0.01" value={l.prix_unitaire} onChange={e => { const n = [...lignes]; n[i].prix_unitaire = parseFloat(e.target.value) || 0; setLignes(recomputeLignes(n)); }} className="w-full bg-transparent text-right px-1 py-0.5" /></td>
                       <td className="p-1"><input type="number" step="0.01" value={l.taux_tva} onChange={e => { const n = [...lignes]; n[i].taux_tva = parseFloat(e.target.value) || 0; setLignes(n); }} className="w-full bg-transparent text-right px-1 py-0.5" /></td>
                       <td className="p-1">
-                        <select aria-label="Nature de la ligne" value={l.nature} onChange={e => { const n = [...lignes]; const nat = e.target.value as Ligne['nature']; n[i] = { ...n[i], nature: nat, compte_charge: nat === 'immobilisation' ? '2441' : nat === 'stock' ? '601' : (/^[23]/.test(n[i].compte_charge) ? '605' : n[i].compte_charge) }; setLignes(n); }} className="w-full bg-bg2 border border-border rounded px-1 py-0.5">
+                        <select aria-label="Nature de la ligne" value={l.nature} disabled={factForm.type_document === 'avoir'} onChange={e => { const n = [...lignes]; const nat = e.target.value as Ligne['nature']; n[i] = { ...n[i], nature: nat, compte_charge: nat === 'immobilisation' ? '2441' : nat === 'stock' ? '601' : (/^[23]/.test(n[i].compte_charge) ? '605' : n[i].compte_charge) }; setLignes(n); }} className="w-full bg-bg2 border border-border rounded px-1 py-0.5">
                           <option value="charge">Charge</option><option value="stock">Stock</option><option value="immobilisation">Immobilisation</option>
                         </select>
                       </td>
