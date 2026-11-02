@@ -49,7 +49,7 @@ describe('export Excel modèle DGID', () => {
     expect(c.lire('Page de garde', 'N51')).toBe('0012345 2G3');
     expect(c.lire('Page de garde', 'B17')).toBe('CENTRE DE DEPOT : ');
     expect(c.lire('Page de garde', 'B19')).toContain('ÉTATS PROVISOIRES');
-    expect(provisoire).toContain('REF-VISA');
+    expect(provisoire).not.toContain('REF-VISA');
     const R1 = 'Fiche de renseignement R1';
     expect(c.lire(R1, 'T71')).toBeNull();
     expect(c.lire(R1, 'I24')).toBe('SN-DKR-2024-B-1');
