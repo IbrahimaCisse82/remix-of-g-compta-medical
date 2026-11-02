@@ -1387,6 +1387,9 @@ export type Database = {
       }
       factures: {
         Row: {
+          type_document: string
+          facture_origine_id: string | null
+          piece_journal: string | null
           montant_paye: number
           client_id: string
           comptabilisee: boolean
@@ -1417,6 +1420,9 @@ export type Database = {
           uuid_dgid: string | null
         }
         Insert: {
+          type_document?: string
+          facture_origine_id?: string | null
+          piece_journal?: string | null
           montant_paye?: number
           client_id: string
           comptabilisee?: boolean
@@ -1447,6 +1453,9 @@ export type Database = {
           uuid_dgid?: string | null
         }
         Update: {
+          type_document?: string
+          facture_origine_id?: string | null
+          piece_journal?: string | null
           montant_paye?: number
           client_id?: string
           comptabilisee?: boolean
@@ -1480,6 +1489,8 @@ export type Database = {
       }
       factures_achat: {
         Row: {
+          type_document: string
+          facture_origine_id: string | null
           commande_id: string | null
           comptabilisee: boolean
           created_at: string
@@ -1503,6 +1514,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          type_document?: string
+          facture_origine_id?: string | null
           commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string
@@ -1526,6 +1539,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          type_document?: string
+          facture_origine_id?: string | null
           commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string

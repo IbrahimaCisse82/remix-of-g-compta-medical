@@ -15,6 +15,8 @@ export interface FactureOuverte {
   montant_paye: number;
   statut: string;
   comptabilisee: boolean;
+  /** Avoir : s'impute en déduction (compensation avec des factures, ou remboursement). */
+  avoir?: boolean;
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -47,6 +49,11 @@ export function trancheRetard(jours: number): 'non échu' | '1-30 j' | '31-60 j'
 export const journalTresorerie = (compte: string) => (compte.startsWith('57') ? 'CA' : 'BQ');
 export const estCompteTresorerie = (compte: string) => /^5[2-7]\d*$/.test(compte.trim());
 
+/** Net du règlement : factures moins avoirs, plus l'acompte. > 0 paiement/encaissement, < 0 remboursement, 0 compensation. */
+export function netReglement(factures: FactureOuverte[], montants: Record<string, number>, acompte: number): number {
+  return r2(factures.reduce((s, f) => s + (f.avoir ? -1 : 1) * r2(montants[f.id] ?? 0), 0) + r2(acompte));
+}
+
 /** Contrôle d'une saisie de règlement avant envoi (le serveur refait tous les contrôles). */
 export function controlerReglement(input: {
   factures: FactureOuverte[];
@@ -54,18 +61,21 @@ export function controlerReglement(input: {
   acompte: number;
   compte: string;
 }): string | null {
-  if (!estCompteTresorerie(input.compte)) return 'Compte de trésorerie attendu (52 banque, 55 monnaie électronique, 57 caisse)';
   if (input.acompte < 0) return 'Acompte négatif';
   const tiers = new Set(input.factures.map(f => f.tiers_id));
   if (tiers.size > 1) return 'Un règlement porte sur un seul tiers';
-  let total = r2(input.acompte);
+  let saisi = r2(input.acompte);
   for (const f of input.factures) {
     const m = r2(input.montants[f.id] ?? 0);
-    if (m < 0) return `Facture ${f.numero} : montant négatif`;
-    if (m > resteDu(f)) return `Facture ${f.numero} : ${m} pour ${resteDu(f)} restant dû`;
-    total = r2(total + m);
+    const quoi = f.avoir ? 'Avoir' : 'Facture';
+    if (m < 0) return `${quoi} ${f.numero} : montant négatif`;
+    if (m > resteDu(f)) return `${quoi} ${f.numero} : ${m} pour ${resteDu(f)} restant`;
+    saisi = r2(saisi + m);
   }
-  return total > 0 ? null : 'Aucun montant à régler';
+  if (saisi <= 0) return 'Aucun montant à régler';
+  const net = netReglement(input.factures, input.montants, input.acompte);
+  if (net !== 0 && !estCompteTresorerie(input.compte)) return 'Compte de trésorerie attendu (52 banque, 55 monnaie électronique, 57 caisse)';
+  return null;
 }
 
 export interface ReglementLu { id: string; acompte: number; annule_le?: string | null }

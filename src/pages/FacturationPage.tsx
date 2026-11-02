@@ -5,7 +5,6 @@ import { useApp } from '@/stores/app-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
-import { enregistrerLignesJournal } from '@/lib/ecritures';
 import ReglementsTiers from '@/components/ReglementsTiers';
 
 interface Client {
@@ -48,6 +47,8 @@ interface Facture {
   taux_tva: number;
   statut: 'brouillon' | 'validee' | 'payee_partiel' | 'payee' | 'annulee';
   montant_paye?: number;
+  type_document?: 'facture' | 'avoir';
+  facture_origine_id?: string | null;
   compte_vente: string;
   comptabilisee: boolean;
 }
@@ -55,7 +56,7 @@ interface Facture {
 const emptyLigne = (i = 0): Ligne => ({ designation: '', quantite: 1, prix_unitaire: 0, remise_pct: 0, montant_ht: 0, ordre: i });
 
 export default function FacturationPage() {
-  const { entreprise, exercice } = useApp();
+  const { entreprise, exercice, rafraichirComptabilite } = useApp();
   const { canWrite, canDelete } = useUserRole();
   const [tab, setTab] = useState<'factures' | 'reglements' | 'clients'>('factures');
   const [factures, setFactures] = useState<Facture[]>([]);
@@ -92,6 +93,11 @@ export default function FacturationPage() {
   const saveClient = async () => {
     if (!entreprise || !canWrite) return;
     if (!clientForm.code || !clientForm.nom) { toast.error('Code et nom requis'); return; }
+    // Compte client = compte collectif + 4 premiers chiffres du code (comme les fournisseurs), auxiliaire = code.
+    const chiffres = (c: string) => c.replace(/\D/g, '').slice(0, 4);
+    if (!chiffres(clientForm.code)) { toast.error('Le code client doit contenir des chiffres (ex. CLI001) : ils forment le compte 411xxxx'); return; }
+    const doublon = clients.find(c => c.id !== clientForm.id && (c.compte_tiers || '411') === (clientForm.compte_tiers || '411') && chiffres(c.code) === chiffres(clientForm.code!));
+    if (doublon) { toast.error(`Compte ${(clientForm.compte_tiers || '411') + chiffres(clientForm.code)} déjà utilisé par ${doublon.nom} : choisissez d’autres chiffres`); return; }
     const payload: any = {
       entreprise_id: entreprise.id,
       code: clientForm.code, nom: clientForm.nom,
@@ -127,9 +133,9 @@ export default function FacturationPage() {
     return { ht, tva, ttc: ht + tva };
   }, [lignes, factForm.taux_tva]);
 
-  const nextNumero = () => {
+  const nextNumero = (type: 'FC' | 'AV' = 'FC') => {
     const year = new Date().getFullYear();
-    const prefix = `FC-${year}-`;
+    const prefix = `${type}-${year}-`;
     const max = factures.filter(f => f.numero.startsWith(prefix))
       .map(f => parseInt(f.numero.slice(prefix.length)) || 0)
       .reduce((m, n) => Math.max(m, n), 0);
@@ -169,6 +175,8 @@ export default function FacturationPage() {
       taux_tva: Number(factForm.taux_tva ?? 18),
       statut: factForm.statut || 'brouillon',
       compte_vente: factForm.compte_vente || '701',
+      type_document: factForm.type_document ?? 'facture',
+      facture_origine_id: factForm.facture_origine_id ?? null,
     };
     let factureId = factForm.id;
     if (factureId) {
@@ -193,41 +201,34 @@ export default function FacturationPage() {
     setShowFact(false); setFactForm({}); setLignes([emptyLigne()]); load();
   };
 
-  // Comptabilisation : génère écritures dans le journal VT
+  // Comptabilisation côté serveur (une transaction) : 411 + chiffres du code client, ventes, TVA collectée 4431 ;
+  // un avoir passe l'écriture inverse. Totaux recalculés par le serveur depuis les lignes.
   const comptabiliserFacture = async (f: Facture) => {
     if (!entreprise || !exercice || !canWrite) return;
     if (f.comptabilisee) { toast.error('Déjà comptabilisée'); return; }
-    const client = clients.find(c => c.id === f.client_id);
-    if (!client) { toast.error('Client introuvable'); return; }
-    const compteClient = `${client.compte_tiers}${client.code}`.slice(0, 12);
-    const piece = f.numero;
-    const lib = `Facture ${f.numero} - ${client.nom}`;
-    const lines: any[] = [
-      // Débit 411 (TTC)
-      { entreprise_id: entreprise.id, exercice_id: exercice.id,
-        date_ecriture: f.date_facture, piece, journal_code: 'VT',
-        libelle: lib, compte: compteClient, intitule: `Client ${client.nom}`,
-        debit: f.total_ttc, credit: 0 },
-      // Crédit 70x (HT)
-      { entreprise_id: entreprise.id, exercice_id: exercice.id,
-        date_ecriture: f.date_facture, piece, journal_code: 'VT',
-        libelle: lib, compte: f.compte_vente, intitule: 'Ventes',
-        debit: 0, credit: f.total_ht },
-    ];
-    if (f.total_tva > 0) {
-      lines.push({
-        entreprise_id: entreprise.id, exercice_id: exercice.id,
-        date_ecriture: f.date_facture, piece, journal_code: 'VT',
-        libelle: lib, compte: '4431', intitule: 'TVA collectée',
-        debit: 0, credit: f.total_tva,
-      });
-    }
-    try {
-      await enregistrerLignesJournal(lines as any, { origine: 'facture_vente' });
-    } catch (e) { toast.error((e as Error).message); return; }
-    await supabase.from('factures').update({ comptabilisee: true, statut: 'validee' }).eq('id', f.id);
-    toast.success(`Facture ${f.numero} comptabilisée dans le journal VT`);
+    const { data, error } = await supabase.rpc('fn_comptabiliser_facture_vente' as any, { _facture_id: f.id });
+    if (error) { toast.error(error.message); return; }
+    const r = data as { ttc: number; compte_client: string };
+    toast.success(`${f.type_document === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero} comptabilisé(e) au journal VT : ${fmt(r.ttc)} (compte ${r.compte_client})`);
+    await rafraichirComptabilite();
     load();
+  };
+
+  // Avoir : reprend les lignes de la facture d'origine (à ajuster), même client, n° AV-<année>-NNNN.
+  const ouvrirAvoir = async (origine?: Facture) => {
+    if (!clients.length) { toast.error('Créez au moins un client'); return; }
+    setFactForm({
+      numero: nextNumero('AV'), type_document: 'avoir', facture_origine_id: origine?.id ?? null,
+      date_facture: new Date().toISOString().slice(0, 10), date_echeance: null,
+      client_id: origine?.client_id ?? clients[0].id, taux_tva: origine?.taux_tva ?? 18, compte_vente: origine?.compte_vente ?? '701',
+      objet: origine ? `Avoir sur facture ${origine.numero}` : '', statut: 'brouillon',
+    });
+    if (origine) {
+      const { data } = await supabase.from('facture_lignes').select('*').eq('facture_id', origine.id).order('ordre');
+      setLignes((data || []).map((l: any, i: number) => ({ designation: l.designation, quantite: Number(l.quantite), prix_unitaire: Number(l.prix_unitaire),
+        remise_pct: Number(l.remise_pct || 0), montant_ht: Number(l.montant_ht), ordre: i })));
+    } else setLignes([emptyLigne()]);
+    setShowFact(true);
   };
 
   // Règlements et acomptes clients : onglet dédié (fonctions serveur fn_regler_tiers & co.)
@@ -292,6 +293,7 @@ export default function FacturationPage() {
               <div className="flex justify-between items-center p-3 border-b border-border">
                 <span className="text-xs font-semibold">Factures émises</span>
                 {canWrite && <button onClick={openNewFacture} className="px-3 py-1 rounded text-xs bg-primary text-primary-foreground">+ Nouvelle facture</button>}
+                {canWrite && <button onClick={() => void ouvrirAvoir()} className="ml-2 px-3 py-1 rounded text-xs border border-border hover:bg-bg3">+ Avoir</button>}
               </div>
               <table className="w-full text-xs">
                 <thead className="bg-bg3 text-fg3">
@@ -312,7 +314,7 @@ export default function FacturationPage() {
                   {!loading && !factures.length && <tr><td colSpan={9} className="text-center p-6 text-fg3">Aucune facture</td></tr>}
                   {factures.map(f => (
                     <tr key={f.id} className="border-t border-border hover:bg-bg3/50">
-                      <td className="p-2 font-mono">{f.numero}</td>
+                      <td className="p-2 font-mono">{f.numero}{f.type_document === 'avoir' && <span className="ml-1 text-[9px] px-1 rounded bg-warning/20 text-warning">AVOIR</span>}</td>
                       <td className="p-2 font-mono text-[10px]">{f.date_facture}</td>
                       <td className="p-2">{client(f.client_id)?.nom || '—'}</td>
                       <td className="p-2 text-fg3 truncate max-w-[200px]">{f.objet || ''}</td>
@@ -324,6 +326,7 @@ export default function FacturationPage() {
                         <button onClick={() => printFacture(f)} className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3" title="Imprimer/PDF">🖨</button>
                         {canWrite && f.comptabilisee && f.statut !== 'payee' && f.statut !== 'annulee' && <button onClick={() => openReglement(f)} className="text-[10px] px-2 py-1 rounded border border-accent/40 text-accent hover:bg-accent/10" title="Règlement / acompte">💰</button>}
                         {canWrite && !f.comptabilisee && <button onClick={() => comptabiliserFacture(f)} className="text-[10px] px-2 py-1 rounded border border-primary/40 text-primary hover:bg-primary/10" title="Comptabiliser (Journal VT)">💾</button>}
+                        {canWrite && f.comptabilisee && f.type_document !== 'avoir' && f.statut !== 'annulee' && <button onClick={() => void ouvrirAvoir(f)} className="text-[10px] px-2 py-1 rounded border border-warning/40 text-warning hover:bg-warning/10" title="Émettre un avoir sur cette facture">Avoir</button>}
                         {canWrite && !f.comptabilisee && <button onClick={() => editFacture(f)} className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">✏️</button>}
                         {canDelete && !f.comptabilisee && <button onClick={() => deleteFacture(f.id)} className="text-[10px] px-2 py-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10">🗑</button>}
                       </td>
@@ -338,7 +341,7 @@ export default function FacturationPage() {
         {tab === 'reglements' && (
           <ReglementsTiers sens="client" canWrite={canWrite} onMaj={load}
             tiers={clients.map(c => ({ id: c.id, code: c.code, nom: c.nom }))}
-            factures={factures.map(f => ({ id: f.id, numero: f.numero, tiers_id: f.client_id, date_facture: f.date_facture, date_echeance: f.date_echeance,
+            factures={factures.map(f => ({ id: f.id, numero: f.numero, tiers_id: f.client_id, date_facture: f.date_facture, date_echeance: f.date_echeance, avoir: f.type_document === 'avoir',
               total_ttc: Number(f.total_ttc), montant_paye: Number(f.montant_paye || 0), statut: f.statut, comptabilisee: f.comptabilisee }))}
             ouvrirPour={ouvrirReglement} onOuvert={() => setOuvrirReglement(null)} />
         )}
@@ -387,7 +390,7 @@ export default function FacturationPage() {
       {showClient && (
         <Modal title={clientForm.id ? 'Modifier client' : 'Nouveau client'} onClose={() => setShowClient(false)}>
           <div className="grid grid-cols-2 gap-3 text-xs">
-            <Field label="Code"><input className="inp" value={clientForm.code || ''} onChange={e => setClientForm({ ...clientForm, code: e.target.value })} /></Field>
+            <Field label="Code (chiffres = compte 411xxxx)"><input className="inp" value={clientForm.code || ''} onChange={e => setClientForm({ ...clientForm, code: e.target.value })} /></Field>
             <Field label="Nom / Raison sociale"><input className="inp" value={clientForm.nom || ''} onChange={e => setClientForm({ ...clientForm, nom: e.target.value })} /></Field>
             <Field label="NINEA"><input className="inp" value={clientForm.ninea || ''} onChange={e => setClientForm({ ...clientForm, ninea: e.target.value })} /></Field>
             <Field label="RCCM"><input className="inp" value={clientForm.rccm || ''} onChange={e => setClientForm({ ...clientForm, rccm: e.target.value })} /></Field>
@@ -405,7 +408,7 @@ export default function FacturationPage() {
 
       {/* ===== FORM FACTURE ===== */}
       {showFact && (
-        <Modal title={factForm.id ? `Facture ${factForm.numero}` : 'Nouvelle facture'} onClose={() => setShowFact(false)} wide>
+        <Modal title={`${factForm.type_document === 'avoir' ? 'Avoir' : 'Facture'} ${factForm.id ? factForm.numero : '(nouveau)'}${factForm.facture_origine_id ? ` — sur ${factures.find(x => x.id === factForm.facture_origine_id)?.numero ?? ''}` : ''}`} onClose={() => setShowFact(false)} wide>
           <div className="grid grid-cols-4 gap-3 text-xs mb-4">
             <Field label="N° facture"><input className="inp" value={factForm.numero || ''} onChange={e => setFactForm({ ...factForm, numero: e.target.value })} /></Field>
             <Field label="Date facture"><input type="date" className="inp" value={factForm.date_facture || ''} onChange={e => setFactForm({ ...factForm, date_facture: e.target.value })} /></Field>
@@ -486,7 +489,7 @@ export default function FacturationPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold tracking-wider">FACTURE</div>
+                  <div className="text-2xl font-bold tracking-wider">{viewFact?.type_document === 'avoir' ? 'FACTURE D’AVOIR' : 'FACTURE'}</div>
                   <div className="text-lg font-mono mt-1">N° {viewFact.numero}</div>
                   <div className="text-xs mt-2">Date : <strong>{viewFact.date_facture}</strong></div>
                   {viewFact.date_echeance && <div className="text-xs">Échéance : <strong>{viewFact.date_echeance}</strong></div>}
