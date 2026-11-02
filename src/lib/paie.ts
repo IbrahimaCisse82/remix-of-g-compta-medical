@@ -49,24 +49,28 @@ export function getAnciennete(dateEntree?: string | null, refDate?: Date): numbe
   return Math.max(0, Math.floor((ref.getTime() - new Date(dateEntree).getTime()) / (365.25 * 86400000)));
 }
 
+/** Prime d'ancienneté (convention collective interprofessionnelle) : 2 % après 2 ans, +1 % par an, plafonnée à 25 %. */
 export function getTauxAnciennete(anc: number): number {
   if (anc < 2) return 0;
-  return anc / 100; // 2 ans → 2%, 17 ans → 17%
+  return Math.min(anc, 25) / 100;
 }
 
-// TRIMF (Taxe Représentative de l'Impôt du Minimum Fiscal)
+/**
+ * TRIMF (taxe représentative de l'impôt du minimum fiscal), montant annuel par part selon le revenu brut annuel ;
+ * parts : 1, plus 1 par conjoint sans revenu (au plus 5). Retourne le montant mensuel.
+ */
 export function calculerTRIMF(brutMensuel: number, parts: number): number {
   const ba = brutMensuel * 12;
   let t = 900;
-  if (ba >= 12000000)     t = parts * 36000;
-  else if (ba >= 7000000) t = parts * 18000;
-  else if (ba >= 2000000) t = parts * 12000;
-  else if (ba >= 1000000) t = parts * 4800;
-  else if (ba >= 600000)  t = parts * 3600;
-  return t / 12;
+  if (ba >= 12000000)     t = 36000;
+  else if (ba >= 7000000) t = 18000;
+  else if (ba >= 2000000) t = 12000;
+  else if (ba >= 1000000) t = 4800;
+  else if (ba >= 600000)  t = 3600;
+  return (t * parts) / 12;
 }
 
-// Barème IRPP Sénégal (annuel par part)
+/** Barème de l'impôt sur le revenu (CGI art. 173), appliqué au revenu annuel imposable entier. */
 export function calculerIRAnnuelParPart(baseArr: number): number {
   if (baseArr > 13500000) return 4359000 + (baseArr - 13500000) * 0.40;
   if (baseArr >  8000000) return 2324000 + (baseArr -  8000000) * 0.37;
@@ -74,6 +78,38 @@ export function calculerIRAnnuelParPart(baseArr: number): number {
   if (baseArr >  1500000) return  174000 + (baseArr -  1500000) * 0.30;
   if (baseArr >   630000) return            (baseArr -   630000) * 0.20;
   return 0;
+}
+export const baremeIRAnnuel = calculerIRAnnuelParPart;
+
+/** Réduction d'impôt pour charges de famille (CGI art. 174) : taux, minimum et maximum par nombre de parts. */
+export const REDUCTION_CHARGES_FAMILLE: Record<string, { taux: number; min: number; max: number }> = {
+  '1': { taux: 0, min: 0, max: 0 },
+  '1.5': { taux: 0.10, min: 100000, max: 300000 },
+  '2': { taux: 0.15, min: 200000, max: 650000 },
+  '2.5': { taux: 0.20, min: 300000, max: 1100000 },
+  '3': { taux: 0.25, min: 400000, max: 1650000 },
+  '3.5': { taux: 0.30, min: 500000, max: 2030000 },
+  '4': { taux: 0.35, min: 600000, max: 2490000 },
+  '4.5': { taux: 0.40, min: 700000, max: 2755000 },
+  '5': { taux: 0.45, min: 800000, max: 3180000 },
+};
+
+export function reductionChargesFamille(impotBrut: number, parts: number): number {
+  const r = REDUCTION_CHARGES_FAMILLE[String(Math.min(5, Math.max(1, parts)))] ?? REDUCTION_CHARGES_FAMILLE['1'];
+  return Math.min(r.max, Math.max(r.min, impotBrut * r.taux));
+}
+
+/**
+ * Nombre de parts (CGI art. 174) : célibataire ou divorcé 1 ; marié, ou veuf avec enfant, 1,5 ; +0,5 pour le
+ * conjoint sans revenu imposable ; +0,5 par enfant à charge ; plafond 5.
+ */
+export function partsFiscales(emp: Pick<Employee, 'situation_famille' | 'enfants' | 'femmes'>): number {
+  const enfants = Math.max(0, emp.enfants || 0);
+  const marie = emp.situation_famille === 'Marié(e)';
+  const veufAvecEnfant = emp.situation_famille === 'Veuf(ve)' && enfants > 0;
+  const base = marie || veufAvecEnfant ? 1.5 : 1;
+  const conjoint = marie && (emp.femmes || 0) > 0 ? 0.5 : 0;
+  return Math.min(5, base + conjoint + enfants * 0.5);
 }
 
 export type BulletinResult = {
@@ -97,19 +133,18 @@ export function calculerPaie(emp: Employee, p: PaieParametres, refDate?: Date): 
   const primeGardes = Math.max(0, emp.prime_gardes || 0);
   const brut = (emp.salaire_base || 0) + (emp.sursalaire || 0) + primeAnc + primeGardes;
 
-  const partsIR = emp.situation_famille === 'Marié(e)'
-    ? 1.5 + (emp.enfants || 0) * 0.5
-    : 1   + (emp.enfants || 0) * 0.5;
+  const partsIR = partsFiscales(emp);
 
+  // IR : abattement de 30 % plafonné à 900 000, revenu arrondi au millier inférieur, barème sur le revenu entier,
+  // puis réduction pour charges de famille ; retenue mensuelle = impôt annuel / 12.
   const brutAnnuel = brut * 12;
   const abatt = Math.min(brutAnnuel * 0.3, 900000);
-  const baseImp = brutAnnuel - abatt;
-  const baseArr = Math.floor((baseImp / partsIR) / 1000) * 1000;
-  const irPart = calculerIRAnnuelParPart(baseArr);
-  const ir = Math.max(0, (irPart * partsIR) / 12);
+  const baseImp = Math.floor((brutAnnuel - abatt) / 1000) * 1000;
+  const impotBrut = calculerIRAnnuelParPart(baseImp);
+  const ir = Math.round(Math.max(0, impotBrut - reductionChargesFamille(impotBrut, partsIR)) / 12);
 
   const partsTRIMF = Math.min(1 + (emp.femmes || 0), 5);
-  const trimf = calculerTRIMF(brut, partsTRIMF);
+  const trimf = Math.round(calculerTRIMF(brut, partsTRIMF));
 
   const baseRG = p.IPRES_RG.plafond ? Math.min(brut, p.IPRES_RG.plafond) : brut;
   const ipres_rg_s = baseRG * p.IPRES_RG.taux * p.IPRES_RG.tauxSalarial;
