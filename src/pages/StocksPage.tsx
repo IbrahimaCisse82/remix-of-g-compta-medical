@@ -5,7 +5,7 @@ import { useApp } from '@/stores/app-store';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
 import { calculerMouvement, valeurStock, compterRuptures, compteDeprecStock, lignesDepreciationStock } from '@/lib/stocks';
-import { enregistrerLignesJournal } from '@/lib/ecritures';
+import { enregistrerLignesJournal, lignesEnVigueur } from '@/lib/ecritures';
 
 type Article = {
   id: string;
@@ -136,13 +136,10 @@ export default function StocksPage() {
     const compteDeprec = compteDeprecStock(selected.compte_stock);
     // Dépréciation déjà constatée pour CET article (pièces DEP-<code>-…, tous exercices) : le compte 39X est
     // commun à plusieurs articles et ne peut pas servir de base.
-    const { data: existant } = await supabase
-      .from('journal')
-      .select('debit, credit')
-      .eq('entreprise_id', entreprise.id)
-      .eq('compte', compteDeprec)
-      .like('piece', `DEP-${selected.code}-%`);
-    const deprecExistante = (existant || []).reduce((s, l: any) => s + Number(l.credit || 0) - Number(l.debit || 0), 0);
+    let existant: Awaited<ReturnType<typeof lignesEnVigueur>>;
+    try { existant = await lignesEnVigueur(entreprise.id, compteDeprec, [`DEP-${selected.code}-`]); }
+    catch (e) { toast.error((e as Error).message); return; }
+    const deprecExistante = existant.reduce((s, l) => s + l.credit - l.debit, 0);
     const lignes = lignesDepreciationStock({
       compteStock: selected.compte_stock,
       designation: selected.designation,

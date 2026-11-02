@@ -73,3 +73,18 @@ describe('encoursProvisions', () => {
     ])).toBe(150);
   });
 });
+
+describe('provisions comptabilisées', () => {
+  it('cumule dotations et reprises de la seule provision visée', async () => {
+    const { provisionComptabilisee, pieceDotation } = await import('./provisions');
+    const lignes = [
+      { piece: 'PROV-LIT1-2025', compte: '191', debit: 0, credit: 500000 },
+      { piece: 'PROV-LIT1-2025', compte: '6911', debit: 500000, credit: 0 },
+      { piece: 'REP-LIT1-2026', compte: '191', debit: 200000, credit: 0 },
+      { piece: 'PROV-LIT10-2026', compte: '191', debit: 0, credit: 999 },
+    ];
+    expect(provisionComptabilisee('LIT1', '191', lignes)).toBe(300000);
+    expect(pieceDotation('LIT1', 2026, ['PROV-LIT1-2026'])).toBe('PROV-LIT1-2026-2');
+    expect(pieceDotation('LIT1', 2026, [])).toBe('PROV-LIT1-2026');
+  });
+});
