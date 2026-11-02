@@ -25,3 +25,28 @@ describe('lettrage des tiers', () => {
     expect(prochainCode(['A0001'], 'A', new Set(['A0002']))).toBe('A0003');
   });
 });
+
+describe('lettrage entre exercices et anciens paiements', () => {
+  const L = (id: string, p: Partial<import('./lettrage').LigneTiers>) => ({ id, compte: '401901', debit: 0, credit: 0, ...p });
+  it('une ligne sans auxiliaire rejoint un tiers, jamais deux tiers', async () => {
+    const { compatibles, controlerSelection } = await import('./lettrage');
+    expect(compatibles([L('a', { compte_auxiliaire: 'FRN901' }), L('b', {})])).toBe(true);
+    expect(compatibles([L('a', { compte_auxiliaire: 'FRN901' }), L('b', { compte_auxiliaire: 'FRN902' })])).toBe(false);
+    expect(compatibles([L('a', {}), L('b', { compte: '401902' })])).toBe(false);
+    expect(controlerSelection([L('a', { compte_auxiliaire: 'FRN901', credit: 100 }), L('b', { debit: 100 })], new Set())).toBeNull();
+  });
+  it('propositions par pièce : facture, ancien règlement REG- et à-nouveau détaillé', async () => {
+    const { propositionsParPiece } = await import('./lettrage');
+    const lignes = [
+      L('f', { piece: 'FA-TEST-001', libelle: 'Facture TEST', credit: 660800, compte_auxiliaire: 'FRN901' }),
+      L('r1', { piece: 'REG-FA-TEST-001', libelle: 'Règlement FA-TEST-001 — TEST', debit: 100000 }),
+      L('r2', { piece: 'RF-2026-0002', libelle: 'RF-2026-0002 — facture FA-TEST-001', debit: 560800, compte_auxiliaire: 'FRN901' }),
+      L('x', { piece: 'FA-TEST-0010', libelle: 'Autre', credit: 5000 }),
+      L('an', { piece: 'AN-CLOTURE-2025', libelle: 'A-nouveau 2025 — FA-9 — Facture FA-9', credit: 300, compte: '411901' }),
+      L('p9', { piece: 'RC-2026-0001', libelle: 'RC-2026-0001 — facture FA-9', debit: 300, compte: '411901' }),
+    ];
+    const g = propositionsParPiece(lignes, new Set());
+    expect(g.map(x => x.map(l => l.id).sort())).toEqual([['f', 'r1', 'r2'], ['an', 'p9']]);
+    expect(propositionsParPiece(lignes, new Set(['r1']))).toEqual([[lignes[4], lignes[5]]]);
+  });
+});

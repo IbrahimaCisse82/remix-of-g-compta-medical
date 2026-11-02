@@ -750,6 +750,13 @@
       "when": 1793496000106,
       "tag": "0106_paie_paiements",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1793496000107,
+      "tag": "0107_lettrage_inter_exercices",
+      "breakpoints": true
     }
   ]
 }

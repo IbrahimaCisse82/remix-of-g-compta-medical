@@ -2,7 +2,7 @@ import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { chargerTout } from '@/lib/pagination';
-import { cleTiers, controlerSelection, pairesAutomatiques, prochainCode } from '@/lib/lettrage';
+import { controlerSelection, pairesAutomatiques, prochainCode, propositionsParPiece } from '@/lib/lettrage';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,13 +28,15 @@ export default function LettragePage() {
     return journal.filter(j => j.compte.startsWith(compteFilter));
   }, [journal, compteFilter]);
 
-  // Regroupement par compte et par tiers (compte auxiliaire)
+  // Regroupement par compte : les lignes sans compte auxiliaire (à-nouveaux, anciennes saisies) se lettrent avec celles du tiers.
   const comptes = useMemo(() => {
     const map = new Map<string, { intitule: string; entries: typeof tiersEntries }>();
     for (const e of tiersEntries) {
-      const k = cleTiers(e);
-      if (!map.has(k)) map.set(k, { intitule: e.compte_auxiliaire ? `${e.compte_auxiliaire} ${e.auxiliaire_libelle ?? ''}`.trim() : e.intitule, entries: [] });
-      map.get(k)!.entries.push(e);
+      const k = e.compte;
+      if (!map.has(k)) map.set(k, { intitule: e.intitule, entries: [] });
+      const g = map.get(k)!;
+      if (e.compte_auxiliaire && !g.intitule.includes(e.compte_auxiliaire)) g.intitule = `${e.compte_auxiliaire} ${e.auxiliaire_libelle ?? ''}`.trim();
+      g.entries.push(e);
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [tiersEntries]);
@@ -120,6 +122,25 @@ export default function LettragePage() {
     setLoading(false);
   };
 
+  // Lettrage par pièce : facture + règlements (anciens « REG- », nouveaux) + à-nouveaux détaillés citant la même pièce.
+  const propositions = useMemo(() => propositionsParPiece(tiersEntries, lettredIds), [tiersEntries, lettredIds]);
+  const handleLettrageParPiece = async () => {
+    if (!entreprise || !exercice || !propositions.length) return;
+    setLoading(true);
+    const date = new Date().toISOString().slice(0, 10);
+    const nouveaux = new Set<string>();
+    const rows = propositions.flatMap(g => {
+      const code = prochainCode(codesExistants, 'P', nouveaux); nouveaux.add(code);
+      return g.map(l => ({ entreprise_id: entreprise.id, exercice_id: exercice.id, compte: l.compte, code_lettrage: code, journal_entry_id: l.id,
+        montant: (l.debit || 0) - (l.credit || 0), date_lettrage: date }));
+    });
+    const { error } = await supabase.from('lettrage').insert(rows);
+    if (error) toast.error('Erreur lettrage : ' + error.message);
+    else toast.success(`${nouveaux.size} lettrage(s) par pièce appliqué(s)`);
+    await loadLettrages();
+    setLoading(false);
+  };
+
   // Delettrage
   const handleDelettrage = async (code: string) => {
     const { error } = await supabase.from('lettrage').delete()
@@ -132,10 +153,14 @@ export default function LettragePage() {
     <div>
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div><div className="font-serif text-[17px]">🔗 Lettrage des Comptes Tiers</div>
-        <div className="text-[10px] text-fg3 font-mono">Rapprochement manuel et automatique</div></div>
+        <div className="text-[10px] text-fg3 font-mono">Rapprochement manuel, automatique et par pièce · à-nouveaux détaillés lettrables avec les règlements de l’exercice</div></div>
         <div className="flex items-center gap-2">
           <button onClick={handleAutoLettrage} disabled={loading} className="px-3 py-1.5 rounded text-[11px] font-bold border border-accent/30 text-accent hover:bg-accent/10">
             ⚡ Lettrage Auto
+          </button>
+          <button onClick={handleLettrageParPiece} disabled={loading || !propositions.length} title="Facture, règlements et à-nouveaux citant la même pièce (soldés)"
+            className="px-3 py-1.5 rounded text-[11px] font-bold border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40">
+            🧾 Lettrage par pièce ({propositions.length})
           </button>
         </div>
       </div>
@@ -169,12 +194,12 @@ export default function LettragePage() {
         {comptes.map(([compte, { intitule, entries }]) => (
           <div key={compte} className="bg-bg2 border border-border rounded-lg overflow-hidden mb-3">
             <div className="px-3.5 py-2 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-bold text-primary font-mono">{compte.split('|')[0]} — {intitule}</span>
+              <span className="text-xs font-bold text-primary font-mono">{compte} — {intitule}</span>
               <span className="text-[10px] text-fg3">{entries.length} écriture(s)</span>
             </div>
             <table className="w-full border-collapse">
               <thead><tr>
-                {['', 'Date', 'Pièce', 'Libellé', 'Débit', 'Crédit', 'Lettrage'].map(h => (
+                {['', 'Date', 'Pièce', 'Tiers', 'Libellé', 'Débit', 'Crédit', 'Lettrage'].map(h => (
                   <th key={h} className="bg-bg3 px-3 py-1.5 text-left text-[9px] font-bold text-fg3 uppercase tracking-[1px] font-mono border-b border-border">{h}</th>
                 ))}
               </tr></thead>
@@ -189,6 +214,7 @@ export default function LettragePage() {
                       </td>
                       <td className="px-3 py-1.5 text-[11px] font-mono border-b border-border/50">{e.date_ecriture}</td>
                       <td className="px-3 py-1.5 text-[11px] border-b border-border/50"><span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[9px] font-bold font-mono">{e.piece}</span></td>
+                      <td className="px-3 py-1.5 text-[10px] font-mono text-fg3 border-b border-border/50">{e.compte_auxiliaire ?? '—'}</td>
                       <td className="px-3 py-1.5 text-[11px] border-b border-border/50">{e.libelle}</td>
                       <td className="px-3 py-1.5 text-[11px] font-mono text-right text-primary border-b border-border/50">{e.debit ? fmt(e.debit) : ''}</td>
                       <td className="px-3 py-1.5 text-[11px] font-mono text-right text-success border-b border-border/50">{e.credit ? fmt(e.credit) : ''}</td>
