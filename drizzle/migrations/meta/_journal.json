@@ -687,6 +687,13 @@
       "when": 1793496000097,
       "tag": "0097_paie_historique_protege",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1793496000098,
+      "tag": "0098_lettrage_integrite",
+      "breakpoints": true
     }
   ]
 }
