@@ -743,6 +743,13 @@
       "when": 1793496000105,
       "tag": "0105_ventes_serveur_avoirs",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1793496000106,
+      "tag": "0106_paie_paiements",
+      "breakpoints": true
     }
   ]
 }
