@@ -63,7 +63,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
   const aujourdhui = auj();
   const parTranche = useMemo(() => {
     const t: Record<string, number> = {};
-    for (const f of ouvertes) { const k = trancheRetard(joursRetard(f, aujourdhui)); t[k] = (t[k] ?? 0) + resteDu(f); }
+    for (const f of ouvertes) { const k = trancheRetard(joursRetard(f, aujourdhui)); t[k] = (t[k] ?? 0) + (f.avoir ? -1 : 1) * resteDu(f); }
     return t;
   }, [ouvertes, aujourdhui]);
 
@@ -151,7 +151,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
             {canWrite && <button onClick={() => setSaisie({ ...nouvelleSaisie([], filtreTiers), acompte: 0 })} className="px-3 py-1 rounded border border-border hover:bg-bg3">{fourn ? 'Verser un acompte' : 'Recevoir un acompte'}</button>}
           </span>
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto"><table className="w-full">
           <thead className="bg-bg3 text-fg3 text-[10px] uppercase"><tr>
             <th className="w-6" /><th className="text-left p-2">Facture</th><th className="text-left p-2">{fourn ? 'Fournisseur' : 'Client'}</th><th className="text-left p-2">Échéance</th>
             <th className="text-right p-2">TTC</th><th className="text-right p-2">Payé</th><th className="text-right p-2">Reste dû</th><th className="text-left p-2">Retard</th><th />
@@ -173,7 +173,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
             })}
             {!ouvertes.length && <tr><td colSpan={9} className="text-center text-fg3 py-4">Aucune facture comptabilisée en attente de règlement</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Acomptes disponibles */}
@@ -196,7 +196,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
       {/* Historique */}
       <div className="bg-bg2 border border-border rounded-lg overflow-hidden">
         <div className="px-3 py-2 border-b border-border font-bold text-xs">Règlements enregistrés</div>
-        <table className="w-full">
+        <div className="overflow-x-auto"><table className="w-full">
           <thead className="bg-bg3 text-fg3 text-[10px] uppercase"><tr>
             <th className="text-left p-2">N°</th><th className="text-left p-2">Date</th><th className="text-left p-2">{fourn ? 'Fournisseur' : 'Client'}</th><th className="text-left p-2">Mode / réf.</th>
             <th className="text-left p-2">Jnl / compte</th><th className="text-right p-2">Montant</th><th className="text-left p-2">Imputations</th><th />
@@ -213,7 +213,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
                   <td className="p-2 text-[10px]">
                     {imps.map(i => (
                       <div key={i.id} className={i.annule_le ? 'line-through text-fg3' : ''}>
-                        {i.origine === 'acompte' ? 'Acompte imputé' : 'Facture'} {numFacture(i.facture_achat_id ?? i.facture_id)} : {fmt(i.montant)}
+                        {i.origine === 'acompte' ? 'Acompte imputé sur' : factures.find(x => x.id === (i.facture_achat_id ?? i.facture_id))?.avoir ? 'Avoir' : 'Facture'} {numFacture(i.facture_achat_id ?? i.facture_id)} : {fmt(i.montant)}
                         {i.origine === 'acompte' && !i.annule_le && !r.annule_le && canWrite && <button className="ml-1 text-destructive hover:underline" onClick={() => setAnnul({ reglement: r, imputation: i, motif: '' })}>annuler</button>}
                       </div>))}
                     {r.annule_le && <div className="text-destructive no-underline">Annulé : {r.motif_annulation}</div>}
@@ -224,7 +224,7 @@ export default function ReglementsTiers({ sens, tiers, factures, canWrite, onMaj
             })}
             {!reglements.length && <tr><td colSpan={8} className="text-center text-fg3 py-4">Aucun règlement</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Saisie d'un règlement */}
