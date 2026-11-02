@@ -1,6 +1,7 @@
 import { saisir } from '@/components/Confirmation';
 import ControleComptable from '@/components/ControleComptable';
 import AffectationResultat from '@/components/AffectationResultat';
+import FacturesNonParvenues from '@/components/FacturesNonParvenues';
 import { controlesSyscohada } from '@/lib/conformite-syscohada';
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
@@ -97,6 +98,7 @@ export default function CloturePage() {
           )}
         </div>
 
+        <FacturesNonParvenues />
         <AffectationResultat />
 
         {/* All exercices */}
