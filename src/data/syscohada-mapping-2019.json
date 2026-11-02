@@ -1171,12 +1171,12 @@
       "poste": "CH",
       "libelle": "Report à nouveau (+ ou -)",
       "colonne": "N et N-1",
-      "comptes_prefixes": "121;129",
+      "comptes_prefixes": "12",
       "exclusions": "",
       "sens_solde": "net",
       "signe": "+1/-1",
       "verification": "RECONSTITUE_A_VALIDER",
-      "commentaire": "Report à nouveau et résultat: en addition si créditeurs, en soustraction si débiteurs (Guide §2.3)"
+      "commentaire": "Report à nouveau et résultat: en addition si créditeurs, en soustraction si débiteurs (Guide §2.3) ; racine 12 : couvre aussi un compte général 120 (Guide d'application, Application 127)"
     },
     {
       "etat": "BILAN_PASSIF",

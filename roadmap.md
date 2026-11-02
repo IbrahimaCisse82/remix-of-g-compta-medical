@@ -181,7 +181,7 @@ Un module n’est clos qu’après correction et vérification de ses parcours ;
 - [ ] TFT complet et retraitements non monétaires — attend les affectations par nature et les pièces justificatives nécessaires aux flux complexes ; aucune ventilation inventée.
 - [ ] Clôture complète atomique avec résultat en 131/139, reports et réouverture cohérente — attend les règles d'affectation validées ; ancien report client supprimé, clôture suspendue.
 - [ ] Notes, maquettes SN/SMT, Excel et contrôles C09–C14 — attend les imprimés normalisés et règles officielles manquantes ; notes vides et 8A obsolète exclues de l'export.
-- [ ] Recette officielle Application 127 — attend les balances du Guide pages 343–350 et les imprimés officiels.
+- [x] Recette officielle Application 127 (02/11) — balances N et N-1 du Guide d'application (p. 343-350) passées dans le moteur : bilan actif/passif, compte de résultat et TFT, N et N-1, identiques au franc près aux pages 356-358 ; totaux des notes 3A à 34 identiques ; test permanent src/lib/guide-syscohada-app127.test.ts. Corrections issues de la recette : report à nouveau sur compte général 120, comptes généraux complétés de zéros (120000, 691000), écarts de conversion 4782/4784/4792/4794 rattachés aux flux financiers, immobilisations financières présentées en brut (FH/FJ), Note 34 avec écarts de conversion. Limites : la balance ne permet pas de distinguer acquisitions et réévaluations (Note 3A) ni les ventilations hors plan du guide (régions, transports du personnel) ; contrôle C02 en échec sur le guide lui-même (comptes renumérotés entre N-1 et N).
 - [ ] Validation normative — attend la revue des mappings « à valider » et le visa d’un expert-comptable.
 
 ## Après livraison (selon tiers externes)
