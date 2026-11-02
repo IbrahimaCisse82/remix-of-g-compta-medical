@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
-import { enregistrerLignesJournal, lignesEnVigueur } from '@/lib/ecritures';
+import { enregistrerLignesJournal } from '@/lib/ecritures';
 import {
   NATURES_PROVISIONS as NATURES, lignesDotationProvision, lignesRepriseProvision,
-  validerMontantReprise, encoursProvisions, provisionComptabilisee, pieceDotation,
+  validerMontantReprise, encoursProvisions,
 } from '@/lib/provisions';
 
 type Provision = {
@@ -75,59 +75,37 @@ export default function ProvisionsPage() {
     else { toast.success('Provision enregistrée'); setShowForm(false); setForm(empty()); load(); }
   };
 
-  /** Lignes déjà comptabilisées pour la provision (dotations PROV-… et reprises REP-…, tous exercices). */
-  const lignesProvision = (p: Provision) => lignesEnVigueur(entreprise!.id, p.compte_provision, [`PROV-${p.code}-`, `REP-${p.code}-`]);
-
-  // Dotation = montant à couvrir − provision déjà comptabilisée : constitution, puis compléments éventuels.
-  // Une provision encore active d'un exercice à l'autre n'est donc jamais dotée deux fois.
   const comptabiliserDotation = async (p: Provision) => {
     if (!exercice || !entreprise) return;
+    const ctx = { entreprise_id: entreprise.id, exercice_id: exercice.id, date: exercice.date_fin };
+    const lines = lignesDotationProvision(p, ctx)
+      .map(l => ({ ...l, piece: `${l.piece}-${exercice.annee}` }));
     try {
-      const lignesExistantes = await lignesProvision(p);
-      const deja = provisionComptabilisee(p.code, p.compte_provision, lignesExistantes);
-      const delta = Math.round((p.montant_actuel - deja) * 100) / 100;
-      if (delta === 0) { toast.info(`Provision ${p.code} déjà comptabilisée pour ${fmt(deja)} : rien à doter.`); return; }
-      if (delta < 0) { toast.error(`Provision comptabilisée (${fmt(deja)}) supérieure au montant à couvrir (${fmt(p.montant_actuel)}) : passez une reprise de ${fmt(-delta)}.`); return; }
-      const piece = pieceDotation(p.code, exercice.annee, [...new Set(lignesExistantes.map(l => l.piece || ''))]);
-      const ctx = { entreprise_id: entreprise.id, exercice_id: exercice.id, date: exercice.date_fin };
-      const lines = lignesDotationProvision({ ...p, montant_actuel: delta }, ctx).map(l => ({ ...l, piece }));
       await enregistrerLignesJournal(lines as any, { origine: 'provision', pieceUnique: true });
-      toast.success(`${deja ? 'Complément de dotation' : 'Dotation'} ${fmt(delta)} comptabilisé (${piece})`);
+      toast.success(`Dotation ${fmt(p.montant_actuel)} comptabilisée (${lines[0].piece})`);
     } catch (e) { toast.error((e as Error).message); }
   };
 
   const reprendre = async (p: Provision, montant: number, totale: boolean) => {
     if (!exercice || !entreprise) return;
-    let deja: number;
-    try { deja = provisionComptabilisee(p.code, p.compte_provision, await lignesProvision(p)); }
-    catch (e) { toast.error((e as Error).message); return; }
-    // La reprise ne peut dépasser ni le montant suivi ni la provision réellement comptabilisée.
-    const err = validerMontantReprise(montant, Math.min(p.montant_actuel, deja));
-    if (err) { toast.error(deja < montant ? `Reprise supérieure à la provision comptabilisée (${fmt(deja)}) : comptabilisez d'abord la dotation.` : err); return; }
+    const err = validerMontantReprise(montant, p.montant_actuel);
+    if (err) { toast.error(err); return; }
     const ctx = { entreprise_id: entreprise.id, exercice_id: exercice.id, date: exercice.date_fin };
     const lines = lignesRepriseProvision(p, montant, ctx)
       .map(l => ({ ...l, piece: `${l.piece}-${exercice.annee}` }));
     try {
       await enregistrerLignesJournal(lines as any, { origine: 'reprise_provision' });
     } catch (e) { toast.error((e as Error).message); return; }
-    const reste = Math.round((p.montant_actuel - montant) * 100) / 100;
-    const { error } = await supabase.from('provisions').update({
-      montant_actuel: reste,
-      statut: totale || reste === 0 ? 'reprise_totale' : 'reprise_partielle',
+    await supabase.from('provisions').update({
+      montant_actuel: p.montant_actuel - montant,
+      statut: totale ? 'reprise_totale' : 'reprise_partielle',
       date_reprise: exercice.date_fin,
     }).eq('id', p.id);
-    if (error) toast.error(`Reprise comptabilisée, fiche non mise à jour : ${error.message}`);
-    else toast.success(`Reprise ${fmt(montant)} comptabilisée (${lines[0].piece})`);
+    toast.success(`Reprise ${fmt(montant)} comptabilisée (${lines[0].piece})`);
     load();
   };
 
   const remove = async (id: string) => {
-    const p = list.find(x => x.id === id);
-    if (p && entreprise) {
-      try {
-        if ((await lignesProvision(p)).length) { toast.error(`Provision ${p.code} déjà comptabilisée : la fiche est conservée (reprenez-la pour la solder).`); return; }
-      } catch (e) { toast.error((e as Error).message); return; }
-    }
     if (!(await confirmer('Supprimer cette provision ?'))) return;
     const { error } = await supabase.from('provisions').delete().eq('id', id);
     if (error) toast.error(error.message);

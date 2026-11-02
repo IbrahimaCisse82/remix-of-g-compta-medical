@@ -24,7 +24,7 @@ export interface NatureProvision {
 export const NATURES_PROVISIONS: NatureProvision[] = [
   { code: 'exploitation', label: "Provision risques et charges d'exploitation", cp: '191', cd: '6911', cr: '7911' },
   { code: 'financiere', label: 'Provision risques et charges financières', cp: '194', cd: '6971', cr: '7971' },
-  { code: 'hao', label: 'Provision risques et charges HAO', cp: '198', cd: '854', cr: '864' },
+  { code: 'hao', label: 'Provision risques et charges HAO', cp: '198', cd: '853', cr: '863' },
   { code: 'depreciation_immo', label: 'Dépréciation immobilisations (29X)', cp: '291', cd: '6913', cr: '7913' },
   { code: 'depreciation_stock', label: 'Dépréciation stocks (39X)', cp: '391', cd: '6593', cr: '7593' },
   { code: 'depreciation_creance', label: 'Dépréciation créances (491)', cp: '491', cd: '6594', cr: '7594' },
@@ -95,23 +95,4 @@ export function encoursProvisions(list: Array<{ statut: string; montant_actuel: 
   return list
     .filter(p => p.statut !== 'reprise_totale')
     .reduce((s, p) => s + p.montant_actuel, 0);
-}
-
-/**
- * Provision déjà comptabilisée pour une provision donnée : crédits − débits de son compte de provision sur les
- * pièces PROV-<code>-… (dotations) et REP-<code>-… (reprises), tous exercices confondus.
- */
-export function provisionComptabilisee(code: string, compteProvision: string, lignes: Array<{ piece: string | null; compte: string; debit: number; credit: number }>): number {
-  const rattachee = (piece: string | null) => !!piece && (piece.startsWith(`PROV-${code}-`) || piece.startsWith(`REP-${code}-`));
-  return Math.round(lignes.filter(l => l.compte === compteProvision && rattachee(l.piece))
-    .reduce((s, l) => s + Number(l.credit || 0) - Number(l.debit || 0), 0) * 100) / 100;
-}
-
-/** Pièce de dotation de l'exercice : PROV-<code>-<année>, puis -2, -3… pour un complément dans le même exercice. */
-export function pieceDotation(code: string, annee: number, piecesExistantes: string[]): string {
-  const base = `PROV-${code}-${annee}`;
-  if (!piecesExistantes.includes(base)) return base;
-  let n = 2;
-  while (piecesExistantes.includes(`${base}-${n}`)) n++;
-  return `${base}-${n}`;
 }

@@ -3,8 +3,6 @@ import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { confirmer } from '@/components/Confirmation';
-import { realiseParMois } from '@/lib/budget';
 
 interface BudgetLine { id: string; compte: string; intitule: string; mois: number; montant_budget: number; }
 
@@ -28,13 +26,18 @@ export default function BudgetPage() {
 
   useEffect(() => { loadBudgets(); }, [loadBudgets]);
 
-  // Réalisé par compte budgété (racine : 601 couvre 6011, 6012…), produits lus au crédit.
-  const lignesGestion = useMemo(() => journal.filter(j => /^[6-7]/.test(j.compte)), [journal]);
+  // Realized amounts from journal by month
   const realized = useMemo(() => {
     const map = new Map<string, number[]>();
-    for (const c of new Set(budgets.map(b => b.compte))) map.set(c, realiseParMois(c, lignesGestion));
+    for (const j of journal) {
+      if (!/^[6-7]/.test(j.compte)) continue;
+      const m = new Date(j.date_ecriture).getMonth();
+      if (!map.has(j.compte)) map.set(j.compte, Array(12).fill(0));
+      const arr = map.get(j.compte)!;
+      arr[m] += (j.debit || 0) - (j.credit || 0);
+    }
     return map;
-  }, [budgets, lignesGestion]);
+  }, [journal]);
 
   // Group budgets by compte
   const compteGroups = useMemo(() => {
@@ -48,7 +51,6 @@ export default function BudgetPage() {
 
   const addBudget = async () => {
     if (!entreprise || !exercice || !newCompte) return;
-    if (!/^[67]\d*$/.test(newCompte.trim())) return void toast.error('Budget : compte ou racine de charges (6) ou de produits (7).');
     if (budgets.some(b => b.compte === newCompte.trim())) return void toast.error(`Le compte ${newCompte.trim()} a déjà un budget pour cet exercice : supprimez-le avant de le ressaisir.`);
     setLoading(true);
     const inserts = newMontants.map((m, i) => ({
@@ -62,9 +64,7 @@ export default function BudgetPage() {
   };
 
   const deleteBudget = async (compte: string) => {
-    if (!(await confirmer(`Supprimer le budget du compte ${compte} ?`))) return;
-    const { error } = await supabase.from('budgets').delete().eq('compte', compte).eq('entreprise_id', entreprise?.id).eq('exercice_id', exercice?.id);
-    if (error) return void toast.error(error.message);
+    await supabase.from('budgets').delete().eq('compte', compte).eq('entreprise_id', entreprise?.id).eq('exercice_id', exercice?.id);
     toast.success('Budget supprimé');
     await loadBudgets();
   };

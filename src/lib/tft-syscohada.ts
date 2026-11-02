@@ -22,9 +22,6 @@ const commence = (c: string, prefixes: string[]) => prefixes.some(p => c.startsW
 
 /** Comptes de gestion sortis de la CAFG (non monétaires ou liés aux investissements) et leur flux. */
 export function fluxCompteGestion(c: string): Seau | null {
-  // Compte général complété de zéros (691000, 791000…) : provisions pour risques et charges, comme le Guide
-  // d'application (Application 127 : 691000 « Dotations aux provisions pour risques », contrepartie 196).
-  if (/^(691|697|791|797)0*$/.test(c)) return 'NC0';
   if (commence(c, ['6541'])) return 'FF';
   if (commence(c, ['654'])) return 'FG';
   if (commence(c, ['754'])) return 'FI';
@@ -43,7 +40,7 @@ export function fluxCompteGestion(c: string): Seau | null {
   if (commence(c, ['798'])) return 'FG';
   if (commence(c, ['799'])) return 'FL';
   if (commence(c, ['811'])) return 'FF';
-  if (commence(c, ['816'])) return 'FJ';                       // VCEAC financière : neutralise le crédit brut 26/27 en FJ
+  if (commence(c, ['816'])) return 'FH';
   if (commence(c, ['81'])) return 'FG';
   if (commence(c, ['826'])) return 'FJ';
   if (commence(c, ['82'])) return 'FI';
@@ -53,7 +50,7 @@ export function fluxCompteGestion(c: string): Seau | null {
 }
 
 /** Affectation d'un compte de bilan (classes 1 à 5). */
-export function fluxCompteBilan(c: string): Seau | 'TIERS' | 'DETTE_FIN' | 'IMMO_FIN' {
+export function fluxCompteBilan(c: string): Seau | 'TIERS' | 'DETTE_FIN' {
   // Classe 5 : trésorerie, sauf dépréciations et provisions à court terme (59) contreparties de 679/779.
   if (c.startsWith('59')) return 'NC0';
   if (c.startsWith('5')) return 'TRESO';
@@ -67,26 +64,14 @@ export function fluxCompteBilan(c: string): Seau | 'TIERS' | 'DETTE_FIN' | 'IMMO
   if (commence(c, ['18'])) return 'TIERS';                      // comptes de liaison 185 à 188
   // Classe 2 (brut, amortissements, dépréciations)
   if (commence(c, ['21', '251', '281', '291'])) return 'FF';
-  if (commence(c, ['296', '297'])) return 'FH';
-  if (commence(c, ['26', '27'])) return 'IMMO_FIN';
+  if (commence(c, ['26', '27', '296', '297'])) return 'FH';
   if (c.startsWith('2')) return 'FG';
   // Classe 3
   if (c.startsWith('3')) return 'FC';
   // Classe 4 : comptes rattachés aux investissements, au financement ou à l'actif circulant HAO
-  // Sous-comptes créés par le plan révisé « pour faciliter l'élaboration du TFT » (référentiel du 12/07/2019) :
-  // fournisseurs d'immobilisations incorporelles (réserve de propriété, retenues de garantie, factures non
-  // parvenues) et écarts de conversion sur créances et dettes HAO.
-  if (commence(c, ['4041', '4046', '4811', '4821', '48161', '48171', '48181'])) return 'FF';
-  if (commence(c, ['47818', '47838', '47918', '47938'])) return 'FB';
+  if (commence(c, ['4041', '4046', '4811', '4821'])) return 'FF';
   if (commence(c, ['4813'])) return 'FH';
   if (commence(c, ['404', '481', '482'])) return 'FG';
-  // Écarts de conversion sur créances et dettes financières : non monétaires, neutralisés dans le flux de
-  // l'élément converti (Guide, Application 127 : 4794 « diminution des dettes financières » corrige le
-  // remboursement d'emprunt FQ, et non la variation du passif circulant).
-  if (commence(c, ['4782'])) return 'FJ';
-  if (commence(c, ['4792'])) return 'FH';
-  if (commence(c, ['4784'])) return 'FO';
-  if (commence(c, ['4794'])) return 'FQ';
   if (commence(c, ['4856'])) return 'FJ';
   if (commence(c, ['414', '485'])) return 'FI';
   if (commence(c, ['488', '498'])) return 'FB';
@@ -138,13 +123,6 @@ export function calculerTft(balance: BalanceLine[]): ResultatTft {
         const sdO = Math.max(ouv, 0), scO = Math.max(-ouv, 0), sdC = Math.max(clo, 0), scC = Math.max(-clo, 0);
         ajoute('FD', -(sdC - sdO));
         ajoute('FE', scC - scO);
-        break;
-      }
-      case 'IMMO_FIN': {
-        // Présentation brute (Guide, Application 127) : acquisitions, prêts et dépôts versés en FH,
-        // cessions et remboursements reçus en FJ.
-        ajoute('FH', -((l.md || 0) - (l.sd || 0)));
-        ajoute('FJ', (l.mc || 0) - (l.sc || 0));
         break;
       }
       case 'DETTE_FIN': {

@@ -1,5 +1,5 @@
 import { calc, PASSIF, CR, calculateActif, type BalanceLine } from './accounting';
-import { accountReference, REFERENCE_MAPPING, REFERENCE_VISA, UNVALIDATED_MAPPINGS } from './syscohada-reference';
+import { accountReference, REFERENCE_MAPPING, UNVALIDATED_MAPPINGS } from './syscohada-reference';
 import { calculerTft } from './tft-syscohada';
 
 const prefixes = (r: { comptes_prefixes: string; exclusions: string }, compte: string) =>
@@ -77,7 +77,7 @@ export function controlesSyscohada(balance: BalanceLine[], previous: BalanceLine
     check('C08', !a.issues.some(i=>i.startsWith('C08')), a.issues.filter(i=>i.startsWith('C08')).join('; ') || 'Aucun compte partagé non affecté'),
     check('C09', omis.length === 0, omis.length ? `Soldes repris dans aucun poste du bilan : ${omis.map(o => `${o.compte} (${o.solde > 0 ? 'débiteur' : 'créditeur'} ${Math.abs(o.solde)})`).join(', ')}` : 'Tous les soldes de bilan sont repris'),
     check('TFT-RETRAITEMENTS', true, unsupported.length ? `Retraitements appliqués automatiquement (location-acquisition, cessions, capital, dividendes…) : ${unsupported.map(b=>b.compte).join(', ')} — à vérifier` : 'Aucune opération complexe détectée', false),
-    check('REF-VISA', UNVALIDATED_MAPPINGS.length === 0, REFERENCE_VISA ? `Référentiel visé par l'expert-comptable (déclaré le ${REFERENCE_VISA.date.split('-').reverse().join('/')})` : `${UNVALIDATED_MAPPINGS.length} lignes du référentiel fourni restent à valider officiellement`),
+    check('REF-VISA', UNVALIDATED_MAPPINGS.length === 0, `${UNVALIDATED_MAPPINGS.length} lignes du référentiel fourni restent à valider officiellement`),
   ];
 }
 

@@ -1,11 +1,10 @@
-import { confirmer, saisir } from '@/components/Confirmation';
+import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
 import { enregistrerLignesJournal } from '@/lib/ecritures';
-import { cleOperation, effetSolde, lignesMobileMoney, lireCsvMobileMoney } from '@/lib/mobile-money';
 
 type Moyen = {
   id: string;
@@ -45,7 +44,7 @@ const OPERATEURS = [
 const opInfo = (code: string) => OPERATEURS.find(o => o.code === code) || OPERATEURS[4];
 
 export default function MobileMoneyPage() {
-  const { entreprise, exercice, plan, rafraichirComptabilite } = useApp();
+  const { entreprise, exercice } = useApp();
   const [moyens, setMoyens] = useState<Moyen[]>([]);
   const [trx, setTrx] = useState<Trx[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,9 +83,9 @@ export default function MobileMoneyPage() {
     const s: Record<string, { entree: number; sortie: number; solde: number; nb: number }> = {};
     moyens.forEach(m => { s[m.id] = { entree: 0, sortie: 0, solde: 0, nb: 0 }; });
     trx.forEach(t => {
-      if (!s[t.moyen_id] || t.statut === 'ignoree') return;
-      const e = effetSolde(t);
-      if (e >= 0) s[t.moyen_id].entree += e; else s[t.moyen_id].sortie -= e;
+      if (!s[t.moyen_id]) return;
+      if (t.sens === 'entree') s[t.moyen_id].entree += Number(t.montant);
+      else s[t.moyen_id].sortie += Number(t.montant) + Number(t.frais);
       s[t.moyen_id].nb++;
     });
     Object.values(s).forEach(v => { v.solde = v.entree - v.sortie; });
@@ -121,22 +120,15 @@ export default function MobileMoneyPage() {
   };
 
   const deleteMoyen = async (m: Moyen) => {
-    if (trx.some(t => t.moyen_id === m.id && t.statut === 'rapprochee')) {
-      toast.error('Ce moyen a des transactions comptabilisées : désactivez-le plutôt que de le supprimer.'); return;
-    }
-    if (!(await confirmer(`Supprimer "${m.libelle}" et ses transactions non comptabilisées ?`))) return;
-    const { error } = await supabase.from('moyens_paiement').delete().eq('id', m.id);
-    if (error) { toast.error(error.message); return; }
+    if (!(await confirmer(`Supprimer "${m.libelle}" et toutes ses transactions ?`))) return;
+    await supabase.from('moyens_paiement').delete().eq('id', m.id);
     toast.success('Supprimé'); load();
   };
 
   // ─────── Transactions ───────
   const saveTrx = async () => {
-    if (!entreprise || !trxForm.moyen_id || !(Number(trxForm.montant) > 0)) {
+    if (!entreprise || !trxForm.moyen_id || !trxForm.montant) {
       toast.error('Moyen et montant requis'); return;
-    }
-    if (Number(trxForm.frais || 0) < 0 || (trxForm.sens === 'entree' && Number(trxForm.frais || 0) >= Number(trxForm.montant))) {
-      toast.error('Frais incohérents avec le montant'); return;
     }
     const { error } = await supabase.from('transactions_mm').insert({
       entreprise_id: entreprise.id,
@@ -153,38 +145,72 @@ export default function MobileMoneyPage() {
     load();
   };
 
-  /** Comptabilise la transaction (journal BQ) ; la transaction est réservée d'abord pour qu'un double clic ne crée pas deux écritures. */
   const rapprocher = async (t: Trx) => {
     if (!entreprise || !exercice) { toast.error('Exercice requis'); return; }
     const moyen = moyens.find(m => m.id === t.moyen_id);
     if (!moyen) return;
-    if (t.date_operation < exercice.date_debut || t.date_operation > exercice.date_fin) {
-      toast.error(`Transaction du ${t.date_operation} hors de l'exercice ${exercice.annee} : ouvrez l'exercice concerné.`); return;
+    // Défaut : encaissement client 411 / MM ; décaissement fournisseur MM / 401
+    const compteContrepartie = t.sens === 'entree' ? '411' : '401';
+    const piece = `MM-${(t.reference || t.id).slice(0, 8)}`;
+    const lib = `${opInfo(moyen.operateur).label} — ${t.libelle || t.contrepartie || (t.sens === 'entree' ? 'Encaissement' : 'Paiement')}`;
+    type JLine = {
+      entreprise_id: string; exercice_id: string; date_ecriture: string;
+      piece: string; journal_code: string; libelle: string;
+      compte: string; intitule: string; debit: number; credit: number;
+    };
+    const lines: JLine[] = [];
+    if (t.sens === 'entree') {
+      // Débit MM (521), Crédit 411
+      lines.push({
+        entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation,
+        piece, journal_code: 'BQ', libelle: lib, compte: moyen.compte_associe, intitule: moyen.libelle,
+        debit: Number(t.montant), credit: 0,
+      });
+      if (Number(t.frais) > 0) {
+        lines.push({
+          entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation,
+          piece, journal_code: 'BQ', libelle: `Frais ${opInfo(moyen.operateur).label}`, compte: '6318', intitule: 'Frais Mobile Money',
+          debit: Number(t.frais), credit: 0,
+        });
+      }
+      lines.push({
+        entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation,
+        piece, journal_code: 'BQ', libelle: lib, compte: compteContrepartie, intitule: t.contrepartie || 'Client',
+        debit: 0, credit: Number(t.montant) + Number(t.frais),
+      });
+    } else {
+      // Débit 401, Crédit MM
+      lines.push({
+        entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation,
+        piece, journal_code: 'BQ', libelle: lib, compte: compteContrepartie, intitule: t.contrepartie || 'Fournisseur',
+        debit: Number(t.montant), credit: 0,
+      });
+      lines.push({
+        entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation,
+        piece, journal_code: 'BQ', libelle: lib, compte: moyen.compte_associe, intitule: moyen.libelle,
+        debit: 0, credit: Number(t.montant),
+      });
+      if (Number(t.frais) > 0) {
+        lines.push({
+          entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation,
+          piece, journal_code: 'BQ', libelle: `Frais ${opInfo(moyen.operateur).label}`, compte: '6318', intitule: 'Frais Mobile Money',
+          debit: Number(t.frais), credit: 0,
+        });
+        lines.push({
+          entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation,
+          piece, journal_code: 'BQ', libelle: `Frais ${opInfo(moyen.operateur).label}`, compte: moyen.compte_associe, intitule: moyen.libelle,
+          debit: 0, credit: Number(t.frais),
+        });
+      }
     }
-    const defaut = t.sens === 'entree' ? '411' : '401';
-    const saisi = await saisir(`Compte de contrepartie (${t.sens === 'entree' ? 'client, 411' : 'fournisseur, 401'} par défaut ; ex. 585 virement interne, 471 à classer) :`, defaut);
-    if (saisi === null) return;
-    const compte = saisi.trim();
-    const cpt = plan.find(p => p.numero === compte);
-    if (!/^[1-8]\d{2,}$/.test(compte) || compte === moyen.compte_associe || (plan.length > 0 && !cpt)) { toast.error(`Compte ${compte} invalide ou absent du plan comptable`); return; }
-    const { data: reserve, error: errReserve } = await supabase.from('transactions_mm').update({ statut: 'rapprochee' }).eq('id', t.id).eq('statut', 'importee').select('id');
-    if (errReserve || !reserve?.length) { toast.error(errReserve?.message ?? 'Transaction déjà traitée'); load(); return; }
-    const op = opInfo(moyen.operateur).label;
-    const lib = `${op} — ${t.libelle || t.contrepartie || (t.sens === 'entree' ? 'Encaissement' : 'Paiement')}`;
-    const piece = `MM-${(t.reference || t.id).replace(/\s+/g, '').slice(0, 40)}`;
+    let journalId: string | null = null;
     try {
-      const lignes = lignesMobileMoney(t, moyen, { compte, intitule: cpt?.intitule ?? t.contrepartie ?? '' }, lib, `Frais ${op}`);
-      const [ecritureId] = await enregistrerLignesJournal(lignes.map(l => ({
-        ...l, entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: t.date_operation, piece, journal_code: 'BQ' as const,
-      })), { origine: 'mobile_money', pieceUnique: true });
-      const { data: ligne } = await supabase.from('journal').select('id').eq('ecriture_id', ecritureId).eq('compte', moyen.compte_associe).limit(1);
-      await supabase.from('transactions_mm').update({ journal_id: ligne?.[0]?.id ?? null }).eq('id', t.id);
-      toast.success('Écriture générée dans le journal BQ');
-      await rafraichirComptabilite();
-    } catch (e) {
-      await supabase.from('transactions_mm').update({ statut: 'importee' }).eq('id', t.id);
-      toast.error((e as Error).message);
-    }
+      await enregistrerLignesJournal(lines as any, { origine: 'mobile_money' });
+      const { data: inserted } = await supabase.from('journal').select('id').eq('piece', piece).eq('entreprise_id', entreprise.id).limit(1);
+      journalId = inserted?.[0]?.id ?? null;
+    } catch (e) { toast.error((e as Error).message); return; }
+    await supabase.from('transactions_mm').update({ statut: 'rapprochee', journal_id: journalId }).eq('id', t.id);
+    toast.success('Écriture générée dans le journal BQ');
     load();
   };
 
@@ -194,28 +220,64 @@ export default function MobileMoneyPage() {
   };
 
   const supprimerTrx = async (t: Trx) => {
-    if (t.statut === 'rapprochee') { toast.error('Transaction comptabilisée : contre-passez l’écriture dans le Journal, elle ne peut pas être supprimée.'); return; }
     if (!(await confirmer('Supprimer cette transaction ?'))) return;
-    const { error } = await supabase.from('transactions_mm').delete().eq('id', t.id);
-    if (error) toast.error(error.message);
+    await supabase.from('transactions_mm').delete().eq('id', t.id);
     load();
   };
 
   // ─────── Import CSV ───────
-  const parseCsv = async () => {
+  const parseCsv = () => {
     if (!entreprise || !csvMoyen) { toast.error('Sélectionne un moyen de paiement'); return; }
-    const { operations, erreurs } = lireCsvMobileMoney(csvText);
-    if (erreurs.length) { toast.error(erreurs.slice(0, 3).join(' · ') + (erreurs.length > 3 ? ` (+${erreurs.length - 3})` : '')); return; }
-    if (!operations.length) { toast.error('Aucune ligne valide'); return; }
-    // Doublons : déjà enregistrées pour ce moyen, ou répétées dans le fichier.
-    const vues = new Set(trx.filter(t => t.moyen_id === csvMoyen).map(t => cleOperation(csvMoyen, t)));
-    const nouvelles = operations.filter(o => { const k = cleOperation(csvMoyen, o); if (vues.has(k)) return false; vues.add(k); return true; });
-    const ecartees = operations.length - nouvelles.length;
-    if (!nouvelles.length) { toast.error('Toutes les lignes sont déjà importées'); return; }
-    const { error } = await supabase.from('transactions_mm').insert(nouvelles.map(o => ({ ...o, entreprise_id: entreprise.id, moyen_id: csvMoyen, statut: 'importee' as const })));
-    if (error) { toast.error(error.message); return; }
-    toast.success(`${nouvelles.length} transaction(s) importée(s)${ecartees ? ` · ${ecartees} doublon(s) écarté(s)` : ''}`);
-    setCsvText(''); setTab('operations'); load();
+    const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { toast.error('CSV vide'); return; }
+    const header = lines[0].split(/[,;\t]/).map(h => h.toLowerCase().trim());
+    const idx = {
+      date: header.findIndex(h => /date|jour/.test(h)),
+      montant: header.findIndex(h => /montant|amount/.test(h)),
+      sens: header.findIndex(h => /sens|type|direction/.test(h)),
+      ref: header.findIndex(h => /ref|id|txn/.test(h)),
+      contrep: header.findIndex(h => /contrep|counterpart|nom/.test(h)),
+      tel: header.findIndex(h => /tel|phone|num/.test(h)),
+      lib: header.findIndex(h => /libel|desc|motif/.test(h)),
+      frais: header.findIndex(h => /frais|fee/.test(h)),
+    };
+    if (idx.date < 0 || idx.montant < 0) {
+      toast.error('Colonnes date et montant requises'); return;
+    }
+    const rows = lines.slice(1).map(l => {
+      const c = l.split(/[,;\t]/).map(v => v.trim());
+      const montantRaw = c[idx.montant] || '0';
+      const montant = Math.abs(parseFloat(montantRaw.replace(/\s/g, '').replace(',', '.'))) || 0;
+      let sens: 'entree' | 'sortie' = 'entree';
+      if (idx.sens >= 0) {
+        const s = (c[idx.sens] || '').toLowerCase();
+        sens = /sortie|debit|out|envoi/.test(s) ? 'sortie' : 'entree';
+      } else if (montantRaw.startsWith('-')) {
+        sens = 'sortie';
+      }
+      const dateRaw = c[idx.date] || '';
+      let date = dateRaw;
+      const dm = dateRaw.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+      if (dm) date = `${dm[3]}-${dm[2]}-${dm[1]}`;
+      return {
+        entreprise_id: entreprise.id, moyen_id: csvMoyen,
+        date_operation: date, sens, montant,
+        frais: idx.frais >= 0 ? parseFloat((c[idx.frais] || '0').replace(',', '.')) || 0 : 0,
+        reference: idx.ref >= 0 ? c[idx.ref] || null : null,
+        contrepartie: idx.contrep >= 0 ? c[idx.contrep] || null : null,
+        telephone: idx.tel >= 0 ? c[idx.tel] || null : null,
+        libelle: idx.lib >= 0 ? c[idx.lib] || null : null,
+        statut: 'importee' as const,
+      };
+    }).filter(r => r.montant > 0 && r.date_operation);
+    if (!rows.length) { toast.error('Aucune ligne valide'); return; }
+    supabase.from('transactions_mm').insert(rows).then(({ error }) => {
+      if (error) toast.error(error.message);
+      else {
+        toast.success(`${rows.length} transaction(s) importée(s)`);
+        setCsvText(''); setTab('operations'); load();
+      }
+    });
   };
 
   if (!entreprise) {

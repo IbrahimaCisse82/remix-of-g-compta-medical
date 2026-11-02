@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Upload, Link2, Undo2, CheckCheck, RefreshCw, Download, Landmark } from 'lucide-react';
 import { useApp } from '@/stores/app-store';
-import { creerEcriture } from '@/lib/ecritures';
 import { bankAmount, bankCandidates, mapBankRows, readBankCsv, type BankMapping } from '@/lib/banque';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -10,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import PlanNonInstalle from '@/components/PlanNonInstalle';
 
 type Operation = Tables<'operations_bancaires'>;
 type Statement = Tables<'releves_bancaires'>;
@@ -18,13 +16,8 @@ const amount = (n: number) => n.toLocaleString('fr-FR', { maximumFractionDigits:
 const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('fr-FR');
 
 export default function RapprochementPage() {
-  const { journal, balance, plan, entreprise, exercice, demo, rafraichirComptabilite } = useApp();
-  // Comptes bancaires du plan, complétés par les comptes 52 déjà mouvementés (dossier sans plan installé).
-  const accounts = useMemo(() => {
-    const comptes = new Map(plan.filter(p => p.actif && p.numero.startsWith('52')).map(p => [p.numero, p]));
-    for (const b of balance) if (b.compte.startsWith('52') && !comptes.has(b.compte)) comptes.set(b.compte, { numero: b.compte, intitule: b.intitule || 'Banque' } as (typeof plan)[number]);
-    return [...comptes.values()].sort((a, b) => a.numero.localeCompare(b.numero));
-  }, [plan, balance]);
+  const { journal, balance, plan, entreprise, exercice, demo } = useApp();
+  const accounts = useMemo(() => plan.filter(p => p.actif && p.numero.startsWith('52')), [plan]);
   const [account, setAccount] = useState('');
   const [statements, setStatements] = useState<Statement[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
@@ -41,9 +34,6 @@ export default function RapprochementPage() {
   const [mapping, setMapping] = useState<BankMapping>({ date: -1, libelle: -1, reference: -1, debit: -1, credit: -1, montant: -1 });
   const [mode, setMode] = useState<'debit_credit' | 'montant'>('debit_credit');
   const [opening, setOpening] = useState('0');
-  const [aPasser, setAPasser] = useState<Operation | null>(null);
-  const [contrepartie, setContrepartie] = useState('');
-  const [libellePasse, setLibellePasse] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const generation = useRef(0);
   useEffect(() => { if (!accounts.some(a => a.numero === account)) setAccount(accounts[0]?.numero ?? ''); }, [accounts, account]);
@@ -132,37 +122,6 @@ export default function RapprochementPage() {
     } catch (e) { toast.error(`${count} enregistré(s). ${e instanceof Error ? e.message : 'Erreur'}`); }
     finally { await load(); setBusy(false); }
   };
-  /** Écriture de banque pour une opération du relevé sans écriture (frais, agios, virement non saisi), puis rapprochement. */
-  const ouvrirComptabilisation = (o: Operation) => { setAPasser(o); setContrepartie(Number(o.montant) < 0 ? '631' : ''); setLibellePasse(o.libelle); };
-  const compteContrepartie = plan.find(p => p.numero === contrepartie.trim());
-  const comptabiliser = async () => {
-    if (!aPasser || !entreprise || !exercice) return;
-    const compte = contrepartie.trim();
-    if (!/^[1-8]\d{2,}$/.test(compte) || compte.startsWith('52')) { toast.error('Compte de contrepartie invalide'); return; }
-    if (plan.length && !compteContrepartie) { toast.error(`Le compte ${compte} n’existe pas au plan comptable`); return; }
-    const m = Math.abs(Number(aPasser.montant)); const entree = Number(aPasser.montant) > 0;
-    const libelle = [libellePasse.trim() || aPasser.libelle, aPasser.reference].filter(Boolean).join(' · ');
-    const banque = accounts.find(a => a.numero === account);
-    setBusy(true);
-    try {
-      const id = await creerEcriture({
-        entrepriseId: entreprise.id, exerciceId: exercice.id, journalCode: 'BQ', date: aPasser.date_operation, libelle,
-        // Pièce numérotée par le serveur : les références bancaires se répètent (FRAIS, AGIOS…).
-        piece: null, statut: 'validee',
-        lignes: [
-          { compte: account, intitule: banque?.intitule ?? '', libelle, debit: entree ? m : 0, credit: entree ? 0 : m },
-          { compte, intitule: compteContrepartie?.intitule ?? '', libelle, debit: entree ? 0 : m, credit: entree ? m : 0 },
-        ],
-      });
-      const ligne = await supabase.from('journal').select('id').eq('ecriture_id', id).eq('compte', account).limit(1).single();
-      if (ligne.error) throw new Error(ligne.error.message);
-      const r = await supabase.rpc('banque_rapprocher', { _operation_id: aPasser.id, _journal_id: ligne.data.id });
-      if (r.error) throw new Error(`Écriture créée mais rapprochement refusé : ${r.error.message}`);
-      toast.success('Écriture de banque enregistrée et rapprochée');
-      setAPasser(null);
-      await rafraichirComptabilite(); await load();
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'Comptabilisation impossible'); } finally { setBusy(false); }
-  };
   const template = () => {
     const date = exercice?.date_debut ?? '2026-01-01';
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([`\uFEFFDate;Libellé;Référence;Débit;Crédit\n${day(date)};Virement reçu;VIR-001;;10000\n${day(date)};Frais bancaires;FRAIS-001;500;\n`], { type: 'text/csv;charset=utf-8' })); a.download = 'modele-releve-bancaire.csv'; a.click(); URL.revokeObjectURL(a.href);
@@ -170,7 +129,6 @@ export default function RapprochementPage() {
   const column = (key: keyof BankMapping, label: string) => <label key={key} className="space-y-1 text-xs text-muted-foreground">{label}<Select value={String(mapping[key])} onValueChange={v => setMapping(m => ({ ...m, [key]: Number(v) }))}><SelectTrigger aria-label={`Colonne ${label}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="-1">Non sélectionnée</SelectItem>{file?.headers.map((h, i) => <SelectItem key={i} value={String(i)}>{h || `Colonne ${i + 1}`}</SelectItem>)}</SelectContent></Select></label>;
   return <div className="p-4 sm:p-6 space-y-5">
     <header className="flex flex-wrap justify-between gap-4 items-start"><div><h1 className="font-serif text-2xl flex items-center gap-2"><Landmark className="h-5 w-5 text-primary" />Rapprochement bancaire</h1><p className="text-xs text-muted-foreground mt-1">{entreprise?.nom ?? 'Aucune entreprise'} · Exercice {exercice?.annee ?? '—'}</p></div><div className="flex gap-2"><Button variant="outline" size="icon" title="Actualiser" aria-label="Actualiser" disabled={busy} onClick={() => void load()}><RefreshCw /></Button><Button disabled={!writable || !account || busy || loading} onClick={() => { setOpening('0'); setImportOpen(true); }}><Upload />Importer un relevé</Button></div></header>
-    <PlanNonInstalle objet="les comptes bancaires (52) ne sont proposés que s’ils sont déjà mouvementés" />
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {demo && <p className="text-muted-foreground text-sm">L’import nécessite une entreprise connectée.</p>}
     {!accounts.length && <p className="text-muted-foreground text-sm">Aucun compte bancaire actif dans le plan comptable.</p>}
@@ -178,17 +136,8 @@ export default function RapprochementPage() {
     <div className="flex flex-wrap gap-3"><div className="w-full sm:w-64"><Select value={account} disabled={busy} onValueChange={setAccount}><SelectTrigger aria-label="Compte bancaire"><SelectValue placeholder="Compte bancaire" /></SelectTrigger><SelectContent>{accounts.map(a => <SelectItem key={a.numero} value={a.numero}>{a.numero} · {a.intitule}</SelectItem>)}</SelectContent></Select></div><div className="w-full sm:w-80"><Select value={statementId} disabled={busy} onValueChange={v => { setStatementId(v); setSelected(''); }}><SelectTrigger aria-label="Relevé importé"><SelectValue placeholder="Aucun relevé importé" /></SelectTrigger><SelectContent>{statements.map(s => <SelectItem key={s.id} value={s.id}>{s.nom_fichier} · {new Date(s.created_at).toLocaleDateString('fr-FR')}</SelectItem>)}</SelectContent></Select></div></div>
     <div className="grid grid-cols-2 lg:grid-cols-4 border-y border-border py-4 gap-4">{[['Solde comptable · fin exercice', amount(ledgerBalance)], ['Solde final du relevé', closing === null ? '—' : amount(closing)], ['Mouvements non rapprochés', amount(current.filter(o => !o.journal_id).reduce((s, o) => s + Number(o.montant), 0))], ['Opérations rapprochées', `${current.filter(o => o.journal_id).length} / ${current.length}`]].map(([label, value]) => <div key={label}><div className="text-xs text-muted-foreground">{label}</div><div className="font-mono text-xl mt-1">{value}</div></div>)}</div>
     <div className="flex flex-wrap gap-3 justify-between"><div className="flex gap-2 flex-wrap"><Select value={filter} onValueChange={setFilter}><SelectTrigger className="w-44" aria-label="Statut des opérations"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pending">À rapprocher</SelectItem><SelectItem value="matched">Rapprochées</SelectItem><SelectItem value="all">Toutes</SelectItem></SelectContent></Select><Input aria-label="Rechercher une opération" placeholder="Rechercher une opération" value={search} onChange={e => setSearch(e.target.value)} className="w-60 max-w-full" /></div><Button variant="outline" disabled={!writable || busy || loading || !current.some(o => !o.journal_id)} onClick={autoMatch}><CheckCheck />Rapprocher les correspondances uniques</Button></div>
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6"><section className="min-w-0"><h2 className="font-semibold mb-3">Opérations du relevé <span className="text-muted-foreground">({visible.length})</span></h2><div className="overflow-auto max-h-[520px] border-y border-border"><table className="w-full text-xs"><thead className="bg-muted sticky top-0"><tr>{['Date', 'Libellé / référence', 'Montant', 'État', ''].map((h, i) => <th key={i} className="p-3 text-left font-medium">{h}</th>)}</tr></thead><tbody>{visible.map(o => <tr key={o.id} className={`border-t border-border ${selected === o.id ? 'bg-primary/10' : ''}`}><td className="p-3 whitespace-nowrap">{day(o.date_operation)}</td><td className="p-3 min-w-32"><span className="break-words">{o.libelle}</span><div className="text-muted-foreground">{o.reference}</div></td><td className={`p-3 text-right font-mono whitespace-nowrap ${Number(o.montant) > 0 ? 'text-success' : 'text-destructive'}`}>{amount(Number(o.montant))}</td><td className="p-3">{o.journal_id ? 'Rapprochée' : 'En attente'}</td><td className="p-2">{o.journal_id ? <Button variant="ghost" size="icon" title="Annuler le rapprochement" aria-label={`Annuler ${o.libelle}`} disabled={!writable || busy} onClick={() => void match(o.id, null)}><Undo2 /></Button> : <div className="flex gap-1"><Button size="sm" variant={selected === o.id ? 'default' : 'outline'} disabled={!writable || busy} onClick={() => setSelected(o.id)}>Choisir</Button><Button size="sm" variant="ghost" title="Créer l’écriture de banque de cette opération" disabled={!writable || busy} onClick={() => ouvrirComptabilisation(o)}>Comptabiliser</Button></div>}</td></tr>)}{!visible.length && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{loading ? 'Chargement…' : statement ? 'Aucune opération dans cette sélection.' : 'Aucun relevé importé.'}</td></tr>}</tbody></table></div></section>
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6"><section className="min-w-0"><h2 className="font-semibold mb-3">Opérations du relevé <span className="text-muted-foreground">({visible.length})</span></h2><div className="overflow-auto max-h-[520px] border-y border-border"><table className="w-full text-xs"><thead className="bg-muted sticky top-0"><tr>{['Date', 'Libellé / référence', 'Montant', 'État', ''].map((h, i) => <th key={i} className="p-3 text-left font-medium">{h}</th>)}</tr></thead><tbody>{visible.map(o => <tr key={o.id} className={`border-t border-border ${selected === o.id ? 'bg-primary/10' : ''}`}><td className="p-3 whitespace-nowrap">{day(o.date_operation)}</td><td className="p-3 min-w-32"><span className="break-words">{o.libelle}</span><div className="text-muted-foreground">{o.reference}</div></td><td className={`p-3 text-right font-mono whitespace-nowrap ${Number(o.montant) > 0 ? 'text-success' : 'text-destructive'}`}>{amount(Number(o.montant))}</td><td className="p-3">{o.journal_id ? 'Rapprochée' : 'En attente'}</td><td className="p-2">{o.journal_id ? <Button variant="ghost" size="icon" title="Annuler le rapprochement" aria-label={`Annuler ${o.libelle}`} disabled={!writable || busy} onClick={() => void match(o.id, null)}><Undo2 /></Button> : <Button size="sm" variant={selected === o.id ? 'default' : 'outline'} disabled={!writable || busy} onClick={() => setSelected(o.id)}>Choisir</Button>}</td></tr>)}{!visible.length && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{loading ? 'Chargement…' : statement ? 'Aucune opération dans cette sélection.' : 'Aucun relevé importé.'}</td></tr>}</tbody></table></div></section>
     <section className="min-w-0"><h2 className="font-semibold mb-3">Écritures comptables disponibles <span className="text-muted-foreground">({bankLines.filter(j => !used.has(j.id)).length})</span></h2>{picked && <div className="text-sm mb-3 text-primary">{picked.libelle} · {amount(Number(picked.montant))} · {candidates.length} correspondance(s)</div>}<div className="overflow-auto max-h-[520px] border-y border-border"><table className="w-full text-xs"><thead className="bg-muted sticky top-0"><tr>{['Date', 'Pièce / libellé', 'Montant', ''].map((h, i) => <th key={i} className="p-3 text-left font-medium">{h}</th>)}</tr></thead><tbody>{bankLines.filter(j => !used.has(j.id)).map(j => { const compatible = picked && Math.round(Number(picked.montant) * 100) === Math.round((j.debit - j.credit) * 100); return <tr key={j.id} className={`border-t border-border ${candidates.some(c => c.id === j.id) ? 'bg-success/10' : ''}`}><td className="p-3 whitespace-nowrap">{day(j.date_ecriture)}</td><td className="p-3"><div className="font-mono text-primary">{j.piece}</div><span className="break-words">{j.libelle}</span></td><td className="p-3 font-mono text-right whitespace-nowrap">{amount(j.debit - j.credit)}</td><td className="p-2"><Button variant="outline" size="icon" title="Rapprocher avec l’opération sélectionnée" aria-label={`Rapprocher ${j.piece}`} disabled={!compatible || !writable || busy} onClick={() => picked && void match(picked.id, j.id)}><Link2 /></Button></td></tr>; })}{!bankLines.filter(j => !used.has(j.id)).length && <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">Aucune écriture bancaire disponible sur ce compte.</td></tr>}</tbody></table></div></section></div>
-    <Dialog open={Boolean(aPasser)} onOpenChange={v => { if (!busy && !v) setAPasser(null); }}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Comptabiliser l’opération</DialogTitle></DialogHeader>{aPasser && <div className="space-y-3 text-sm">
-      <p>{day(aPasser.date_operation)} · {aPasser.libelle} · <span className="font-mono">{amount(Number(aPasser.montant))}</span></p>
-      <p className="text-xs text-muted-foreground">Journal BQ : {Number(aPasser.montant) > 0 ? `débit ${account}, crédit contrepartie` : `crédit ${account}, débit contrepartie`}. L’écriture est rapprochée aussitôt.</p>
-      <label className="block space-y-1 text-xs">Compte de contrepartie<Input aria-label="Compte de contrepartie" list="comptes-contrepartie" value={contrepartie} onChange={e => setContrepartie(e.target.value)} placeholder="ex. 631 frais bancaires" /></label>
-      <datalist id="comptes-contrepartie">{plan.filter(p => p.actif && !p.numero.startsWith('52') && p.numero.startsWith(contrepartie.trim().slice(0, 2))).slice(0, 50).map(p => <option key={p.numero} value={p.numero}>{p.intitule}</option>)}</datalist>
-      {compteContrepartie && <p className="text-xs text-muted-foreground">{compteContrepartie.intitule}</p>}
-      <label className="block space-y-1 text-xs">Libellé<Input aria-label="Libellé de l’écriture" value={libellePasse} onChange={e => setLibellePasse(e.target.value)} /></label>
-      <Button disabled={busy || !contrepartie.trim()} onClick={() => void comptabiliser()}>{busy ? 'Enregistrement…' : 'Enregistrer et rapprocher'}</Button>
-    </div>}</DialogContent></Dialog>
     <Dialog open={importOpen} onOpenChange={v => { if (!busy) setImportOpen(v); }}><DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-auto"><DialogHeader><DialogTitle>Importer un relevé bancaire</DialogTitle></DialogHeader><div className="flex flex-wrap justify-between gap-2"><Button variant="outline" onClick={() => input.current?.click()} disabled={busy}><Upload />Choisir un fichier CSV / TSV</Button><Button variant="ghost" onClick={template}><Download />Modèle CSV</Button><input ref={input} type="file" accept=".csv,.tsv,.txt" className="hidden" aria-label="Fichier de relevé bancaire" onChange={e => { void readFile(e.target.files?.[0]); e.target.value = ''; }} /></div>{file && <><p className="text-sm break-all">{file.name} · {file.rows.length} opérations</p><label className="space-y-1 text-xs">Format des montants<Select value={mode} onValueChange={v => setMode(v as typeof mode)}><SelectTrigger aria-label="Format des montants"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="debit_credit">Débit bancaire = sortie · Crédit bancaire = entrée</SelectItem><SelectItem value="montant">Montant signé : entrée positive · sortie négative</SelectItem></SelectContent></Select></label><div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{column('date', 'Date')}{column('libelle', 'Libellé')}{column('reference', 'Référence')}{mode === 'montant' ? column('montant', 'Montant') : <>{column('debit', 'Débit')}{column('credit', 'Crédit')}</>}</div><label className="space-y-1 text-xs">Solde initial du relevé ({entreprise?.monnaie})<Input aria-label="Solde initial" value={opening} onChange={e => setOpening(e.target.value)} /></label>{preview.errors.length > 0 && <div role="alert" className="text-destructive text-xs space-y-1">{preview.errors.slice(0, 8).map(e => <p key={e}>{e}</p>)}{preview.errors.length > 8 && <p>Et {preview.errors.length - 8} autre(s) erreur(s).</p>}</div>}<div className="overflow-auto"><table className="w-full text-xs"><thead><tr><th className="text-left p-2">Date</th><th className="text-left p-2">Libellé</th><th className="text-right p-2">Montant signé</th></tr></thead><tbody>{preview.operations.slice(0, 5).map((o, i) => <tr key={i} className="border-t border-border"><td className="p-2">{day(o.date)}</td><td className="p-2">{o.libelle}</td><td className="p-2 text-right font-mono">{amount(o.montant)}</td></tr>)}</tbody></table></div><Button disabled={busy || !writable || preview.errors.length > 0 || !preview.operations.length} onClick={saveImport}>{busy ? 'Enregistrement…' : `Enregistrer ${preview.operations.length} opérations`}</Button></>}</DialogContent></Dialog>
   </div>;
 }

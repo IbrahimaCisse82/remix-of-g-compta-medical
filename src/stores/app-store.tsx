@@ -728,25 +728,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ─── CLÔTURE D'EXERCICE ──────────────────────────────
   const clotureExercice = useCallback(async () => {
     if (!exercice || !entreprise) { toast.error('Aucun exercice ou entreprise sélectionné.'); return; }
-    // Le visa du référentiel (REF-VISA) est vérifié par le serveur au verrouillage ; les autres contrôles bloquants
-    // (équilibre, actif = passif, comptes non repris…) sont exigés ici.
-    const failed = controlesSyscohada(balance, balanceN1).filter(c => c.bloquant && !c.ok && c.code !== 'REF-VISA');
+    const failed = controlesSyscohada(balance, balanceN1).filter(c => c.bloquant && !c.ok);
     if (failed.length) { toast.error('Clôture bloquée : ' + failed.map(c => c.code).join(', ')); return; }
     setLoading(true);
     try {
-      const { data, error: clErr } = await supabase.rpc('fn_cloturer_exercice', { _exercice_id: exercice.id });
+      const { error: clErr } = await supabase.rpc('fn_cloturer_exercice', { _exercice_id: exercice.id });
       if (clErr) throw clErr;
-      const r = (data ?? {}) as { resultat?: number; exercice_suivant?: number };
-      // L'exercice suivant a pu être créé par la clôture.
-      const { data: excs } = await supabase.from('exercices').select('*').eq('entreprise_id', entreprise.id).order('annee');
-      const liste = (excs ?? []).map(mapExercice);
-      if (liste.length) setExercices(liste);
-      const courant = liste.find(e => e.id === exercice.id) ?? exercice;
-      setExercice(courant);
-      await loadExerciceData(exercice.id, liste.length ? liste : exercices, courant);
-      toast.success(`Exercice ${exercice.annee} clôturé : résultat ${Number(r.resultat ?? 0).toLocaleString('fr-FR')} reporté en à-nouveaux ${r.exercice_suivant ?? ''} (compte 130, en attente d'affectation).`);
+
+      await loadExerciceData(exercice.id, exercices, exercice);
+      toast.success(`Exercice ${exercice.annee} clôturé.`);
     } catch (err: any) {
-      toast.error('Clôture refusée : ' + (err?.message || 'Erreur inconnue'));
+      toast.error('Erreur clôture: ' + (err?.message || 'Erreur inconnue'));
     }
     setLoading(false);
   }, [exercice, exercices, entreprise, balance, balanceN1, loadExerciceData]);

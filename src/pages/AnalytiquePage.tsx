@@ -3,7 +3,6 @@ import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { confirmer } from '@/components/Confirmation';
 import { chargerTout } from '@/lib/pagination';
 
 interface Axe { id: string; code: string; libelle: string; actif: boolean; }
@@ -22,7 +21,6 @@ export default function AnalytiquePage() {
   const [ventEntryId, setVentEntryId] = useState('');
   const [ventCentre, setVentCentre] = useState('');
   const [ventPct, setVentPct] = useState(100);
-  const [ventRecherche, setVentRecherche] = useState('');
 
   const loadData = useCallback(async () => {
     if (!entreprise || !exercice) return;
@@ -49,10 +47,7 @@ export default function AnalytiquePage() {
   };
 
   const deleteAxe = async (id: string) => {
-    const n = ventilations.filter(v => v.axe_id === id).length;
-    if (!(await confirmer(n ? `Cet axe porte ${n} ventilation(s) sur l'exercice : les supprimer avec l'axe ?` : 'Supprimer cet axe ?'))) return;
-    const { error } = await supabase.from('axes_analytiques').delete().eq('id', id);
-    if (error) return void toast.error(error.message);
+    await supabase.from('axes_analytiques').delete().eq('id', id);
     toast.success('Axe supprimé');
     await loadData();
   };
@@ -73,16 +68,6 @@ export default function AnalytiquePage() {
     if (error) toast.error(error.message);
     else { toast.success('Ventilation ajoutée'); setShowVentForm(false); await loadData(); }
   };
-
-  // Lignes de charges et produits restant à ventiler sur l'axe choisi, filtrées par la recherche (100 affichées).
-  const lignesAVentiler = useMemo(() => {
-    const ventile = new Map<string, number>();
-    for (const v of ventilations) if (v.axe_id === selectedAxe) ventile.set(v.journal_entry_id, (ventile.get(v.journal_entry_id) || 0) + Number(v.pourcentage || 0));
-    const q = ventRecherche.trim().toLowerCase();
-    const toutes = journal.filter(j => /^[6-7]/.test(j.compte) && (ventile.get(j.id) || 0) < 99.9999
-      && (!q || `${j.compte} ${j.piece} ${j.libelle} ${j.date_ecriture}`.toLowerCase().includes(q)));
-    return { total: toutes.length, lignes: toutes.slice(0, 100) };
-  }, [journal, ventilations, selectedAxe, ventRecherche]);
 
   // Summary by centre for selected axe
   const summary = useMemo(() => {
@@ -142,11 +127,10 @@ export default function AnalytiquePage() {
               </div>
               <div>
                 <label className="text-[9px] text-fg3 uppercase font-mono block mb-1">Écriture</label>
-                <input value={ventRecherche} onChange={e => setVentRecherche(e.target.value)} placeholder="Compte, pièce, libellé, date…" aria-label="Rechercher une écriture à ventiler" className="bg-bg3 border border-border rounded px-2 py-1.5 text-[11px] w-64 mb-1 block" />
                 <select value={ventEntryId} onChange={e => setVentEntryId(e.target.value)} className="bg-bg3 border border-border rounded px-2 py-1.5 text-[11px] w-64">
-                  <option value="">Sélectionner… ({lignesAVentiler.total} ligne(s){lignesAVentiler.total > 100 ? ', affinez la recherche' : ''})</option>
-                  {lignesAVentiler.lignes.map(j => (
-                    <option key={j.id} value={j.id}>{j.date_ecriture} — {j.compte} — {j.piece} — {j.libelle} ({fmt((j.debit || 0) - (j.credit || 0))})</option>
+                  <option value="">Sélectionner...</option>
+                  {journal.filter(j => /^[6-7]/.test(j.compte)).slice(0, 100).map(j => (
+                    <option key={j.id} value={j.id}>{j.date_ecriture} — {j.compte} — {j.libelle} ({fmt((j.debit || 0) - (j.credit || 0))})</option>
                   ))}
                 </select>
               </div>

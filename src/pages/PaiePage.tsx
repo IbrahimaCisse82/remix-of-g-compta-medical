@@ -1,6 +1,4 @@
 import { confirmer } from '@/components/Confirmation';
-import PaiementsPaie from '@/components/PaiementsPaie';
-import { useUserRole } from '@/hooks/use-user-role';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -22,8 +20,6 @@ const EMPTY_EMP: Omit<EmployeeRow, 'id'> = {
 
 export default function PaiePage() {
   const { entreprise, exercice } = useApp();
-  const { canWrite } = useUserRole();
-  const [versionPaie, setVersionPaie] = useState(0);
   const [tab, setTab] = useState<'employes' | 'bulletins' | 'parametres' | 'ecritures'>('employes');
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [params, setParams] = useState<PaieParametres>(DEFAULT_PAIE_PARAMS);
@@ -59,15 +55,9 @@ export default function PaiePage() {
     void supabase.rpc('sante_primes_gardes_paie', { _entreprise_id: entreprise.id, _annee: annee, _mois: mois })
       .then(({ data, error }) => setPrimesGardes(error ? {} : Object.fromEntries((data ?? []).map(r => [r.employee_id, Number(r.montant) || 0]))));
   }, [entreprise, annee, mois]);
-  // Salariés présents sur la période : actifs, entrés avant la fin du mois et non sortis avant son début.
-  const debutMois = `${periode}-01`;
-  const finMois = `${periode}-${String(new Date(annee, mois, 0).getDate()).padStart(2, '0')}`;
-  const presents = useMemo(() => employees.filter(e => (e as any).actif !== false
-    && (!e.date_entree || e.date_entree <= finMois)
-    && (!(e as any).date_sortie || (e as any).date_sortie >= debutMois)), [employees, debutMois, finMois]);
   const bulletins = useMemo(
-    () => presents.map(e => ({ emp: e, paie: calculerPaie({ ...e, prime_gardes: (e.id && primesGardes[e.id]) || 0 }, params, refDate) })),
-    [presents, params, refDate, primesGardes],
+    () => employees.map(e => ({ emp: e, paie: calculerPaie({ ...e, prime_gardes: (e.id && primesGardes[e.id]) || 0 }, params, refDate) })),
+    [employees, params, refDate, primesGardes],
   );
 
   const totaux = useMemo(() => bulletins.reduce((a, b) => ({
@@ -104,13 +94,6 @@ export default function PaiePage() {
   async function deleteEmp(id: string) {
     if (!(await confirmer('Supprimer cet employé ?'))) return;
     const { error } = await supabase.from('employees').delete().eq('id', id);
-    if (error && /date de sortie/.test(error.message)) {
-      if (!(await confirmer('Ce salarié a des bulletins de paie : il ne peut pas être supprimé. Le désactiver ?'))) return;
-      const r = await supabase.from('employees').update({ actif: false }).eq('id', id);
-      if (r.error) return toast.error(r.error.message);
-      setEmployees(s => s.map(x => x.id === id ? { ...x, actif: false } as any : x));
-      return toast.success('Salarié désactivé');
-    }
     if (error) return toast.error(error.message);
     setEmployees(s => s.filter(x => x.id !== id));
   }
@@ -124,14 +107,9 @@ export default function PaiePage() {
     toast.success('Paramètres sauvegardés');
   }
 
-  const periodeDansExercice = () => !!exercice && finMois >= exercice.date_debut && finMois <= exercice.date_fin;
-
   async function genererBulletins() {
     if (!entreprise || !exercice) return toast.error('Entreprise/exercice requis');
-    if (!periodeDansExercice()) return toast.error(`${MOIS[mois - 1]} ${annee} n’appartient pas à l’exercice ${exercice.annee} : ouvrez l’exercice concerné.`);
-    if (presents.length === 0) return toast.error('Aucun salarié présent sur la période');
-    const { data: deja } = await supabase.from('bulletins_paie').select('id').eq('entreprise_id', entreprise.id).eq('periode', periode).eq('comptabilise', true).limit(1);
-    if (deja?.length) return toast.error(`La paie de ${MOIS[mois - 1]} ${annee} est comptabilisée : contre-passez l’écriture PAIE-${periode} avant de recalculer.`);
+    if (employees.length === 0) return toast.error('Aucun employé');
     const rows = bulletins.map(({ emp, paie }) => ({
       entreprise_id: entreprise.id,
       exercice_id: exercice.id,
@@ -154,25 +132,19 @@ export default function PaiePage() {
 
   async function comptabiliserPaie() {
     if (!entreprise || !exercice) return;
-    if (!periodeDansExercice()) return toast.error(`${MOIS[mois - 1]} ${annee} n’appartient pas à l’exercice ${exercice.annee} : ouvrez l’exercice concerné.`);
-    // L'écriture reprend les bulletins enregistrés (et non un recalcul) : elle correspond toujours aux bulletins remis.
-    const { data: enregistres, error: errDeja } = await supabase.from('bulletins_paie').select('*').eq('entreprise_id', entreprise.id).eq('periode', periode);
+    const { data: deja, error: errDeja } = await supabase.from('bulletins_paie').select('id, comptabilise').eq('entreprise_id', entreprise.id).eq('periode', periode);
     if (errDeja) return toast.error(errDeja.message);
-    if (!enregistres?.length) return toast.error(`Générez d’abord les bulletins de ${MOIS[mois - 1]} ${annee}.`);
-    if (enregistres.some(b => b.comptabilise)) {
-      const { data: enVigueur } = await supabase.rpc('paie_ecriture_en_vigueur' as any, { _entreprise_id: entreprise.id, _periode: periode });
-      if (enVigueur) return toast.error(`La paie de ${MOIS[mois - 1]} ${annee} est déjà comptabilisée : contre-passez l’écriture avant de recommencer.`);
-    }
-    const lignes = genererEcrituresPaie(enregistres.map(b => Object.fromEntries(Object.entries(b).map(([k, v]) => [k, typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v])) as unknown as BulletinResult), periode, exercice.id, entreprise.id);
+    if (!deja?.length) return toast.error(`Générez d’abord les bulletins de ${MOIS[mois - 1]} ${annee}.`);
+    if (deja.some(b => b.comptabilise)) return toast.error(`La paie de ${MOIS[mois - 1]} ${annee} est déjà comptabilisée : contre-passez l’écriture avant de recommencer.`);
+    const lignes = genererEcrituresPaie(bulletins.map(b => b.paie), periode, exercice.id, entreprise.id);
     const totDebit = lignes.reduce((s, l) => s + l.debit, 0);
     const totCredit = lignes.reduce((s, l) => s + l.credit, 0);
     if (Math.abs(totDebit - totCredit) > 1) return toast.error(`Écriture déséquilibrée: D=${fmtMoney(totDebit)} C=${fmtMoney(totCredit)}`);
     try {
       await enregistrerLignesJournal(lignes as any, { origine: 'paie', pieceUnique: true });
     } catch (e) { return toast.error((e as Error).message); }
-    const { error } = await supabase.from('bulletins_paie').update({ comptabilise: true }).eq('entreprise_id', entreprise.id).eq('periode', periode);
-    if (error) toast.error(`Écriture passée, marquage des bulletins impossible : ${error.message}`);
-    else { toast.success(`Écritures journal PA générées (${fmtMoney(totDebit)} FCFA)`); setVersionPaie(v => v + 1); }
+    await supabase.from('bulletins_paie').update({ comptabilise: true }).eq('entreprise_id', entreprise.id).eq('periode', periode);
+    toast.success(`Écritures journal PA générées (${fmtMoney(totDebit)} FCFA)`);
   }
 
   if (!entreprise) return <div className="p-8 text-center text-fg3">Sélectionnez une entreprise</div>;
@@ -368,7 +340,6 @@ export default function PaiePage() {
               <h2 className="font-serif text-base">Écritures comptables — Journal PA</h2>
               <button onClick={comptabiliserPaie} className="bg-accent text-accent-foreground px-3 py-1.5 rounded text-xs font-semibold">📋 Comptabiliser dans le journal</button>
             </div>
-            <div className="mb-3"><PaiementsPaie key={`${periode}-${versionPaie}`} periode={periode} libellePeriode={`${MOIS[mois - 1]} ${annee}`} canWrite={canWrite} /></div>
             <div className="bg-bg2 border border-border rounded-lg overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-bg3 border-b border-border">
@@ -409,7 +380,7 @@ export default function PaiePage() {
               <Field label="Statut" v={form.statut} on={v => setForm(f => ({ ...f, statut: v }))} sel={[['employés', 'employés'], ['agents de maîtrise', 'agents de maîtrise'], ['cadres', 'cadres']]} />
               <Field label="Situation familiale" v={form.situation_famille} on={v => setForm(f => ({ ...f, situation_famille: v }))} sel={[['Célibataire', 'Célibataire'], ['Marié(e)', 'Marié(e)'], ['Divorcé(e)', 'Divorcé(e)'], ['Veuf(ve)', 'Veuf(ve)']]} />
               <Field label="Contrat" v={form.contrat} on={v => setForm(f => ({ ...f, contrat: v }))} sel={[['CDI', 'CDI'], ['CDD', 'CDD'], ['Stage', 'Stage']]} />
-              <Field label="Conjoint(s) sans revenu" v={String(form.femmes)} on={v => setForm(f => ({ ...f, femmes: +v }))} type="number" />
+              <Field label="Nombre d'épouses" v={String(form.femmes)} on={v => setForm(f => ({ ...f, femmes: +v }))} type="number" />
               <Field label="Nombre d'enfants" v={String(form.enfants)} on={v => setForm(f => ({ ...f, enfants: +v }))} type="number" />
               <Field label="Date d'entrée" v={form.date_entree || ''} on={v => setForm(f => ({ ...f, date_entree: v }))} type="date" />
               <Field label="Date de naissance" v={form.date_naissance || ''} on={v => setForm(f => ({ ...f, date_naissance: v }))} type="date" />

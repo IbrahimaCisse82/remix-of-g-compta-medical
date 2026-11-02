@@ -215,7 +215,7 @@ export function calculerNotes(balance: BalanceLine[], balanceN1: BalanceLine[]):
   s['Note 13'] = { ...(s['Note 13'] ?? {}), F18: evaluer(pN, 'SD:109') || null, F19: evaluer(pN, 'SC:101,102,103,104') || null };
   nn1('Note 14', { n: 'B', n1: 'D', abs: 'F' }, [[9, 'SC:1051'], [10, 'SC:1052'], [11, 'SC:1053'], [12, 'SC:1054'], [13, 'SC:105!1051!1052!1053!1054'],
     [14, somme(9, 13)], [16, 'SC:111'], [17, 'SC:112'], [18, 'SC:1131'], [19, 'SC:1132'], [20, 'SC:113!1131!1132'], [21, somme(16, 20)],
-    [23, 'SC:118'], [25, '-S:12']]);
+    [23, 'SC:118'], [25, '-S:121,129']]);
   nn1('Note 15A', { n: 'C', n1: 'D', abs: 'E', pct: 'F' }, [[9, 'SC:1411'], [10, 'SC:1412'], [11, 'SC:1413'], [12, 'SC:1414'], [13, 'SC:1415'],
     [14, 'SC:1416'], [15, 'SC:1417'], [16, 'SC:141!1411!1412!1413!1414!1415!1416!1417 + SC:148'], [17, somme(9, 16)],
     [19, 'SC:151'], [20, 'SC:152'], [21, 'SC:154'], [22, 'SC:155'], [23, 'SC:156'], [24, 'SC:157'], [25, 'SC:153,158'], [26, somme(19, 25)],
@@ -310,10 +310,8 @@ export function calculerNotes(balance: BalanceLine[], balanceN1: BalanceLine[]):
       [24, 'PR:771,772,773,774,775,777,778'], [25, 'PR:776'], [26, 'PR:787'], [27, 'PR:841,843,844,845,846,847,88'], [28, 'PR:848'],
       [29, 'CH:671,672,673,674,675,677,678'], [30, 'CH:676'], [31, 'CH:831,833,834,835,836,837'], [32, 'CH:87'], [33, 'CH:89'],
       [34, 'L23 + L24 + L25 + L26 + L27 + L28 - L29 - L30 - L31 - L32 - L33'], [35, 'MD:465'], [36, 'L34 - L35'],
-      [41, 'BIL:CP'], [42, 'BIL:DD + BIL:DV'], [43, 'L41 + L42'], [44, '-BIL:AZ'], [45, 'L43 + L44'],
-      // Écarts de conversion : actif avec l'actif circulant d'exploitation, passif avec les ressources stables
-      // (Guide d'application, Application 127, Note 34) ; sans eux FR − BFG ne retrouve pas la trésorerie.
-      [46, 'BIL:BB + BIL:BG + BIL:BU'], [47, '-BIL:DP + BIL:DH'], [48, 'L46 + L47'], [49, 'BIL:BA'], [50, '-BIL:DH'], [51, 'L49 + L50'],
+      [41, 'BIL:CP'], [42, 'BIL:DD'], [43, 'L41 + L42'], [44, '-BIL:AZ'], [45, 'L43 + L44'],
+      [46, 'BIL:BB + BIL:BG'], [47, '-BIL:DP + BIL:DH'], [48, 'L46 + L47'], [49, 'BIL:BA'], [50, '-BIL:DH'], [51, 'L49 + L50'],
       [52, 'L48 + L51'], [54, 'L45 - L52'], [55, 'BIL:BT - BIL:DT'],
       [57, 'TFT:ZB'], [58, 'TFT:ZC'], [59, 'TFT:ZF'], [60, 'L57 + L58 + L59'],
       [62, 'BIL:DD + BIL:DT'], [63, 'BIL:DD + BIL:DT - BIL:BT'],

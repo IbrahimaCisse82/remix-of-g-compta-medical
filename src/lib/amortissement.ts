@@ -134,28 +134,3 @@ export function comptesCession(compteImmo: string): { vnc: string; vncLibelle: s
                produit: '822', produitLibelle: "Produits des cessions d'immobilisations corporelles" };
   }
 }
-
-/** Une immobilisation financière (26X, 27X) ne s'amortit pas : seule une dépréciation (29X) la corrige. */
-export const estAmortissable = (compteImmo: string) => natureImmo(compteImmo) !== 'financiere';
-
-/**
- * Amortissements arrêtés à la date de cession : dotations des années antérieures du plan, plus la dotation de
- * l'année de cession au prorata des mois écoulés jusqu'au mois de cession inclus.
- */
-export function amortissementsALaCession(immo: Immo, dateCession: string, coefs: CoefDegressif = COEF_DEGRESSIF_DEFAUT): { cumulAnterieur: number; dotationAnnee: number; cumul: number; anneeCession: number } {
-  const anneeCession = Number(dateCession.slice(0, 4));
-  const moisCession = Number(dateCession.slice(5, 7)) - 1;
-  const plan = calcPlan(immo, coefs);
-  const cumulAnterieur = plan.filter(p => p.annee < anneeCession).reduce((s, p) => s + p.dotation, 0);
-  const ligne = plan.find(p => p.annee === anneeCession);
-  let dotationAnnee = 0;
-  if (ligne) {
-    const debut = new Date(immo.date_mise_service || immo.date_acquisition);
-    const anneeDebut = debut.getUTCFullYear(), moisDebut = debut.getUTCMonth();
-    const derniere = plan[plan.length - 1].annee === anneeCession && immo.mode_amortissement !== 'degressif' && anneeCession > anneeDebut && moisDebut > 0;
-    const couverts = anneeCession === anneeDebut ? 12 - moisDebut : derniere ? moisDebut : 12;
-    const ecoules = anneeCession === anneeDebut ? moisCession - moisDebut + 1 : moisCession + 1;
-    dotationAnnee = Math.round(ligne.dotation * Math.max(0, Math.min(couverts, ecoules)) / couverts);
-  }
-  return { cumulAnterieur, dotationAnnee, cumul: cumulAnterieur + dotationAnnee, anneeCession };
-}
