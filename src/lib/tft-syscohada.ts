@@ -73,7 +73,11 @@ export function fluxCompteBilan(c: string): Seau | 'TIERS' | 'DETTE_FIN' | 'IMMO
   // Classe 3
   if (c.startsWith('3')) return 'FC';
   // Classe 4 : comptes rattachés aux investissements, au financement ou à l'actif circulant HAO
-  if (commence(c, ['4041', '4046', '4811', '4821'])) return 'FF';
+  // Sous-comptes créés par le plan révisé « pour faciliter l'élaboration du TFT » (référentiel du 12/07/2019) :
+  // fournisseurs d'immobilisations incorporelles (réserve de propriété, retenues de garantie, factures non
+  // parvenues) et écarts de conversion sur créances et dettes HAO.
+  if (commence(c, ['4041', '4046', '4811', '4821', '48161', '48171', '48181'])) return 'FF';
+  if (commence(c, ['47818', '47838', '47918', '47938'])) return 'FB';
   if (commence(c, ['4813'])) return 'FH';
   if (commence(c, ['404', '481', '482'])) return 'FG';
   // Écarts de conversion sur créances et dettes financières : non monétaires, neutralisés dans le flux de
