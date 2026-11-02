@@ -673,6 +673,13 @@
       "when": 1793496000095,
       "tag": "0095_mobile_money_suppression",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1793496000096,
+      "tag": "0096_stock_mouvement_comptabilise",
+      "breakpoints": true
     }
   ]
 }
