@@ -1,4 +1,6 @@
 import { confirmer } from '@/components/Confirmation';
+import PaiementsPaie from '@/components/PaiementsPaie';
+import { useUserRole } from '@/hooks/use-user-role';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -20,6 +22,8 @@ const EMPTY_EMP: Omit<EmployeeRow, 'id'> = {
 
 export default function PaiePage() {
   const { entreprise, exercice } = useApp();
+  const { canWrite } = useUserRole();
+  const [versionPaie, setVersionPaie] = useState(0);
   const [tab, setTab] = useState<'employes' | 'bulletins' | 'parametres' | 'ecritures'>('employes');
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [params, setParams] = useState<PaieParametres>(DEFAULT_PAIE_PARAMS);
@@ -168,7 +172,7 @@ export default function PaiePage() {
     } catch (e) { return toast.error((e as Error).message); }
     const { error } = await supabase.from('bulletins_paie').update({ comptabilise: true }).eq('entreprise_id', entreprise.id).eq('periode', periode);
     if (error) toast.error(`Écriture passée, marquage des bulletins impossible : ${error.message}`);
-    else toast.success(`Écritures journal PA générées (${fmtMoney(totDebit)} FCFA)`);
+    else { toast.success(`Écritures journal PA générées (${fmtMoney(totDebit)} FCFA)`); setVersionPaie(v => v + 1); }
   }
 
   if (!entreprise) return <div className="p-8 text-center text-fg3">Sélectionnez une entreprise</div>;
@@ -364,6 +368,7 @@ export default function PaiePage() {
               <h2 className="font-serif text-base">Écritures comptables — Journal PA</h2>
               <button onClick={comptabiliserPaie} className="bg-accent text-accent-foreground px-3 py-1.5 rounded text-xs font-semibold">📋 Comptabiliser dans le journal</button>
             </div>
+            <div className="mb-3"><PaiementsPaie key={`${periode}-${versionPaie}`} periode={periode} libellePeriode={`${MOIS[mois - 1]} ${annee}`} canWrite={canWrite} /></div>
             <div className="bg-bg2 border border-border rounded-lg overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-bg3 border-b border-border">
