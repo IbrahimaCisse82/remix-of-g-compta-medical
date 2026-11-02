@@ -1,5 +1,6 @@
 import { confirmer } from '@/components/Confirmation';
 import CommandesAchat from '@/components/CommandesAchat';
+import ReglementsTiers from '@/components/ReglementsTiers';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -7,8 +8,6 @@ import { ventilerTvaDeductible } from '@/lib/tva';
 import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
-import { enregistrerLignesJournal, round2 as r2, type LigneJournalPlate } from '@/lib/ecritures';
-import { lignesReglementFournisseur } from '@/lib/reglements';
 
 interface Fournisseur {
   id: string;
@@ -73,9 +72,9 @@ const emptyLigne = (i = 0): Ligne => ({
 });
 
 export default function FournisseursPage() {
-  const { entreprise, exercice, addJournalEntry, rafraichirComptabilite } = useApp();
+  const { entreprise, exercice, rafraichirComptabilite } = useApp();
   const { canWrite } = useUserRole();
-  const [tab, setTab] = useState<'factures' | 'commandes' | 'fournisseurs'>('factures');
+  const [tab, setTab] = useState<'factures' | 'commandes' | 'reglements' | 'fournisseurs'>('factures');
   const [factures, setFactures] = useState<FactureAchat[]>([]);
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
   const [articles, setArticles] = useState<ArticleStock[]>([]);
@@ -87,8 +86,7 @@ export default function FournisseursPage() {
   const [lignes, setLignes] = useState<Ligne[]>([emptyLigne()]);
 
   // Fournisseur form
-  const [regFact, setRegFact] = useState<FactureAchat | null>(null);
-  const [regForm, setRegForm] = useState<{ montant: number; compte: string; type: 'acompte' | 'solde'; date: string }>({ montant: 0, compte: '521', type: 'solde', date: new Date().toISOString().slice(0, 10) });
+  const [ouvrirReglement, setOuvrirReglement] = useState<string | null>(null);
   const [showFrn, setShowFrn] = useState(false);
   const [frnForm, setFrnForm] = useState<Partial<Fournisseur>>({});
 
@@ -273,45 +271,8 @@ export default function FournisseursPage() {
     load();
   };
 
-  // ─── RÈGLEMENTS ET ACOMPTES (4091) ────────────────────
-  const openReglement = (f: FactureAchat) => {
-    setRegFact(f);
-    setRegForm({
-      montant: r2(Number(f.total_ttc) - Number(f.montant_paye || 0)),
-      compte: '521', type: 'solde', date: new Date().toISOString().slice(0, 10),
-    });
-  };
-
-  const enregistrerReglement = async () => {
-    if (!entreprise || !exercice || !regFact || !canWrite) return;
-    const frn = fournisseurs.find(x => x.id === regFact.fournisseur_id);
-    if (!frn) { toast.error('Fournisseur introuvable'); return; }
-    const compteFrn = `${frn.compte_tiers}${frn.code.replace(/\D/g, '').slice(0, 4)}`;
-    const lib = `${regForm.type === 'acompte' ? 'Acompte versé' : 'Règlement'} ${regFact.numero_interne} — ${frn.raison_sociale}`;
-    const lgs = lignesReglementFournisseur({
-      compteTiers: compteFrn, compteTresorerie: regForm.compte,
-      montant: Number(regForm.montant), type: regForm.type, libelle: lib,
-    });
-    if (!lgs.length) { toast.error('Montant invalide'); return; }
-    try {
-      await enregistrerLignesJournal(lgs.map(l => ({
-        entreprise_id: entreprise.id, exercice_id: exercice.id,
-        date_ecriture: regForm.date, piece: `REG-${regFact.numero_interne}`, journal_code: 'BQ',
-        libelle: l.libelle || lib, compte: l.compte, intitule: l.intitule || '',
-        debit: l.debit || 0, credit: l.credit || 0,
-      })) as LigneJournalPlate[], { origine: 'reglement_fournisseur' });
-    } catch (e: any) { toast.error(e.message || 'Comptabilisation refusée'); return; }
-    if (regForm.type === 'solde') {
-      const paye = r2(Number(regFact.montant_paye || 0) + Number(regForm.montant));
-      await supabase.from('factures_achat').update({
-        montant_paye: paye,
-        statut: paye >= Number(regFact.total_ttc) ? 'payee' : 'payee_partiel',
-      }).eq('id', regFact.id);
-    }
-    toast.success('Règlement comptabilisé au journal BQ');
-    setRegFact(null);
-    load();
-  };
+  // ─── RÈGLEMENTS : onglet dédié (fonctions serveur fn_regler_tiers & co.) ───
+  const openReglement = (f: FactureAchat) => { setOuvrirReglement(f.id); setTab('reglements'); };
 
   // ─── STATS ────────────────────────────────────────────
   const stats = {
@@ -333,6 +294,7 @@ export default function FournisseursPage() {
         <div className="flex gap-2 text-[11px]">
           <button className={`px-3 py-1 rounded ${tab === 'factures' ? 'bg-primary text-primary-foreground' : 'bg-bg3 text-fg2'}`} onClick={() => setTab('factures')}>Factures d'achat</button>
           <button className={`px-3 py-1 rounded ${tab === 'commandes' ? 'bg-primary text-primary-foreground' : 'bg-bg3 text-fg2'}`} onClick={() => setTab('commandes')}>Commandes</button>
+          <button className={`px-3 py-1 rounded ${tab === 'reglements' ? 'bg-primary text-primary-foreground' : 'bg-bg3 text-fg2'}`} onClick={() => setTab('reglements')}>Règlements</button>
           <button className={`px-3 py-1 rounded ${tab === 'fournisseurs' ? 'bg-primary text-primary-foreground' : 'bg-bg3 text-fg2'}`} onClick={() => setTab('fournisseurs')}>Fournisseurs</button>
         </div>
       </div>
@@ -410,7 +372,7 @@ export default function FournisseursPage() {
                               {canWrite && !f.comptabilisee && (
                                 <button onClick={() => comptabiliser(f)} className="text-success hover:underline text-[10px]">Comptab.</button>
                               )}
-                               {canWrite && f.statut !== 'payee' && f.statut !== 'annulee' && (
+                               {canWrite && f.comptabilisee && f.statut !== 'payee' && f.statut !== 'annulee' && (
                                  <button onClick={() => openReglement(f)} className="text-warning hover:underline text-[10px]">Régler</button>
                                )}
                                {canWrite && !f.comptabilisee && <button onClick={() => deleteFact(f.id)} className="text-destructive hover:underline text-[10px]">Suppr</button>}
@@ -427,6 +389,14 @@ export default function FournisseursPage() {
               </div>
             )}
           </>
+        )}
+
+        {tab === 'reglements' && (
+          <ReglementsTiers sens="fournisseur" canWrite={canWrite} onMaj={load}
+            tiers={fournisseurs.map(f => ({ id: f.id, code: f.code, nom: f.raison_sociale }))}
+            factures={factures.map(f => ({ id: f.id, numero: f.numero_interne, tiers_id: f.fournisseur_id, date_facture: f.date_facture, date_echeance: f.date_echeance,
+              total_ttc: Number(f.total_ttc), montant_paye: Number(f.montant_paye || 0), statut: f.statut, comptabilisee: f.comptabilisee }))}
+            ouvrirPour={ouvrirReglement} onOuvert={() => setOuvrirReglement(null)} />
         )}
 
         {tab === 'commandes' && (
@@ -532,40 +502,6 @@ export default function FournisseursPage() {
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setShowFrn(false)} className="px-3 py-1.5 bg-bg3 rounded text-[11px]">Annuler</button>
               <button onClick={saveFrn} className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold">Enregistrer</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── MODAL RÈGLEMENT / ACOMPTE ─────────────────── */}
-      {regFact && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setRegFact(null)}>
-          <div className="bg-bg2 border border-border rounded-lg p-5 max-w-lg w-full" onClick={e => e.stopPropagation()}>
-            <div className="text-[15px] font-serif mb-4">Règlement — {regFact.numero_interne}</div>
-            <div className="grid grid-cols-2 gap-3 text-[11px]">
-              <div>
-                <label className="text-fg3 uppercase text-[10px]">Nature</label>
-                <select value={regForm.type} onChange={e => setRegForm({ ...regForm, type: e.target.value as 'acompte' | 'solde' })} className="w-full bg-bg3 border border-border rounded px-2 py-1">
-                  <option value="solde">Règlement sur facture (401)</option>
-                  <option value="acompte">Avance / acompte versé (4091)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-fg3 uppercase text-[10px]">Date</label>
-                <input type="date" value={regForm.date} onChange={e => setRegForm({ ...regForm, date: e.target.value })} className="w-full bg-bg3 border border-border rounded px-2 py-1" />
-              </div>
-              <div>
-                <label className="text-fg3 uppercase text-[10px]">Montant payé</label>
-                <input type="number" value={regForm.montant} onChange={e => setRegForm({ ...regForm, montant: parseFloat(e.target.value) || 0 })} className="w-full bg-bg3 border border-border rounded px-2 py-1 font-mono" />
-              </div>
-              <div>
-                <label className="text-fg3 uppercase text-[10px]">Compte de trésorerie</label>
-                <input value={regForm.compte} onChange={e => setRegForm({ ...regForm, compte: e.target.value })} className="w-full bg-bg3 border border-border rounded px-2 py-1 font-mono" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setRegFact(null)} className="px-3 py-1.5 rounded text-xs border border-border">Annuler</button>
-              <button onClick={enregistrerReglement} className="px-3 py-1.5 rounded text-xs bg-primary text-primary-foreground">Comptabiliser</button>
             </div>
           </div>
         </div>

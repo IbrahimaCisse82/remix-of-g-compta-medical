@@ -1387,6 +1387,7 @@ export type Database = {
       }
       factures: {
         Row: {
+          montant_paye: number
           client_id: string
           comptabilisee: boolean
           compte_vente: string
@@ -1416,6 +1417,7 @@ export type Database = {
           uuid_dgid: string | null
         }
         Insert: {
+          montant_paye?: number
           client_id: string
           comptabilisee?: boolean
           compte_vente?: string
@@ -1445,6 +1447,7 @@ export type Database = {
           uuid_dgid?: string | null
         }
         Update: {
+          montant_paye?: number
           client_id?: string
           comptabilisee?: boolean
           compte_vente?: string
