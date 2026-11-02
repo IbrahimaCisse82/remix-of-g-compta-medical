@@ -680,6 +680,13 @@
       "when": 1793496000096,
       "tag": "0096_stock_mouvement_comptabilise",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1793496000097,
+      "tag": "0097_paie_historique_protege",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,9 @@ describe('Paie — TRIMF', () => {
   it('renvoie 900/12 pour très bas revenus', () => {
     expect(calculerTRIMF(30000, 1)).toBeCloseTo(75);
   });
+  it('compte aussi la première tranche par part', () => {
+    expect(calculerTRIMF(30000, 2)).toBeCloseTo(150);
+  });
   it('utilise la tranche 12 000 F par part pour 200k brut', () => {
     expect(calculerTRIMF(200000, 1)).toBeCloseTo(12000 / 12);
   });
@@ -40,6 +43,9 @@ describe('Paie — ancienneté', () => {
   });
   it('renvoie n% pour n années', () => {
     expect(getTauxAnciennete(5)).toBeCloseTo(0.05);
+  });
+  it('plafonne à 25 %', () => {
+    expect(getTauxAnciennete(32)).toBeCloseTo(0.25);
   });
 });
 
@@ -105,5 +111,34 @@ describe('Paie — écriture du journal PA (SYSCOHADA révisé)', () => {
   it('fait apparaître le net dû à quelques francs près du total des bulletins', () => {
     const net = lignes.find(l => l.compte === '422')!.credit;
     expect(Math.abs(net - lot.reduce((s, b) => s + b.net_payer, 0))).toBeLessThanOrEqual(5);
+  });
+});
+
+describe('IR : réduction pour charges de famille (CGI art. 173-174)', () => {
+  it('exemple chiffré : cadre marié, conjoint sans revenu, 2 enfants, 3 ans, base 400 000', () => {
+    const b = calculerPaie(emp({
+      situation_famille: 'Marié(e)', femmes: 1, enfants: 2, statut: 'cadres',
+      date_entree: '2023-06-01', salaire_base: 400000,
+    }), DEFAULT_PAIE_PARAMS, new Date('2026-06-30'));
+    expect(b.brut).toBe(412000);
+    expect(b.parts_ir).toBe(3);
+    expect(b.ir).toBe(44950);          // (939 400 − 400 000 minimum de réduction) / 12
+    expect(b.trimf).toBe(2000);        // 12 000 × 2 parts / 12
+    expect(b.ipres_rg_s).toBeCloseTo(23072);
+    expect(b.ipres_rc_s).toBeCloseTo(9888);
+  });
+  it('n’applique pas de quotient : célibataire et marié ont le même impôt brut', () => {
+    const c = calculerPaie(emp({ salaire_base: 600000 }), DEFAULT_PAIE_PARAMS, new Date('2021-06-30'));
+    expect(c.parts_ir).toBe(1);
+    // 600 000 × 12 = 7 200 000 − 900 000 = 6 300 000 → 924 000 + 2 300 000 × 35 % = 1 729 000 / 12
+    expect(c.ir).toBe(Math.round(1729000 / 12));
+  });
+  it('plafonne les parts à 5', () => {
+    const b = calculerPaie(emp({ situation_famille: 'Marié(e)', femmes: 1, enfants: 9 }), DEFAULT_PAIE_PARAMS, new Date('2026-06-30'));
+    expect(b.parts_ir).toBe(5);
+  });
+  it('veuf avec enfant : 1,5 + 0,5 par enfant', () => {
+    const b = calculerPaie(emp({ situation_famille: 'Veuf(ve)', enfants: 1 }), DEFAULT_PAIE_PARAMS, new Date('2026-06-30'));
+    expect(b.parts_ir).toBe(2);
   });
 });
