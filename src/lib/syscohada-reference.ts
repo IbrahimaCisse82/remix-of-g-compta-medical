@@ -8,8 +8,12 @@ export const UNVALIDATED_MAPPINGS = mapping.rows.filter(r => r.verification.incl
 
 export function accountReference(account: string) {
   if (/^(20|6811|1374)/.test(account)) return undefined;
-  return reference.rows.filter(r => account === r.compte || (r.compte.length >= 3 && account.startsWith(r.compte)))
+  const trouve = reference.rows.filter(r => account === r.compte || (r.compte.length >= 3 && account.startsWith(r.compte)))
     .sort((a, b) => b.compte.length - a.compte.length)[0];
+  if (trouve) return trouve;
+  // Compte général complété de zéros (120000 = 12 Report à nouveau, comme dans le Guide d'application).
+  const racine = account.replace(/0+$/, '');
+  return racine.length >= 2 ? reference.rows.find(r => r.compte === racine) : undefined;
 }
 
 /** Restricted arithmetic grammar: no eval, executable expressions or arbitrary identifiers. */
