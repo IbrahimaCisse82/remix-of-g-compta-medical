@@ -254,7 +254,7 @@ const PASSIF_LAYOUT: MapLine[] = [
   { id: 'CE', label: 'Primes liées au capital social', c: [['105', '105'], ['107', '108']], s: 'C' },
   { id: 'CF', label: 'Réserves indisponibles', c: [['111', '113']], s: 'C' },
   { id: 'CG', label: 'Réserves libres', c: [['114', '119']], s: 'C' },
-  { id: 'CH', label: 'Report à nouveau (+/−)', c: [['121', '129']], s: 'SC' },
+  { id: 'CH', label: 'Report à nouveau (+/−)', c: [['120', '129']], s: 'SC' },
   { id: 'CJ', label: 'Résultat net de l\'exercice (+/−)', c: [['130', '139']], s: 'SC' },
   { id: 'CL', label: "Subvention d'investissement", c: [['14', '149']], s: 'C' },
   { id: 'CM', label: 'Provisions réglementées', c: [['15', '159']], s: 'C' },

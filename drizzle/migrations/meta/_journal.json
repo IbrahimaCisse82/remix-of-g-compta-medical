@@ -659,6 +659,97 @@
       "when": 1793496000093,
       "tag": "0093_sante_rejet_administratif",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1793496000094,
+      "tag": "0094_extourne_date_exercice",
+      "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1793496000095,
+      "tag": "0095_mobile_money_suppression",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1793496000096,
+      "tag": "0096_stock_mouvement_comptabilise",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1793496000097,
+      "tag": "0097_paie_historique_protege",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1793496000098,
+      "tag": "0098_lettrage_integrite",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1793496000099,
+      "tag": "0099_cloture_complete",
+      "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1793496000100,
+      "tag": "0100_visa_referentiel",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1793496000101,
+      "tag": "0101_achats_ventilation",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1793496000102,
+      "tag": "0102_commandes_receptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1793496000103,
+      "tag": "0103_fnp_reactifs_receptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1793496000104,
+      "tag": "0104_reglements_tiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1793496000105,
+      "tag": "0105_ventes_serveur_avoirs",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1793496000106,
+      "tag": "0106_paie_paiements",
+      "breakpoints": true
     }
   ]
 }

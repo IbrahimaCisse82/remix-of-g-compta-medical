@@ -63,3 +63,23 @@ describe('Amortissement — helpers', () => {
     expect(compteAmortFrom('2181')).toBe('28181');
   });
 });
+
+describe('Amortissement — cession', () => {
+  it('arrête la dotation de l’année de cession au mois de cession', async () => {
+    const { amortissementsALaCession } = await import('./amortissement');
+    // 1 200 000 sur 4 ans au 01/01/2024 : 300 000 / an ; cession au 30/06/2026 → 2 × 300 000 + 6/12 × 300 000
+    const r = amortissementsALaCession(mk(), '2026-06-30');
+    expect(r).toEqual({ cumulAnterieur: 600000, dotationAnnee: 150000, cumul: 750000, anneeCession: 2026 });
+  });
+  it('prorata depuis la mise en service quand la cession a lieu la même année', async () => {
+    const { amortissementsALaCession } = await import('./amortissement');
+    // mise en service 01/07/2024 (dotation 2024 = 150 000 pour 6 mois) ; cession 30/09/2024 → 3 mois = 75 000
+    const r = amortissementsALaCession(mk({ date_mise_service: '2024-07-01' }), '2024-09-30');
+    expect(r.dotationAnnee).toBe(75000);
+  });
+  it('immobilisation financière non amortissable', async () => {
+    const { estAmortissable } = await import('./amortissement');
+    expect(estAmortissable('2751')).toBe(false);
+    expect(estAmortissable('2441')).toBe(true);
+  });
+});

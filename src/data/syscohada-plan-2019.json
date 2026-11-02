@@ -13834,8 +13834,8 @@
     },
     {
       "compte": "903",
-      "intitule": "ENGAGEMENTS RECIPROQUES 9031 Achats de marchandises à terme 9032 Achats à terme de devises",
-      "intitule_complet": "ENGAGEMENTS RECIPROQUES 9031 Achats de marchandises à terme 9032 Achats à terme de devises",
+      "intitule": "ENGAGEMENTS RECIPROQUES",
+      "intitule_complet": "ENGAGEMENTS RECIPROQUES",
       "classe": "9",
       "niveau": "3",
       "parent": "90",
@@ -13894,8 +13894,8 @@
     },
     {
       "compte": "9041",
-      "intitule": "Abandons de créances conditionnels 9043 Ventes avec clause de réserve de propriété 9048 Divers engagements obtenus",
-      "intitule_complet": "Abandons de créances conditionnels 9043 Ventes avec clause de réserve de propriété 9048 Divers engagements obtenus",
+      "intitule": "Abandons de créances conditionnels",
+      "intitule_complet": "Abandons de créances conditionnels",
       "classe": "9",
       "niveau": "4",
       "parent": "904",

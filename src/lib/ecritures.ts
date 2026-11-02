@@ -246,3 +246,22 @@ export async function resynchroniserBalance(entrepriseId: string, exerciceId: st
   if (error) throw new Error(error.message);
   return Number(data) || 0;
 }
+
+/**
+ * Lignes de journal d'un compte dont la pièce commence par l'un des préfixes, limitées aux écritures en vigueur
+ * (ni annulées, ni contre-passées, ni contre-passations) : sert à retrouver ce qu'un module a déjà comptabilisé.
+ */
+export async function lignesEnVigueur(entrepriseId: string, compte: string, prefixesPiece: string[]): Promise<Array<{ piece: string | null; compte: string; debit: number; credit: number }>> {
+  const { data, error } = await supabase.from('journal').select('piece, compte, debit, credit, ecriture_id')
+    .eq('entreprise_id', entrepriseId).eq('compte', compte)
+    .or(prefixesPiece.map(p => `piece.like.${p}%`).join(','));
+  if (error) throw new Error(error.message);
+  const ids = [...new Set((data ?? []).map(l => l.ecriture_id).filter((x): x is string => !!x))];
+  if (!ids.length) return [];
+  const { data: ecr, error: e2 } = await supabase.from('ecritures').select('id').in('id', ids)
+    .is('contrepasse_par', null).neq('statut', 'annulee').neq('origine', 'contrepassation');
+  if (e2) throw new Error(e2.message);
+  const valides = new Set((ecr ?? []).map(e => e.id));
+  return (data ?? []).filter(l => l.ecriture_id && valides.has(l.ecriture_id))
+    .map(l => ({ piece: l.piece, compte: l.compte, debit: Number(l.debit), credit: Number(l.credit) }));
+}

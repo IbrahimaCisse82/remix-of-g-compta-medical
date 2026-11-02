@@ -111,6 +111,8 @@ export function ecarterSousTotaux(lignes: LigneBalanceImport[]): { lignes: Ligne
 
 export interface ControleImport { ok: boolean; message: string; bloquant: boolean }
 
+const f = (n: number) => Math.round(n).toLocaleString('fr-FR');
+
 export function controlerBalance(lignes: LigneBalanceImport[]): { totaux: Record<string, number>; controles: ControleImport[] } {
   const t = { ouvD: 0, ouvC: 0, mvtD: 0, mvtC: 0, solD: 0, solC: 0 };
   for (const l of lignes) for (const k of Object.keys(t) as (keyof typeof t)[]) t[k] += l[k];
@@ -119,9 +121,9 @@ export function controlerBalance(lignes: LigneBalanceImport[]): { totaux: Record
   const resultat = lignes.filter(l => /^13/.test(l.compte) && (l.ouvD || l.ouvC || l.mvtD || l.mvtC));
   const controles: ControleImport[] = [
     { ok: lignes.length > 0, message: `${lignes.length} comptes lus`, bloquant: true },
-    { ok: egal(t.ouvD, t.ouvC), message: `Ouverture : débit ${t.ouvD} / crédit ${t.ouvC}`, bloquant: true },
-    { ok: egal(t.mvtD, t.mvtC), message: `Mouvements : débit ${t.mvtD} / crédit ${t.mvtC}`, bloquant: true },
-    { ok: egal(t.solD, t.solC), message: `Soldes : débit ${t.solD} / crédit ${t.solC}`, bloquant: true },
+    { ok: egal(t.ouvD, t.ouvC), message: `Ouverture : débit ${f(t.ouvD)} / crédit ${f(t.ouvC)}`, bloquant: true },
+    { ok: egal(t.mvtD, t.mvtC), message: `Mouvements : débit ${f(t.mvtD)} / crédit ${f(t.mvtC)}`, bloquant: true },
+    { ok: egal(t.solD, t.solC), message: `Soldes : débit ${f(t.solD)} / crédit ${f(t.solC)}`, bloquant: true },
     { ok: incoherents.length === 0, message: incoherents.length ? `Ouverture + mouvements ≠ solde : ${incoherents.map(l => l.compte).join(', ')}` : 'Ouverture + mouvements = solde pour chaque compte', bloquant: true },
     { ok: resultat.length === 0, message: resultat.length ? `Comptes de résultat 13 (${resultat.map(l => l.compte).join(', ')}) : affectez le résultat en report à nouveau (12) avant la reprise` : 'Aucun compte de résultat 13', bloquant: true },
   ];

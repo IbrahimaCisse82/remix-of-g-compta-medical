@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
-import { calculerMouvement, valeurStock, compterRuptures, lignesEcritureStock, variationValeur, compteDeprecStock, lignesDepreciationStock } from '@/lib/stocks';
-import { enregistrerLignesJournal } from '@/lib/ecritures';
+import { calculerMouvement, valeurStock, compterRuptures, compteDeprecStock, lignesDepreciationStock } from '@/lib/stocks';
+import { enregistrerLignesJournal, lignesEnVigueur } from '@/lib/ecritures';
 
 type Article = {
   id: string;
@@ -45,7 +45,7 @@ const emptyArticle = (): Partial<Article> => ({
 });
 
 export default function StocksPage() {
-  const { entreprise, exercice } = useApp();
+  const { entreprise, exercice, rafraichirComptabilite } = useApp();
   const [articles, setArticles] = useState<Article[]>([]);
   const [mvts, setMvts] = useState<Mvt[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,7 +91,9 @@ export default function StocksPage() {
     if (!entreprise || !form.code || !form.designation) {
       toast.error('Code et désignation requis'); return;
     }
-    const payload = { ...form, entreprise_id: entreprise.id };
+    // Quantité et coût moyen ne se modifient que par mouvement une fois l'article créé.
+    const { quantite_stock, prix_achat_moyen, ...fiche } = form;
+    const payload = form.id ? { ...fiche, entreprise_id: entreprise.id } : { ...form, entreprise_id: entreprise.id };
     const res = form.id
       ? await supabase.from('articles').update(payload).eq('id', form.id)
       : await supabase.from('articles').insert(payload as any);
@@ -101,55 +103,27 @@ export default function StocksPage() {
 
   const saveMvt = async () => {
     if (!selected || !entreprise) return;
-    // Contrôle local (confort) puis calcul et écriture côté serveur, article verrouillé :
-    // une délivrance faite entre-temps en consultation n'est jamais écrasée.
-    try {
-      calculerMouvement({ type: mvtForm.type_mvt, stockAvant: Infinity, cumpAvant: selected.prix_achat_moyen, quantite: Number(mvtForm.quantite), prixUnitaire: Number(mvtForm.prix_unitaire) });
-    } catch (e) { toast.error((e as Error).message); return; }
-    const { data: res, error } = await supabase.rpc('stock_enregistrer_mouvement', {
+    if (!exercice) { toast.error('Ouvrez un exercice avant d’enregistrer un mouvement'); return; }
+    const inventaireZero = mvtForm.type_mvt === 'inventaire' && Number(mvtForm.quantite) === 0;
+    if (!inventaireZero) {
+      try {
+        calculerMouvement({ type: mvtForm.type_mvt, stockAvant: Infinity, cumpAvant: selected.prix_achat_moyen, quantite: Number(mvtForm.quantite), prixUnitaire: Number(mvtForm.prix_unitaire) });
+      } catch (e) { toast.error((e as Error).message); return; }
+    }
+    // Mouvement et écriture 3XX / 603X (inventaire permanent) dans une seule transaction serveur :
+    // un refus comptable annule aussi le mouvement, stock et comptabilité ne divergent jamais.
+    const { data: res, error } = await supabase.rpc('stock_mouvement_comptabilise' as any, {
       _article_id: selected.id, _type: mvtForm.type_mvt, _quantite: Number(mvtForm.quantite),
-      _prix_unitaire: Number(mvtForm.prix_unitaire) || 0, _date: mvtForm.date_mvt,
-      _reference: mvtForm.reference || undefined, _notes: mvtForm.notes || undefined, _exercice_id: exercice?.id,
+      _prix_unitaire: Number(mvtForm.prix_unitaire) || 0, _date: mvtForm.date_mvt, _exercice_id: exercice.id,
+      _reference: mvtForm.reference || null, _notes: mvtForm.notes || null,
     });
     if (error || !res) { toast.error(error?.message ?? 'Mouvement refusé'); return; }
-    const r = res as unknown as { qte_avant: number; cump_avant: number; qte_apres: number; cump_apres: number };
-    const qteApres = Number(r.qte_apres), cumpApres = Number(r.cump_apres);
-
-    // Inventaire permanent : chaque mouvement génère son écriture 3XX / 603X
-    if (exercice) {
-      const variation = variationValeur(Number(r.qte_avant), Number(r.cump_avant), qteApres, cumpApres);
-      const lignes = lignesEcritureStock({
-        type: mvtForm.type_mvt,
-        compteStock: selected.compte_stock,
-        compteVariation: selected.compte_variation,
-        designation: selected.designation,
-        montant: variation,
-      });
-      if (lignes.length) {
-        const piece = mvtForm.reference || `STK-${selected.code}-${mvtForm.date_mvt}`;
-        try {
-          await enregistrerLignesJournal(lignes.map(l => ({
-            entreprise_id: entreprise.id,
-            exercice_id: exercice.id,
-            date_ecriture: mvtForm.date_mvt,
-            piece,
-            journal_code: 'OD',
-            libelle: `Mouvement stock ${selected.code} — ${mvtForm.type_mvt}`,
-            compte: l.compte,
-            intitule: l.intitule,
-            debit: l.debit,
-            credit: l.credit,
-          })), { origine: 'stock' });
-        } catch (e: any) {
-          toast.error(`Mouvement enregistré, écriture refusée : ${e.message}`);
-        }
-      }
-    }
-
-    toast.success('Mouvement enregistré et comptabilisé');
+    const r = res as unknown as { ecriture_id: string | null; variation: number };
+    toast.success(r.ecriture_id ? `Mouvement enregistré et comptabilisé (${fmt(Math.abs(Number(r.variation)))})` : 'Mouvement enregistré (aucune variation de valeur à comptabiliser)');
     setShowMvt(false);
     setMvtForm({ type_mvt: 'entree', date_mvt: new Date().toISOString().slice(0, 10), reference: '', quantite: 0, prix_unitaire: 0, notes: '' });
     await load();
+    await rafraichirComptabilite();
     const refreshed = (await supabase.from('articles').select('*').eq('id', selected.id).single()).data;
     if (refreshed) setSelected({ ...refreshed, prix_achat_moyen: Number(refreshed.prix_achat_moyen), quantite_stock: Number(refreshed.quantite_stock), stock_minimum: Number(refreshed.stock_minimum) } as Article);
     loadMvts(selected.id);
@@ -160,13 +134,12 @@ export default function StocksPage() {
     if (!selected || !entreprise || !exercice) return;
     const valeurComptable = Math.round(selected.quantite_stock * selected.prix_achat_moyen);
     const compteDeprec = compteDeprecStock(selected.compte_stock);
-    const { data: existant } = await supabase
-      .from('journal')
-      .select('debit, credit')
-      .eq('entreprise_id', entreprise.id)
-      .eq('exercice_id', exercice.id)
-      .eq('compte', compteDeprec);
-    const deprecExistante = (existant || []).reduce((s, l: any) => s + Number(l.credit || 0) - Number(l.debit || 0), 0);
+    // Dépréciation déjà constatée pour CET article (pièces DEP-<code>-…, tous exercices) : le compte 39X est
+    // commun à plusieurs articles et ne peut pas servir de base.
+    let existant: Awaited<ReturnType<typeof lignesEnVigueur>>;
+    try { existant = await lignesEnVigueur(entreprise.id, compteDeprec, [`DEP-${selected.code}-`]); }
+    catch (e) { toast.error((e as Error).message); return; }
+    const deprecExistante = existant.reduce((s, l) => s + l.credit - l.debit, 0);
     const lignes = lignesDepreciationStock({
       compteStock: selected.compte_stock,
       designation: selected.designation,
@@ -197,8 +170,12 @@ export default function StocksPage() {
   const remove = async (id: string) => {
     if (!(await confirmer('Supprimer cet article ?'))) return;
     const { error } = await supabase.from('articles').delete().eq('id', id);
-    if (error) toast.error(error.message);
-    else { toast.success('Supprimé'); load(); }
+    if (!error) { toast.success('Supprimé'); load(); return; }
+    // Article avec historique : la suppression est refusée par le serveur ; la désactivation le conserve.
+    if (/désactivez/.test(error.message) && await confirmer('Cet article a des mouvements de stock : il ne peut pas être supprimé. Le désactiver ?')) {
+      const r = await supabase.from('articles').update({ actif: false }).eq('id', id);
+      if (r.error) toast.error(r.error.message); else { toast.success('Article désactivé'); load(); }
+    } else if (!/désactivez/.test(error.message)) toast.error(error.message);
   };
 
   const totals = useMemo(() => ({
@@ -339,8 +316,11 @@ export default function StocksPage() {
             <Field label="Compte achat (60X)"><input className="inp" value={form.compte_achat || '601'} onChange={e => setForm({ ...form, compte_achat: e.target.value })} /></Field>
             <Field label="Compte vente (70X)"><input className="inp" value={form.compte_vente || '701'} onChange={e => setForm({ ...form, compte_vente: e.target.value })} /></Field>
             <Field label="Compte variation (603X)"><input className="inp" value={form.compte_variation || '6031'} onChange={e => setForm({ ...form, compte_variation: e.target.value })} /></Field>
-            <Field label="Stock initial"><input type="number" step="0.01" className="inp" value={form.quantite_stock || 0} onChange={e => setForm({ ...form, quantite_stock: Number(e.target.value) })} /></Field>
-            <Field label="PU initial"><input type="number" step="0.01" className="inp" value={form.prix_achat_moyen || 0} onChange={e => setForm({ ...form, prix_achat_moyen: Number(e.target.value) })} /></Field>
+            {!form.id && <>
+              <Field label="Stock d’ouverture (sans écriture)"><input type="number" step="0.01" min="0" className="inp" value={form.quantite_stock || 0} onChange={e => setForm({ ...form, quantite_stock: Number(e.target.value) })} /></Field>
+              <Field label="Coût unitaire d’ouverture"><input type="number" step="0.01" min="0" className="inp" value={form.prix_achat_moyen || 0} onChange={e => setForm({ ...form, prix_achat_moyen: Number(e.target.value) })} /></Field>
+              <p className="col-span-2 text-[10px] text-fg3">Le stock d’ouverture reprend l’existant déjà présent dans la balance (à-nouveaux 3X) : aucune écriture n’est passée. Ensuite, quantité et coût moyen évoluent uniquement par mouvement.</p>
+            </>}
             <Field label="Stock minimum"><input type="number" step="0.01" className="inp" value={form.stock_minimum || 0} onChange={e => setForm({ ...form, stock_minimum: Number(e.target.value) })} /></Field>
           </div>
           <div className="flex justify-end gap-2 mt-4">
