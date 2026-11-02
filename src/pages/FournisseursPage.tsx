@@ -33,7 +33,14 @@ interface Ligne {
   compte_charge: string;
   montant_ht: number;
   ordre: number;
+  /** Charge (compte saisi), stock (article : entrée au CUMP) ou immobilisation (fiche créée à la comptabilisation). */
+  nature: 'charge' | 'stock' | 'immobilisation';
+  article_id?: string | null;
+  duree_annees?: number | null;
+  date_mise_service?: string | null;
 }
+
+interface ArticleStock { id: string; code: string; designation: string; compte_achat: string; unite: string }
 
 interface FactureAchat {
   id: string;
@@ -58,15 +65,16 @@ interface FactureAchat {
 
 const emptyLigne = (i = 0): Ligne => ({
   designation: '', quantite: 1, prix_unitaire: 0, taux_tva: 18,
-  compte_charge: '601', montant_ht: 0, ordre: i,
+  compte_charge: '605', montant_ht: 0, ordre: i, nature: 'charge', article_id: null, duree_annees: null, date_mise_service: null,
 });
 
 export default function FournisseursPage() {
-  const { entreprise, exercice, addJournalEntry } = useApp();
+  const { entreprise, exercice, addJournalEntry, rafraichirComptabilite } = useApp();
   const { canWrite } = useUserRole();
   const [tab, setTab] = useState<'factures' | 'fournisseurs'>('factures');
   const [factures, setFactures] = useState<FactureAchat[]>([]);
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
+  const [articles, setArticles] = useState<ArticleStock[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Facture form
@@ -83,10 +91,12 @@ export default function FournisseursPage() {
   const load = async () => {
     if (!entreprise) return;
     setLoading(true);
-    const [f, fr] = await Promise.all([
+    const [f, fr, ar] = await Promise.all([
       supabase.from('factures_achat').select('*').eq('entreprise_id', entreprise.id).order('date_facture', { ascending: false }),
       supabase.from('fournisseurs').select('*').eq('entreprise_id', entreprise.id).order('raison_sociale'),
+      supabase.from('articles').select('id, code, designation, compte_achat, unite').eq('entreprise_id', entreprise.id).eq('actif', true).order('code'),
     ]);
+    setArticles((ar.data ?? []) as ArticleStock[]);
     if (f.error) toast.error(f.error.message); else setFactures((f.data || []) as any);
     if (fr.error) toast.error(fr.error.message); else setFournisseurs((fr.data || []) as any);
     setLoading(false);
@@ -171,6 +181,8 @@ export default function FournisseursPage() {
       id: l.id, designation: l.designation, quantite: Number(l.quantite),
       prix_unitaire: Number(l.prix_unitaire), taux_tva: Number(l.taux_tva),
       compte_charge: l.compte_charge, montant_ht: Number(l.montant_ht), ordre: i,
+      nature: l.nature ?? 'charge', article_id: l.article_id ?? null, duree_annees: l.duree_annees == null ? null : Number(l.duree_annees),
+      date_mise_service: l.date_mise_service ?? null,
     })));
     setShowFact(true);
   };
@@ -178,7 +190,16 @@ export default function FournisseursPage() {
   const saveFact = async () => {
     if (!entreprise || !exercice || !canWrite) return;
     if (!factForm.fournisseur_id) { toast.error('Sélectionnez un fournisseur'); return; }
+    if (factForm.comptabilisee) { toast.error('Facture comptabilisée : elle n’est plus modifiable'); return; }
     if (lignes.some(l => !l.designation.trim() || l.quantite <= 0)) { toast.error('Lignes incomplètes'); return; }
+    const anomalie = lignes.find(l => (l.nature === 'stock' && !l.article_id) || (l.nature === 'immobilisation' && !/^2[1-7]/.test(l.compte_charge))
+      || (l.nature === 'charge' && /^[23]/.test(l.compte_charge)));
+    if (anomalie) {
+      toast.error(anomalie.nature === 'stock' ? `« ${anomalie.designation} » : choisissez l’article de stock`
+        : anomalie.nature === 'immobilisation' ? `« ${anomalie.designation} » : compte d’immobilisation (21 à 27) attendu`
+        : `« ${anomalie.designation} » : compte ${anomalie.compte_charge} de ${anomalie.compte_charge.startsWith('2') ? 'immobilisation' : 'stock'}, choisissez la nature correspondante`);
+      return;
+    }
     const t = totals(lignes);
     const frn = fournisseurs.find(f => f.id === factForm.fournisseur_id);
     const echeance = factForm.date_echeance || (factForm.date_facture && frn?.delai_paiement_jours
@@ -211,7 +232,11 @@ export default function FournisseursPage() {
     const lignesPayload = lignes.map((l, i) => ({
       facture_id: factId!, ordre: i, designation: l.designation,
       quantite: l.quantite, prix_unitaire: l.prix_unitaire, taux_tva: l.taux_tva,
-      compte_charge: l.compte_charge, montant_ht: Math.round(l.quantite * l.prix_unitaire * 100) / 100,
+      compte_charge: l.nature === 'stock' ? (articles.find(a => a.id === l.article_id)?.compte_achat || '601') : l.compte_charge,
+      montant_ht: Math.round(l.quantite * l.prix_unitaire * 100) / 100,
+      nature: l.nature, article_id: l.nature === 'stock' ? l.article_id ?? null : null,
+      duree_annees: l.nature === 'immobilisation' ? l.duree_annees || 5 : null,
+      date_mise_service: l.nature === 'immobilisation' ? l.date_mise_service || null : null,
     }));
     const { error: lErr } = await supabase.from('factures_achat_lignes').insert(lignesPayload);
     if (lErr) { toast.error(lErr.message); return; }
@@ -228,69 +253,17 @@ export default function FournisseursPage() {
     load();
   };
 
+  // Comptabilisation côté serveur, en une transaction : écriture AC (TVA non récupérable incorporée au coût),
+  // entrée en stock au CUMP des lignes « stock », fiche d'immobilisation des lignes « immobilisation ».
   const comptabiliser = async (f: FactureAchat) => {
     if (!entreprise || !exercice) return;
     if (f.comptabilisee) { toast.error('Déjà comptabilisée'); return; }
-    if (exercice.statut === 'cloture') { toast.error('Exercice clôturé'); return; }
-    const { data: lgs } = await supabase.from('factures_achat_lignes').select('*').eq('facture_id', f.id);
-    if (!lgs || lgs.length === 0) { toast.error('Aucune ligne'); return; }
-    const frn = fournisseurs.find(x => x.id === f.fournisseur_id);
-    if (!frn) { toast.error('Fournisseur introuvable'); return; }
-
-    // Construction de l'écriture journal AC — équilibre garanti :
-    // le crédit fournisseur est la somme exacte des débits arrondis (HT par compte + TVA
-    // par taux), jamais le TTC stocké, afin d'éliminer tout écart d'arrondi.
-    const base = {
-      exercice_id: exercice.id, entreprise_id: entreprise.id,
-      date_ecriture: f.date_facture, piece: f.numero_interne, journal_code: 'AC',
-    };
-    const lines: LigneJournalPlate[] = [];
-    const byCharge: Record<string, number> = {};
-    const byTva: Record<string, number> = {}; // TVA ventilée : 4451 (immo) ou 4452 (achats)
-    // Structure de santé exonérée / mixte : la TVA non récupérable s'incorpore à la charge ou à l'immobilisation (prorata).
-    const { data: coefData } = await (supabase as any).rpc('sante_coef_tva_deductible', { _entreprise_id: entreprise.id });
-    const coef = coefData == null ? 1 : Number(coefData);
-    for (const l of lgs as any[]) {
-      const ht = r2(Number(l.quantite) * Number(l.prix_unitaire));
-      const tvaBrute = r2(ht * (Number(l.taux_tva) / 100));
-      const { deductible: tva, nonDeductible } = ventilerTvaDeductible(tvaBrute, coef);
-      byCharge[l.compte_charge] = r2((byCharge[l.compte_charge] || 0) + ht + nonDeductible);
-      if (tva > 0) {
-        const compteTva = /^2/.test(String(l.compte_charge)) ? '4451' : '4452';
-        byTva[compteTva] = r2((byTva[compteTva] || 0) + tva);
-      }
-    }
-    for (const [compte, ht] of Object.entries(byCharge)) {
-      lines.push({ ...base, libelle: `Achat ${frn.raison_sociale} — ${f.numero_interne}`, compte, intitule: `Achat ${compte}`, debit: ht, credit: 0 });
-    }
-    for (const [compte, tva] of Object.entries(byTva)) {
-      lines.push({
-        ...base, libelle: `TVA déductible — ${f.numero_interne}`, compte,
-        intitule: compte === '4451' ? 'TVA récupérable sur immobilisations' : 'TVA récupérable sur achats',
-        debit: tva, credit: 0,
-      });
-    }
-    const totalDebit = r2(lines.reduce((s, l) => s + (l.debit || 0), 0));
-    const compteFrn = `${frn.compte_tiers}${frn.code.replace(/\D/g, '').slice(0, 4)}`;
-    lines.push({
-      ...base, libelle: `Facture ${frn.raison_sociale} — ${f.numero_interne}`,
-      compte: compteFrn, intitule: `Fournisseur ${frn.raison_sociale}`,
-      debit: 0, credit: totalDebit,
-    });
-
-    try {
-      await enregistrerLignesJournal(lines, { origine: 'facture_achat' });
-    } catch (e: any) {
-      toast.error(e.message || 'Comptabilisation refusée');
-      return;
-    }
-    await supabase.from('factures_achat').update({
-      comptabilisee: true, piece_journal: f.numero_interne, statut: 'validee',
-      total_ht: r2(Object.values(byCharge).reduce((s, v) => s + v, 0)),
-      total_tva: r2(Object.values(byTva).reduce((s, v) => s + v, 0)),
-      total_ttc: totalDebit,
-    }).eq('id', f.id);
-    toast.success('Facture comptabilisée au journal AC');
+    const { data, error } = await supabase.rpc('fn_comptabiliser_facture_achat' as any, { _facture_id: f.id });
+    if (error) { toast.error(error.message); return; }
+    const r = data as { ttc: number; entrees_stock: number; immobilisations: number };
+    const effets = [r.entrees_stock ? `${r.entrees_stock} entrée(s) en stock` : '', r.immobilisations ? `${r.immobilisations} fiche(s) d’immobilisation créée(s)` : ''].filter(Boolean).join(', ');
+    toast.success(`Facture comptabilisée au journal AC (${fmt(r.ttc)} FCFA)${effets ? ' — ' + effets : ''}`);
+    await rafraichirComptabilite();
     load();
   };
 
@@ -433,7 +406,7 @@ export default function FournisseursPage() {
                                {canWrite && f.statut !== 'payee' && f.statut !== 'annulee' && (
                                  <button onClick={() => openReglement(f)} className="text-warning hover:underline text-[10px]">Régler</button>
                                )}
-                               {canWrite && <button onClick={() => deleteFact(f.id)} className="text-destructive hover:underline text-[10px]">Suppr</button>}
+                               {canWrite && !f.comptabilisee && <button onClick={() => deleteFact(f.id)} className="text-destructive hover:underline text-[10px]">Suppr</button>}
                             </div>
                           </td>
                         </tr>
@@ -629,7 +602,8 @@ export default function FournisseursPage() {
                     <th className="text-right p-1.5 w-16">Qté</th>
                     <th className="text-right p-1.5 w-24">PU</th>
                     <th className="text-right p-1.5 w-16">TVA%</th>
-                    <th className="text-left p-1.5 w-20">Compte</th>
+                    <th className="text-left p-1.5 w-28">Nature</th>
+                    <th className="text-left p-1.5 w-40">Compte / article / amortissement</th>
                     <th className="text-right p-1.5 w-24">HT</th>
                     <th className="w-8"></th>
                   </tr>
@@ -641,23 +615,44 @@ export default function FournisseursPage() {
                       <td className="p-1"><input type="number" step="0.01" value={l.quantite} onChange={e => { const n = [...lignes]; n[i].quantite = parseFloat(e.target.value) || 0; setLignes(recomputeLignes(n)); }} className="w-full bg-transparent text-right px-1 py-0.5" /></td>
                       <td className="p-1"><input type="number" step="0.01" value={l.prix_unitaire} onChange={e => { const n = [...lignes]; n[i].prix_unitaire = parseFloat(e.target.value) || 0; setLignes(recomputeLignes(n)); }} className="w-full bg-transparent text-right px-1 py-0.5" /></td>
                       <td className="p-1"><input type="number" step="0.01" value={l.taux_tva} onChange={e => { const n = [...lignes]; n[i].taux_tva = parseFloat(e.target.value) || 0; setLignes(n); }} className="w-full bg-transparent text-right px-1 py-0.5" /></td>
-                      <td className="p-1"><input value={l.compte_charge} onChange={e => { const n = [...lignes]; n[i].compte_charge = e.target.value; setLignes(n); }} className="w-full bg-transparent font-mono px-1 py-0.5" /></td>
+                      <td className="p-1">
+                        <select aria-label="Nature de la ligne" value={l.nature} onChange={e => { const n = [...lignes]; const nat = e.target.value as Ligne['nature']; n[i] = { ...n[i], nature: nat, compte_charge: nat === 'immobilisation' ? '2441' : nat === 'stock' ? '601' : (/^[23]/.test(n[i].compte_charge) ? '605' : n[i].compte_charge) }; setLignes(n); }} className="w-full bg-bg2 border border-border rounded px-1 py-0.5">
+                          <option value="charge">Charge</option><option value="stock">Stock</option><option value="immobilisation">Immobilisation</option>
+                        </select>
+                      </td>
+                      <td className="p-1">
+                        {l.nature === 'stock' ? (
+                          <select aria-label="Article de stock" value={l.article_id ?? ''} onChange={e => { const n = [...lignes]; const a = articles.find(x => x.id === e.target.value); n[i] = { ...n[i], article_id: e.target.value || null, compte_charge: a?.compte_achat || '601', designation: n[i].designation || a?.designation || '' }; setLignes(n); }} className="w-full bg-bg2 border border-border rounded px-1 py-0.5">
+                            <option value="">— Article —</option>
+                            {articles.map(a => <option key={a.id} value={a.id}>{a.code} — {a.designation}</option>)}
+                          </select>
+                        ) : (
+                          <div className="flex gap-1 items-center">
+                            <input aria-label="Compte" value={l.compte_charge} onChange={e => { const n = [...lignes]; n[i].compte_charge = e.target.value.trim(); setLignes(n); }} className="w-16 bg-transparent font-mono px-1 py-0.5" />
+                            {l.nature === 'immobilisation' && <>
+                              <input aria-label="Durée d'amortissement (années)" type="number" min="1" title="Durée (années)" value={l.duree_annees ?? 5} onChange={e => { const n = [...lignes]; n[i].duree_annees = Number(e.target.value) || null; setLignes(n); }} className="w-10 bg-transparent text-right px-1 py-0.5" /><span className="text-fg3">ans</span>
+                              <input aria-label="Date de mise en service" type="date" title="Mise en service" value={l.date_mise_service ?? ''} onChange={e => { const n = [...lignes]; n[i].date_mise_service = e.target.value || null; setLignes(n); }} className="bg-transparent px-1 py-0.5 text-[10px]" />
+                            </>}
+                          </div>
+                        )}
+                      </td>
                       <td className="p-1 text-right font-mono">{fmt(l.quantite * l.prix_unitaire)}</td>
                       <td className="p-1 text-center">{lignes.length > 1 && <button onClick={() => setLignes(lignes.filter((_, j) => j !== i))} className="text-destructive text-[10px]">×</button>}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="bg-bg2 text-[11px] font-bold">
-                  <tr><td colSpan={5} className="p-1.5 text-right">Total HT</td><td className="p-1.5 text-right font-mono">{fmt(totals(lignes).ht)}</td><td></td></tr>
-                  <tr><td colSpan={5} className="p-1.5 text-right text-fg3">TVA</td><td className="p-1.5 text-right font-mono text-fg3">{fmt(totals(lignes).tva)}</td><td></td></tr>
-                  <tr><td colSpan={5} className="p-1.5 text-right">Total TTC</td><td className="p-1.5 text-right font-mono text-primary">{fmt(totals(lignes).ttc)}</td><td></td></tr>
+                  <tr><td colSpan={6} className="p-1.5 text-right">Total HT</td><td className="p-1.5 text-right font-mono">{fmt(totals(lignes).ht)}</td><td></td></tr>
+                  <tr><td colSpan={6} className="p-1.5 text-right text-fg3">TVA</td><td className="p-1.5 text-right font-mono text-fg3">{fmt(totals(lignes).tva)}</td><td></td></tr>
+                  <tr><td colSpan={6} className="p-1.5 text-right">Total TTC</td><td className="p-1.5 text-right font-mono text-primary">{fmt(totals(lignes).ttc)}</td><td></td></tr>
                 </tfoot>
               </table>
             </div>
 
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowFact(false)} className="px-3 py-1.5 bg-bg3 rounded text-[11px]">Annuler</button>
-              {canWrite && <button onClick={saveFact} className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold">Enregistrer</button>}
+              {factForm.comptabilisee && <span className="text-[10px] text-fg3 self-center">Facture comptabilisée : consultation seule (contre-passer l’écriture pour la corriger).</span>}
+              {canWrite && !factForm.comptabilisee && <button onClick={saveFact} className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold">Enregistrer</button>}
             </div>
           </div>
         </div>

@@ -1568,36 +1568,54 @@ export type Database = {
       }
       factures_achat_lignes: {
         Row: {
+          article_id: string | null
           compte_charge: string
           created_at: string
+          date_mise_service: string | null
           designation: string
+          duree_annees: number | null
           facture_id: string
           id: string
+          immobilisation_id: string | null
           montant_ht: number
+          mouvement_stock_id: string | null
+          nature: string
           ordre: number
           prix_unitaire: number
           quantite: number
           taux_tva: number
         }
         Insert: {
+          article_id?: string | null
           compte_charge?: string
           created_at?: string
+          date_mise_service?: string | null
+          duree_annees?: number | null
           designation: string
           facture_id: string
           id?: string
+          immobilisation_id?: string | null
           montant_ht?: number
+          mouvement_stock_id?: string | null
+          nature?: string
           ordre?: number
           prix_unitaire?: number
           quantite?: number
           taux_tva?: number
         }
         Update: {
+          article_id?: string | null
           compte_charge?: string
           created_at?: string
+          date_mise_service?: string | null
+          duree_annees?: number | null
           designation?: string
           facture_id?: string
           id?: string
+          immobilisation_id?: string | null
           montant_ht?: number
+          mouvement_stock_id?: string | null
+          nature?: string
           ordre?: number
           prix_unitaire?: number
           quantite?: number
