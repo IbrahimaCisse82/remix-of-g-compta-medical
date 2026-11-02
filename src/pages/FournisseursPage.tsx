@@ -1,4 +1,5 @@
 import { confirmer } from '@/components/Confirmation';
+import CommandesAchat from '@/components/CommandesAchat';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
@@ -38,6 +39,8 @@ interface Ligne {
   article_id?: string | null;
   duree_annees?: number | null;
   date_mise_service?: string | null;
+  /** Ligne de bon de commande rapprochée (quantité contrôlée contre le reçu non facturé). */
+  commande_ligne_id?: string | null;
 }
 
 interface ArticleStock { id: string; code: string; designation: string; compte_achat: string; unite: string }
@@ -61,6 +64,7 @@ interface FactureAchat {
   comptabilisee: boolean;
   piece_journal?: string | null;
   notes?: string | null;
+  commande_id?: string | null;
 }
 
 const emptyLigne = (i = 0): Ligne => ({
@@ -71,7 +75,7 @@ const emptyLigne = (i = 0): Ligne => ({
 export default function FournisseursPage() {
   const { entreprise, exercice, addJournalEntry, rafraichirComptabilite } = useApp();
   const { canWrite } = useUserRole();
-  const [tab, setTab] = useState<'factures' | 'fournisseurs'>('factures');
+  const [tab, setTab] = useState<'factures' | 'commandes' | 'fournisseurs'>('factures');
   const [factures, setFactures] = useState<FactureAchat[]>([]);
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
   const [articles, setArticles] = useState<ArticleStock[]>([]);
@@ -182,7 +186,7 @@ export default function FournisseursPage() {
       prix_unitaire: Number(l.prix_unitaire), taux_tva: Number(l.taux_tva),
       compte_charge: l.compte_charge, montant_ht: Number(l.montant_ht), ordre: i,
       nature: l.nature ?? 'charge', article_id: l.article_id ?? null, duree_annees: l.duree_annees == null ? null : Number(l.duree_annees),
-      date_mise_service: l.date_mise_service ?? null,
+      date_mise_service: l.date_mise_service ?? null, commande_ligne_id: l.commande_ligne_id ?? null,
     })));
     setShowFact(true);
   };
@@ -218,6 +222,7 @@ export default function FournisseursPage() {
       total_ht: t.ht, total_tva: t.tva, total_ttc: t.ttc,
       statut: factForm.statut || 'brouillon',
       notes: factForm.notes || null,
+      commande_id: factForm.commande_id ?? null,
     };
     let factId = factForm.id;
     if (factId) {
@@ -237,6 +242,7 @@ export default function FournisseursPage() {
       nature: l.nature, article_id: l.nature === 'stock' ? l.article_id ?? null : null,
       duree_annees: l.nature === 'immobilisation' ? l.duree_annees || 5 : null,
       date_mise_service: l.nature === 'immobilisation' ? l.date_mise_service || null : null,
+      commande_ligne_id: l.commande_ligne_id ?? null,
     }));
     const { error: lErr } = await supabase.from('factures_achat_lignes').insert(lignesPayload);
     if (lErr) { toast.error(lErr.message); return; }
@@ -326,6 +332,7 @@ export default function FournisseursPage() {
         <div className="font-serif text-[17px]">🧾 Facturation Fournisseurs</div>
         <div className="flex gap-2 text-[11px]">
           <button className={`px-3 py-1 rounded ${tab === 'factures' ? 'bg-primary text-primary-foreground' : 'bg-bg3 text-fg2'}`} onClick={() => setTab('factures')}>Factures d'achat</button>
+          <button className={`px-3 py-1 rounded ${tab === 'commandes' ? 'bg-primary text-primary-foreground' : 'bg-bg3 text-fg2'}`} onClick={() => setTab('commandes')}>Commandes</button>
           <button className={`px-3 py-1 rounded ${tab === 'fournisseurs' ? 'bg-primary text-primary-foreground' : 'bg-bg3 text-fg2'}`} onClick={() => setTab('fournisseurs')}>Fournisseurs</button>
         </div>
       </div>
@@ -420,6 +427,15 @@ export default function FournisseursPage() {
               </div>
             )}
           </>
+        )}
+
+        {tab === 'commandes' && (
+          <CommandesAchat entreprise={entreprise as any} exercice={exercice as any} fournisseurs={fournisseurs} articles={articles} canWrite={canWrite}
+            onFactureCreee={async id => {
+              const { data } = await supabase.from('factures_achat').select('*').eq('id', id).single();
+              await load(); setTab('factures');
+              if (data) await openFactEdit(data as any);
+            }} />
         )}
 
         {tab === 'fournisseurs' && (

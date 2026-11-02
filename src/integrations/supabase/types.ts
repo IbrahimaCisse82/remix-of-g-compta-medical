@@ -1477,6 +1477,7 @@ export type Database = {
       }
       factures_achat: {
         Row: {
+          commande_id: string | null
           comptabilisee: boolean
           created_at: string
           date_echeance: string | null
@@ -1499,6 +1500,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string
           date_echeance?: string | null
@@ -1521,6 +1523,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string
           date_echeance?: string | null
@@ -1568,6 +1571,7 @@ export type Database = {
       }
       factures_achat_lignes: {
         Row: {
+          commande_ligne_id: string | null
           article_id: string | null
           compte_charge: string
           created_at: string
@@ -1586,6 +1590,7 @@ export type Database = {
           taux_tva: number
         }
         Insert: {
+          commande_ligne_id?: string | null
           article_id?: string | null
           compte_charge?: string
           created_at?: string
@@ -1604,6 +1609,7 @@ export type Database = {
           taux_tva?: number
         }
         Update: {
+          commande_ligne_id?: string | null
           article_id?: string | null
           compte_charge?: string
           created_at?: string
