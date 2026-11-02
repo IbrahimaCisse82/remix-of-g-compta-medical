@@ -555,136 +555,6 @@ export type Database = {
         }
         Relationships: []
       }
-      commandes_achat: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          date_commande: string
-          date_livraison_prevue: string | null
-          entreprise_id: string
-          fournisseur_id: string
-          id: string
-          notes: string | null
-          numero: string
-          objet: string | null
-          statut: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          date_commande?: string
-          date_livraison_prevue?: string | null
-          entreprise_id: string
-          fournisseur_id: string
-          id?: string
-          notes?: string | null
-          numero: string
-          objet?: string | null
-          statut?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          date_commande?: string
-          date_livraison_prevue?: string | null
-          entreprise_id?: string
-          fournisseur_id?: string
-          id?: string
-          notes?: string | null
-          numero?: string
-          objet?: string | null
-          statut?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "commandes_achat_entreprise_id_fkey"
-            columns: ["entreprise_id"]
-            isOneToOne: false
-            referencedRelation: "entreprises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commandes_achat_fournisseur_id_fkey"
-            columns: ["fournisseur_id"]
-            isOneToOne: false
-            referencedRelation: "fournisseurs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      commandes_achat_lignes: {
-        Row: {
-          article_id: string | null
-          commande_id: string
-          compte_charge: string
-          created_at: string
-          designation: string
-          duree_annees: number | null
-          id: string
-          nature: string
-          ordre: number
-          prix_unitaire: number
-          quantite: number
-          reactif_id: string | null
-          taux_tva: number
-        }
-        Insert: {
-          article_id?: string | null
-          commande_id: string
-          compte_charge?: string
-          created_at?: string
-          designation: string
-          duree_annees?: number | null
-          id?: string
-          nature?: string
-          ordre?: number
-          prix_unitaire?: number
-          quantite: number
-          reactif_id?: string | null
-          taux_tva?: number
-        }
-        Update: {
-          article_id?: string | null
-          commande_id?: string
-          compte_charge?: string
-          created_at?: string
-          designation?: string
-          duree_annees?: number | null
-          id?: string
-          nature?: string
-          ordre?: number
-          prix_unitaire?: number
-          quantite?: number
-          reactif_id?: string | null
-          taux_tva?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "commandes_achat_lignes_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commandes_achat_lignes_commande_id_fkey"
-            columns: ["commande_id"]
-            isOneToOne: false
-            referencedRelation: "commandes_achat"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "commandes_achat_lignes_reactif_id_fkey"
-            columns: ["reactif_id"]
-            isOneToOne: false
-            referencedRelation: "sante_reactifs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       declarations_tva: {
         Row: {
           created_at: string
@@ -1517,6 +1387,10 @@ export type Database = {
       }
       factures: {
         Row: {
+          type_document: string
+          facture_origine_id: string | null
+          piece_journal: string | null
+          montant_paye: number
           client_id: string
           comptabilisee: boolean
           compte_vente: string
@@ -1528,14 +1402,11 @@ export type Database = {
           dgid_mode: string
           entreprise_id: string
           exercice_id: string
-          facture_origine_id: string | null
           hash_certif: string | null
           id: string
-          montant_paye: number
           notes: string | null
           numero: string
           objet: string | null
-          piece_journal: string | null
           qr_code: string | null
           sante_source_id: string | null
           sante_source_type: string | null
@@ -1545,11 +1416,14 @@ export type Database = {
           total_ht: number
           total_ttc: number
           total_tva: number
-          type_document: string
           updated_at: string
           uuid_dgid: string | null
         }
         Insert: {
+          type_document?: string
+          facture_origine_id?: string | null
+          piece_journal?: string | null
+          montant_paye?: number
           client_id: string
           comptabilisee?: boolean
           compte_vente?: string
@@ -1561,14 +1435,11 @@ export type Database = {
           dgid_mode?: string
           entreprise_id: string
           exercice_id: string
-          facture_origine_id?: string | null
           hash_certif?: string | null
           id?: string
-          montant_paye?: number
           notes?: string | null
           numero: string
           objet?: string | null
-          piece_journal?: string | null
           qr_code?: string | null
           sante_source_id?: string | null
           sante_source_type?: string | null
@@ -1578,11 +1449,14 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
-          type_document?: string
           updated_at?: string
           uuid_dgid?: string | null
         }
         Update: {
+          type_document?: string
+          facture_origine_id?: string | null
+          piece_journal?: string | null
+          montant_paye?: number
           client_id?: string
           comptabilisee?: boolean
           compte_vente?: string
@@ -1594,14 +1468,11 @@ export type Database = {
           dgid_mode?: string
           entreprise_id?: string
           exercice_id?: string
-          facture_origine_id?: string | null
           hash_certif?: string | null
           id?: string
-          montant_paye?: number
           notes?: string | null
           numero?: string
           objet?: string | null
-          piece_journal?: string | null
           qr_code?: string | null
           sante_source_id?: string | null
           sante_source_type?: string | null
@@ -1611,22 +1482,15 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
-          type_document?: string
           updated_at?: string
           uuid_dgid?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "factures_facture_origine_id_fkey"
-            columns: ["facture_origine_id"]
-            isOneToOne: false
-            referencedRelation: "factures"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       factures_achat: {
         Row: {
+          type_document: string
+          facture_origine_id: string | null
           commande_id: string | null
           comptabilisee: boolean
           created_at: string
@@ -1635,7 +1499,6 @@ export type Database = {
           date_reception: string | null
           entreprise_id: string
           exercice_id: string
-          facture_origine_id: string | null
           fournisseur_id: string
           id: string
           montant_paye: number
@@ -1648,10 +1511,11 @@ export type Database = {
           total_ht: number
           total_ttc: number
           total_tva: number
-          type_document: string
           updated_at: string
         }
         Insert: {
+          type_document?: string
+          facture_origine_id?: string | null
           commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string
@@ -1660,7 +1524,6 @@ export type Database = {
           date_reception?: string | null
           entreprise_id: string
           exercice_id: string
-          facture_origine_id?: string | null
           fournisseur_id: string
           id?: string
           montant_paye?: number
@@ -1673,10 +1536,11 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
-          type_document?: string
           updated_at?: string
         }
         Update: {
+          type_document?: string
+          facture_origine_id?: string | null
           commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string
@@ -1685,7 +1549,6 @@ export type Database = {
           date_reception?: string | null
           entreprise_id?: string
           exercice_id?: string
-          facture_origine_id?: string | null
           fournisseur_id?: string
           id?: string
           montant_paye?: number
@@ -1698,17 +1561,9 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
-          type_document?: string
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "factures_achat_commande_id_fkey"
-            columns: ["commande_id"]
-            isOneToOne: false
-            referencedRelation: "commandes_achat"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "factures_achat_entreprise_id_fkey"
             columns: ["entreprise_id"]
@@ -1724,13 +1579,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "factures_achat_facture_origine_id_fkey"
-            columns: ["facture_origine_id"]
-            isOneToOne: false
-            referencedRelation: "factures_achat"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "factures_achat_fournisseur_id_fkey"
             columns: ["fournisseur_id"]
             isOneToOne: false
@@ -1741,8 +1589,8 @@ export type Database = {
       }
       factures_achat_lignes: {
         Row: {
-          article_id: string | null
           commande_ligne_id: string | null
+          article_id: string | null
           compte_charge: string
           created_at: string
           date_mise_service: string | null
@@ -1760,13 +1608,13 @@ export type Database = {
           taux_tva: number
         }
         Insert: {
-          article_id?: string | null
           commande_ligne_id?: string | null
+          article_id?: string | null
           compte_charge?: string
           created_at?: string
           date_mise_service?: string | null
-          designation: string
           duree_annees?: number | null
+          designation: string
           facture_id: string
           id?: string
           immobilisation_id?: string | null
@@ -1779,13 +1627,13 @@ export type Database = {
           taux_tva?: number
         }
         Update: {
-          article_id?: string | null
           commande_ligne_id?: string | null
+          article_id?: string | null
           compte_charge?: string
           created_at?: string
           date_mise_service?: string | null
-          designation?: string
           duree_annees?: number | null
+          designation?: string
           facture_id?: string
           id?: string
           immobilisation_id?: string | null
@@ -1799,38 +1647,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "factures_achat_lignes_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "factures_achat_lignes_commande_ligne_id_fkey"
-            columns: ["commande_ligne_id"]
-            isOneToOne: false
-            referencedRelation: "commandes_achat_lignes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "factures_achat_lignes_facture_id_fkey"
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "factures_achat"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "factures_achat_lignes_immobilisation_id_fkey"
-            columns: ["immobilisation_id"]
-            isOneToOne: false
-            referencedRelation: "immobilisations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "factures_achat_lignes_mouvement_stock_id_fkey"
-            columns: ["mouvement_stock_id"]
-            isOneToOne: false
-            referencedRelation: "mouvements_stock"
             referencedColumns: ["id"]
           },
         ]
@@ -2645,91 +2465,6 @@ export type Database = {
           },
         ]
       }
-      paie_paiements: {
-        Row: {
-          annule_le: string | null
-          compte_tresorerie: string
-          created_at: string
-          created_by: string | null
-          date_paiement: string
-          ecriture_id: string | null
-          entreprise_id: string
-          exercice_id: string
-          id: string
-          journal_code: string
-          mode: string | null
-          montant: number
-          motif_annulation: string | null
-          nature: string
-          numero: string
-          periode: string
-          reference: string | null
-          repartition: Json
-        }
-        Insert: {
-          annule_le?: string | null
-          compte_tresorerie: string
-          created_at?: string
-          created_by?: string | null
-          date_paiement: string
-          ecriture_id?: string | null
-          entreprise_id: string
-          exercice_id: string
-          id?: string
-          journal_code: string
-          mode?: string | null
-          montant: number
-          motif_annulation?: string | null
-          nature: string
-          numero: string
-          periode: string
-          reference?: string | null
-          repartition: Json
-        }
-        Update: {
-          annule_le?: string | null
-          compte_tresorerie?: string
-          created_at?: string
-          created_by?: string | null
-          date_paiement?: string
-          ecriture_id?: string | null
-          entreprise_id?: string
-          exercice_id?: string
-          id?: string
-          journal_code?: string
-          mode?: string | null
-          montant?: number
-          motif_annulation?: string | null
-          nature?: string
-          numero?: string
-          periode?: string
-          reference?: string | null
-          repartition?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "paie_paiements_ecriture_id_fkey"
-            columns: ["ecriture_id"]
-            isOneToOne: false
-            referencedRelation: "ecritures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "paie_paiements_entreprise_id_fkey"
-            columns: ["entreprise_id"]
-            isOneToOne: false
-            referencedRelation: "entreprises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "paie_paiements_exercice_id_fkey"
-            columns: ["exercice_id"]
-            isOneToOne: false
-            referencedRelation: "exercices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       paie_parametres: {
         Row: {
           created_at: string
@@ -3093,317 +2828,6 @@ export type Database = {
             columns: ["operation_id"]
             isOneToOne: false
             referencedRelation: "operations_bancaires"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      receptions_achat: {
-        Row: {
-          bon_livraison: string | null
-          commande_id: string
-          created_at: string
-          created_by: string | null
-          date_reception: string
-          entreprise_id: string
-          id: string
-          notes: string | null
-          numero: string
-        }
-        Insert: {
-          bon_livraison?: string | null
-          commande_id: string
-          created_at?: string
-          created_by?: string | null
-          date_reception: string
-          entreprise_id: string
-          id?: string
-          notes?: string | null
-          numero: string
-        }
-        Update: {
-          bon_livraison?: string | null
-          commande_id?: string
-          created_at?: string
-          created_by?: string | null
-          date_reception?: string
-          entreprise_id?: string
-          id?: string
-          notes?: string | null
-          numero?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "receptions_achat_commande_id_fkey"
-            columns: ["commande_id"]
-            isOneToOne: false
-            referencedRelation: "commandes_achat"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "receptions_achat_entreprise_id_fkey"
-            columns: ["entreprise_id"]
-            isOneToOne: false
-            referencedRelation: "entreprises"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      receptions_achat_lignes: {
-        Row: {
-          commande_ligne_id: string
-          created_at: string
-          id: string
-          lot: string | null
-          lot_reactif_id: string | null
-          mouvement_stock_id: string | null
-          peremption: string | null
-          quantite: number
-          reception_id: string
-        }
-        Insert: {
-          commande_ligne_id: string
-          created_at?: string
-          id?: string
-          lot?: string | null
-          lot_reactif_id?: string | null
-          mouvement_stock_id?: string | null
-          peremption?: string | null
-          quantite: number
-          reception_id: string
-        }
-        Update: {
-          commande_ligne_id?: string
-          created_at?: string
-          id?: string
-          lot?: string | null
-          lot_reactif_id?: string | null
-          mouvement_stock_id?: string | null
-          peremption?: string | null
-          quantite?: number
-          reception_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "receptions_achat_lignes_commande_ligne_id_fkey"
-            columns: ["commande_ligne_id"]
-            isOneToOne: false
-            referencedRelation: "commandes_achat_lignes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "receptions_achat_lignes_lot_reactif_id_fkey"
-            columns: ["lot_reactif_id"]
-            isOneToOne: false
-            referencedRelation: "sante_lots_reactifs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "receptions_achat_lignes_mouvement_stock_id_fkey"
-            columns: ["mouvement_stock_id"]
-            isOneToOne: false
-            referencedRelation: "mouvements_stock"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "receptions_achat_lignes_reception_id_fkey"
-            columns: ["reception_id"]
-            isOneToOne: false
-            referencedRelation: "receptions_achat"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reglements_tiers: {
-        Row: {
-          acompte: number
-          annule_le: string | null
-          client_id: string | null
-          compte_tiers: string
-          compte_tresorerie: string | null
-          created_at: string
-          created_by: string | null
-          date_reglement: string
-          ecriture_id: string | null
-          entreprise_id: string
-          exercice_id: string
-          fournisseur_id: string | null
-          id: string
-          journal_acompte_id: string | null
-          journal_code: string
-          mode: string | null
-          montant: number
-          motif_annulation: string | null
-          numero: string
-          reference: string | null
-          sens: string
-        }
-        Insert: {
-          acompte?: number
-          annule_le?: string | null
-          client_id?: string | null
-          compte_tiers: string
-          compte_tresorerie?: string | null
-          created_at?: string
-          created_by?: string | null
-          date_reglement: string
-          ecriture_id?: string | null
-          entreprise_id: string
-          exercice_id: string
-          fournisseur_id?: string | null
-          id?: string
-          journal_acompte_id?: string | null
-          journal_code: string
-          mode?: string | null
-          montant: number
-          motif_annulation?: string | null
-          numero: string
-          reference?: string | null
-          sens: string
-        }
-        Update: {
-          acompte?: number
-          annule_le?: string | null
-          client_id?: string | null
-          compte_tiers?: string
-          compte_tresorerie?: string | null
-          created_at?: string
-          created_by?: string | null
-          date_reglement?: string
-          ecriture_id?: string | null
-          entreprise_id?: string
-          exercice_id?: string
-          fournisseur_id?: string | null
-          id?: string
-          journal_acompte_id?: string | null
-          journal_code?: string
-          mode?: string | null
-          montant?: number
-          motif_annulation?: string | null
-          numero?: string
-          reference?: string | null
-          sens?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reglements_tiers_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_ecriture_id_fkey"
-            columns: ["ecriture_id"]
-            isOneToOne: false
-            referencedRelation: "ecritures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_entreprise_id_fkey"
-            columns: ["entreprise_id"]
-            isOneToOne: false
-            referencedRelation: "entreprises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_exercice_id_fkey"
-            columns: ["exercice_id"]
-            isOneToOne: false
-            referencedRelation: "exercices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_fournisseur_id_fkey"
-            columns: ["fournisseur_id"]
-            isOneToOne: false
-            referencedRelation: "fournisseurs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reglements_tiers_imputations: {
-        Row: {
-          annule_le: string | null
-          created_at: string
-          created_by: string | null
-          date_imputation: string
-          ecriture_id: string | null
-          entreprise_id: string
-          facture_achat_id: string | null
-          facture_id: string | null
-          id: string
-          journal_avance_id: string | null
-          journal_id: string | null
-          montant: number
-          origine: string
-          reglement_id: string
-        }
-        Insert: {
-          annule_le?: string | null
-          created_at?: string
-          created_by?: string | null
-          date_imputation: string
-          ecriture_id?: string | null
-          entreprise_id: string
-          facture_achat_id?: string | null
-          facture_id?: string | null
-          id?: string
-          journal_avance_id?: string | null
-          journal_id?: string | null
-          montant: number
-          origine: string
-          reglement_id: string
-        }
-        Update: {
-          annule_le?: string | null
-          created_at?: string
-          created_by?: string | null
-          date_imputation?: string
-          ecriture_id?: string | null
-          entreprise_id?: string
-          facture_achat_id?: string | null
-          facture_id?: string | null
-          id?: string
-          journal_avance_id?: string | null
-          journal_id?: string | null
-          montant?: number
-          origine?: string
-          reglement_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reglements_tiers_imputations_ecriture_id_fkey"
-            columns: ["ecriture_id"]
-            isOneToOne: false
-            referencedRelation: "ecritures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_imputations_entreprise_id_fkey"
-            columns: ["entreprise_id"]
-            isOneToOne: false
-            referencedRelation: "entreprises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_imputations_facture_achat_id_fkey"
-            columns: ["facture_achat_id"]
-            isOneToOne: false
-            referencedRelation: "factures_achat"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_imputations_facture_id_fkey"
-            columns: ["facture_id"]
-            isOneToOne: false
-            referencedRelation: "factures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reglements_tiers_imputations_reglement_id_fkey"
-            columns: ["reglement_id"]
-            isOneToOne: false
-            referencedRelation: "reglements_tiers"
             referencedColumns: ["id"]
           },
         ]
@@ -7835,9 +7259,6 @@ export type Database = {
           source: string
           valide_officiellement: boolean
           version: string
-          visa_declare_par: string | null
-          visa_expert: string | null
-          visa_le: string | null
         }
         Insert: {
           comptes?: Json
@@ -7846,9 +7267,6 @@ export type Database = {
           source: string
           valide_officiellement?: boolean
           version: string
-          visa_declare_par?: string | null
-          visa_expert?: string | null
-          visa_le?: string | null
         }
         Update: {
           comptes?: Json
@@ -7857,9 +7275,6 @@ export type Database = {
           source?: string
           valide_officiellement?: boolean
           version?: string
-          visa_declare_par?: string | null
-          visa_expert?: string | null
-          visa_le?: string | null
         }
         Relationships: []
       }
@@ -8102,17 +7517,6 @@ export type Database = {
         Args: { _entreprise_id: string }
         Returns: boolean
       }
-      commande_achat_maj_statut: {
-        Args: { _commande_id: string }
-        Returns: string
-      }
-      commande_ligne_quantites: {
-        Args: { _ligne_id: string }
-        Returns: {
-          facturee: number
-          recue: number
-        }[]
-      }
       create_medical_invitation: {
         Args: {
           _email: string
@@ -8147,23 +7551,6 @@ export type Database = {
         Returns: string
       }
       exercice_est_cloture: { Args: { _exercice_id: string }; Returns: boolean }
-      fn_affecter_resultat: {
-        Args: {
-          _date: string
-          _exercice_id: string
-          _lignes: Json
-          _reference: string
-        }
-        Returns: string
-      }
-      fn_annuler_paiement_paie: {
-        Args: { _motif: string; _paiement_id: string }
-        Returns: Json
-      }
-      fn_annuler_reglement_tiers: {
-        Args: { _imputation_id: string; _motif: string; _reglement_id: string }
-        Returns: Json
-      }
       fn_balance: {
         Args: { _entreprise_id: string; _exercice_id: string }
         Returns: {
@@ -8187,16 +7574,10 @@ export type Database = {
           md_stockee: number
         }[]
       }
-      fn_cloturer_exercice: { Args: { _exercice_id: string }; Returns: Json }
-      fn_comptabiliser_facture_achat: {
-        Args: { _facture_id: string }
-        Returns: Json
+      fn_cloturer_exercice: {
+        Args: { _exercice_id: string }
+        Returns: undefined
       }
-      fn_comptabiliser_facture_vente: {
-        Args: { _facture_id: string }
-        Returns: Json
-      }
-      fn_constater_fnp: { Args: { _exercice_id: string }; Returns: Json }
       fn_contrepasser_ecriture: {
         Args: { _ecriture_id: string; _motif: string }
         Returns: string
@@ -8215,83 +7596,8 @@ export type Database = {
         }
         Returns: string
       }
-      fn_extourner_fnp: { Args: { _exercice_id: string }; Returns: Json }
       fn_generer_alertes_echeances: { Args: never; Returns: number }
-      fn_imputer_acompte_tiers: {
-        Args: {
-          _date: string
-          _facture_id: string
-          _montant: number
-          _reglement_id: string
-        }
-        Returns: Json
-      }
-      fn_paie_restes: {
-        Args: { _entreprise_id: string; _periode: string }
-        Returns: {
-          compte: string
-          du: number
-          nature: string
-          paye: number
-          reste: number
-        }[]
-      }
-      fn_payer_paie: {
-        Args: {
-          _compte_tresorerie: string
-          _date: string
-          _exercice_id: string
-          _mode?: string
-          _montant?: number
-          _nature: string
-          _periode: string
-          _reference?: string
-        }
-        Returns: Json
-      }
-      fn_receptionner_commande: {
-        Args: {
-          _bon_livraison: string
-          _commande_id: string
-          _date: string
-          _exercice_id: string
-          _lignes: Json
-          _notes?: string
-        }
-        Returns: Json
-      }
-      fn_receptions_non_facturees: {
-        Args: { _exercice_id: string }
-        Returns: {
-          commande: string
-          commande_ligne_id: string
-          compte: string
-          derniere_reception: string
-          designation: string
-          fournisseur: string
-          montant_ht: number
-          nature: string
-          prix_unitaire: number
-          quantite: number
-          tva_deductible: number
-          tva_non_deductible: number
-        }[]
-      }
       fn_refresh_balance: { Args: never; Returns: undefined }
-      fn_regler_tiers: {
-        Args: {
-          _acompte?: number
-          _compte_tresorerie: string
-          _date: string
-          _exercice_id: string
-          _imputations: Json
-          _mode: string
-          _reference: string
-          _sens: string
-          _tiers_id: string
-        }
-        Returns: Json
-      }
       fn_resync_balance: {
         Args: { _entreprise_id: string; _exercice_id: string }
         Returns: number
@@ -8345,20 +7651,6 @@ export type Database = {
       module_actif: {
         Args: { _entreprise_id: string; _module: string }
         Returns: boolean
-      }
-      paie_comptes_nature: { Args: { _nature: string }; Returns: string[] }
-      paie_ecriture_en_vigueur: {
-        Args: { _entreprise_id: string; _periode: string }
-        Returns: boolean
-      }
-      reglement_compte_tiers: {
-        Args: { _sens: string; _tiers_id: string }
-        Returns: Record<string, unknown>
-      }
-      reglement_lettrer: { Args: { _ids: string[] }; Returns: number }
-      reglement_maj_facture: {
-        Args: { _delta: number; _facture_id: string; _sens: string }
-        Returns: number
       }
       sante_acquitter_critique: {
         Args: { _resultat_id: string }
@@ -9174,19 +8466,6 @@ export type Database = {
           _article_id: string
           _date: string
           _exercice_id?: string
-          _notes?: string
-          _prix_unitaire: number
-          _quantite: number
-          _reference?: string
-          _type: string
-        }
-        Returns: Json
-      }
-      stock_mouvement_comptabilise: {
-        Args: {
-          _article_id: string
-          _date: string
-          _exercice_id: string
           _notes?: string
           _prix_unitaire: number
           _quantite: number

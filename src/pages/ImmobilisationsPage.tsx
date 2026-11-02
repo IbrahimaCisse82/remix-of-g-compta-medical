@@ -5,7 +5,7 @@ import { useApp } from '@/stores/app-store';
 import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
-import { calcPlan, compteAmortFrom, compteDotationFrom, comptesCession, natureImmo, type Immo } from '@/lib/amortissement';
+import { amortissementsALaCession, calcPlan, compteAmortFrom, compteDotationFrom, comptesCession, estAmortissable, natureImmo, type Immo } from '@/lib/amortissement';
 import { enregistrerLignesJournal } from '@/lib/ecritures';
 
 type ImmoRow = Immo & {
@@ -83,6 +83,13 @@ export default function ImmobilisationsPage() {
   };
 
   const remove = async (id: string) => {
+    const it = items.find(i => i.id === id);
+    if (it && entreprise) {
+      // Fiche support des dotations et de la cession déjà comptabilisées : elle doit rester au registre.
+      const { data: ecr } = await supabase.from('ecritures').select('numero').eq('entreprise_id', entreprise.id)
+        .or(`piece.like.DOT-${it.code}-%,piece.like.CES-${it.code}-%`).is('contrepasse_par', null).neq('statut', 'annulee').limit(1);
+      if (ecr?.length) { toast.error(`Écritures comptabilisées pour ${it.code} (${ecr[0].numero}) : la fiche reste au registre des immobilisations.`); return; }
+    }
     if (!canDelete || !(await confirmer('Supprimer cette immobilisation ?'))) return;
     const { error } = await supabase.from('immobilisations').delete().eq('id', id);
     if (error) toast.error(error.message);
@@ -94,6 +101,8 @@ export default function ImmobilisationsPage() {
   // Comptabiliser dotation année courante → journal OD
   const comptabiliserDotation = async (it: ImmoRow) => {
     if (!exercice || !canWrite) return;
+    if (it.statut !== 'actif') { toast.error('Immobilisation sortie de l’actif : la dotation de l’année de sortie est passée avec la cession.'); return; }
+    if (!estAmortissable(it.compte_immo)) { toast.error('Immobilisation financière : elle ne s’amortit pas (dépréciation 29X si besoin, via Provisions & dépréciations).'); return; }
     const annee = exercice.annee;
     const plan = calcPlan(it);
     const row = plan.find(p => p.annee === annee);
@@ -123,51 +132,52 @@ export default function ImmobilisationsPage() {
   };
 
   // Comptabiliser CESSION d'immobilisation (SYSCOHADA HAO)
+  // Comptabiliser CESSION d'immobilisation (SYSCOHADA, HAO) : dotation complémentaire jusqu'à la date de cession,
+  // sortie de l'actif (VNC en 81X, amortissements cumulés soldés) et produit de cession (485 / 82X).
   const comptabiliserCession = async (it: ImmoRow) => {
     if (!exercice || !entreprise || !canWrite) return;
     if (!it.date_cession || it.prix_cession == null) {
       toast.error('Renseignez date et prix de cession dans la fiche'); return;
     }
-    const prix = Number(it.prix_cession);
-    const vo = Number(it.valeur_origine);
-    // cumul amortissements à la date de cession (jusqu'à année de cession incluse)
-    const anneeCession = new Date(it.date_cession).getFullYear();
-    const plan = calcPlan(it);
-    const cumul = plan.filter(p => p.annee <= anneeCession).reduce((s, p) => s + p.dotation, 0);
+    if (it.date_cession < exercice.date_debut || it.date_cession > exercice.date_fin) {
+      toast.error(`Cession du ${it.date_cession} hors de l'exercice ${exercice.annee} : ouvrez l'exercice concerné.`); return;
+    }
+    const prix = Math.round(Number(it.prix_cession));
+    const vo = Math.round(Number(it.valeur_origine));
+    const amortissable = estAmortissable(it.compte_immo);
+    const { cumul, dotationAnnee, anneeCession } = amortissable
+      ? amortissementsALaCession(it, it.date_cession)
+      : { cumul: 0, dotationAnnee: 0, anneeCession: Number(it.date_cession.slice(0, 4)) };
+    // La dotation de l'année de cession est recalculée au prorata : une dotation annuelle déjà passée doit être annulée.
+    const pieceDot = `DOT-${it.code}-${anneeCession}`;
+    const { data: dot } = await supabase.from('ecritures').select('numero').eq('entreprise_id', entreprise.id).eq('piece', pieceDot)
+      .is('contrepasse_par', null).neq('statut', 'annulee').neq('origine', 'contrepassation').limit(1);
+    if (dot?.length) { toast.error(`La dotation annuelle ${pieceDot} (écriture ${dot[0].numero}) est déjà passée : contre-passez-la, la cession calcule la dotation jusqu'à la date de cession.`); return; }
     const vnc = vo - cumul;
     const compteAmort = it.compte_amort || compteAmortFrom(it.compte_immo);
     const cc = comptesCession(it.compte_immo);
     const piece = `CES-${it.code}-${anneeCession}`;
+    const base = { entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: it.date_cession, piece, journal_code: 'OD' };
     const lines: any[] = [
-      // 1. Sortie de l'immobilisation : 81X DEBIT VNC + 28XX DEBIT cumul = 2XX CREDIT valeur origine
-      { entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: it.date_cession,
-        piece, journal_code: 'OD', libelle: `Sortie immo ${it.code} (VCEAC)`,
-        compte: cc.vnc, intitule: cc.vncLibelle,
-        debit: Math.round(vnc), credit: 0 },
-      { entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: it.date_cession,
-        piece, journal_code: 'OD', libelle: `Annulation amortissements ${it.code}`,
-        compte: compteAmort, intitule: 'Amortissements cumulés',
-        debit: Math.round(cumul), credit: 0 },
-      { entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: it.date_cession,
-        piece, journal_code: 'OD', libelle: `Sortie ${it.code} ${it.libelle}`,
-        compte: it.compte_immo, intitule: 'Immobilisation cédée',
-        debit: 0, credit: Math.round(vo) },
-      // 2. Encaissement / créance sur cession : 485 DEBIT prix = 82X CREDIT prix
-      { entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: it.date_cession,
-        piece, journal_code: 'OD', libelle: `Créance sur cession ${it.code}`,
-        compte: '485', intitule: 'Créances sur cessions d\'immobilisations',
-        debit: Math.round(prix), credit: 0 },
-      { entreprise_id: entreprise.id, exercice_id: exercice.id, date_ecriture: it.date_cession,
-        piece, journal_code: 'OD', libelle: `Produit cession ${it.code}`,
-        compte: cc.produit, intitule: cc.produitLibelle,
-        debit: 0, credit: Math.round(prix) },
+      ...(dotationAnnee > 0 ? [
+        { ...base, libelle: `Dotation complémentaire ${it.code} jusqu'à la cession`, compte: it.compte_dotation || compteDotationFrom(it.compte_immo), intitule: 'Dotations aux amortissements', debit: dotationAnnee, credit: 0 },
+        { ...base, libelle: `Dotation complémentaire ${it.code} jusqu'à la cession`, compte: compteAmort, intitule: 'Amortissements', debit: 0, credit: dotationAnnee },
+      ] : []),
+      { ...base, libelle: `Sortie immo ${it.code} (valeur comptable cédée)`, compte: cc.vnc, intitule: cc.vncLibelle, debit: vnc, credit: 0 },
+      ...(cumul > 0 ? [{ ...base, libelle: `Annulation amortissements ${it.code}`, compte: compteAmort, intitule: 'Amortissements cumulés', debit: cumul, credit: 0 }] : []),
+      { ...base, libelle: `Sortie ${it.code} ${it.libelle}`, compte: it.compte_immo, intitule: 'Immobilisation cédée', debit: 0, credit: vo },
+      ...(prix > 0 ? [
+        { ...base, libelle: `Créance sur cession ${it.code}`, compte: '485', intitule: "Créances sur cessions d'immobilisations", debit: prix, credit: 0 },
+        { ...base, libelle: `Produit cession ${it.code}`, compte: cc.produit, intitule: cc.produitLibelle, debit: 0, credit: prix },
+      ] : []),
     ];
     try {
-      await enregistrerLignesJournal(lines as any, { origine: 'cession_immo', pieceUnique: true });
+      await enregistrerLignesJournal(lines, { origine: 'cession_immo', pieceUnique: true });
     } catch (e) { toast.error((e as Error).message); return; }
-    await supabase.from('immobilisations').update({ statut: 'cede' }).eq('id', it.id);
+    const { error } = await supabase.from('immobilisations').update({ statut: 'cede' }).eq('id', it.id);
+    if (error) toast.error(`Cession comptabilisée, statut non mis à jour : ${error.message}`);
     const pmv = prix - vnc;
-    toast.success(`Cession comptabilisée (${piece}). ${pmv >= 0 ? 'Plus' : 'Moins'}-value HAO : ${fmt(Math.abs(pmv))} FCFA`);
+    toast.success(`Cession comptabilisée (${piece}) : dotation complémentaire ${fmt(dotationAnnee)}, VNC ${fmt(vnc)}. ${pmv >= 0 ? 'Plus' : 'Moins'}-value HAO : ${fmt(Math.abs(pmv))} FCFA`);
     load();
   };
 

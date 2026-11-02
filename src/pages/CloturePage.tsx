@@ -1,5 +1,7 @@
 import { saisir } from '@/components/Confirmation';
 import ControleComptable from '@/components/ControleComptable';
+import AffectationResultat from '@/components/AffectationResultat';
+import FacturesNonParvenues from '@/components/FacturesNonParvenues';
 import { controlesSyscohada } from '@/lib/conformite-syscohada';
 import { useApp } from '@/stores/app-store';
 import { fmt } from '@/lib/accounting';
@@ -44,7 +46,9 @@ export default function CloturePage() {
   };
 
   const canCloture = exercice?.statut === 'en_cours';
-  const blocked = controlesSyscohada(balance, balanceN1).some(c => c.bloquant && !c.ok);
+  // REF-VISA : contrôlé par le serveur au verrouillage (référentiel visé exigé).
+  const blocked = controlesSyscohada(balance, balanceN1).some(c => c.bloquant && !c.ok && c.code !== 'REF-VISA');
+  const resultatEnInstance = balance.filter(b => b.compte.startsWith('130')).reduce((s, b) => s + ((b.sfc || 0) - (b.sfd || 0)), 0);
   const resultatNet = balance.filter(b => /^[6-8]/.test(b.compte)).reduce((s, b) => s + ((b.sfc || 0) - (b.sfd || 0)), 0);
   const bilanCount = balance.filter(b => /^[1-5]/.test(b.compte)).length;
 
@@ -80,17 +84,22 @@ export default function CloturePage() {
           </div>
 
           <ControleComptable balance={balance} previous={balanceN1} />
+          <p className="text-[10px] text-fg3 my-2">La clôture reporte en à-nouveaux de l’exercice suivant (créé au besoin) les soldes des classes 1 à 5 et le résultat en 130 « en instance d’affectation », puis verrouille l’exercice. Elle exige le visa du référentiel SYSCOHADA, aucun brouillon, aucune écriture santé en attente et l’affectation du résultat précédent. La réouverture contre-passe ces à-nouveaux.</p>
+          {resultatEnInstance !== 0 && canCloture && <p className="text-[11px] text-destructive mb-2">Résultat de l’exercice précédent non affecté ({fmt(resultatEnInstance)}) : comptabilisez l’affectation ci-dessous avant de clôturer.</p>}
           {canCloture && (
             <div className="flex items-center gap-2">
-              {confirming && <span className="text-[10px] text-destructive font-bold animate-pulse">⚠ Cette action est irréversible. Confirmer ?</span>}
-              <button onClick={handleCloture} disabled={loading || blocked}
+              {confirming && <span className="text-[10px] text-destructive font-bold animate-pulse">⚠ Exercice verrouillé et à-nouveaux générés (réouverture possible avec motif). Confirmer ?</span>}
+              <button onClick={handleCloture} disabled={loading || blocked || resultatEnInstance !== 0}
                 className={`px-4 py-2 rounded text-[11px] font-bold ${confirming ? 'bg-destructive text-destructive-foreground' : 'bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25'}`}>
-                {loading ? '⏳ Clôture en cours...' : confirming ? '⚠ Oui, clôturer définitivement' : `🔒 Clôturer l'exercice ${exercice?.annee}`}
+                {loading ? '⏳ Clôture en cours...' : confirming ? '⚠ Oui, clôturer et reporter les à-nouveaux' : `🔒 Clôturer l'exercice ${exercice?.annee}`}
               </button>
               {confirming && <button onClick={() => setConfirming(false)} className="px-3 py-1 rounded text-[10px] border border-border text-fg2">Annuler</button>}
             </div>
           )}
         </div>
+
+        <FacturesNonParvenues />
+        <AffectationResultat />
 
         {/* All exercices */}
         <div className="bg-bg2 border border-border rounded-lg overflow-hidden mb-4">
@@ -150,8 +159,8 @@ export default function CloturePage() {
                 <tr key={l.id} className="hover:bg-[rgba(56,189,248,.02)]">
                   <td className="px-3 py-1.5 text-[11px] font-mono border-b border-border/50">{new Date(l.created_at).toLocaleString('fr-FR')}</td>
                   <td className="px-3 py-1.5 border-b border-border/50">
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${l.action === 'cloture' ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'}`}>
-                      {l.action === 'cloture' ? '🔒 Clôture' : '🔓 Réouverture'}
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${/^cloture$/i.test(l.action) ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'}`}>
+                      {/^cloture$/i.test(l.action) ? '🔒 Clôture' : /^affectation$/i.test(l.action) ? '⚖️ Affectation' : '🔓 Réouverture'}
                     </span>
                   </td>
                   <td className="px-3 py-1.5 text-[11px] text-fg3 font-mono border-b border-border/50">{JSON.stringify(l.details)}</td>

@@ -1,3 +1,4 @@
+import PlanNonInstalle from '@/components/PlanNonInstalle';
 import { useApp } from '@/stores/app-store';
 import { fmt, pf } from '@/lib/accounting';
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -183,7 +184,8 @@ function NouvelleEcritureForm({ onSubmit, plan, loading }: { onSubmit: (data: { 
   return (
     <div className="bg-bg2 border border-border rounded-lg p-4 mb-4" ref={dropdownRef}>
       <div className="font-bold text-sm mb-3 text-primary">✏️ Nouvelle Écriture</div>
-      {activePlan.length === 0 && <p className="text-xs text-destructive mb-3">Aucun compte actif dans le plan comptable de ce dossier : installez le plan SYSCOHADA depuis la page Plan comptable avant de saisir.</p>}
+      {plan.length === 0 ? <div className="mb-3"><PlanNonInstalle objet="aucun compte ne peut être choisi en saisie" /></div>
+        : activePlan.length === 0 && <p className="text-xs text-destructive mb-3">Aucun compte actif dans le plan comptable de ce dossier : activez des comptes depuis la page Plan comptable avant de saisir.</p>}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
         <div>
           <label className="text-[9px] text-fg3 uppercase tracking-wider font-mono block mb-1">Date</label>
