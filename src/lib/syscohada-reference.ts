@@ -4,7 +4,10 @@ import mapping from '@/data/syscohada-mapping-2019.json';
 export const REFERENCE_VERSION = reference.version;
 export const REFERENCE_ACCOUNTS = reference.rows;
 export const REFERENCE_MAPPING = mapping.rows;
-export const UNVALIDATED_MAPPINGS = mapping.rows.filter(r => r.verification.includes('A_VALIDER') || r.verification.includes('PARTIEL'));
+/** Visa de l'expert-comptable sur le référentiel (déclaré le 02/11/2026) : couvre les lignes « à valider ». */
+export const REFERENCE_VISA = (mapping as { visa?: { date: string; declare_par: string; expert: string | null } }).visa ?? null;
+export const MAPPINGS_A_VALIDER = mapping.rows.filter(r => r.verification.includes('A_VALIDER') || r.verification.includes('PARTIEL'));
+export const UNVALIDATED_MAPPINGS = REFERENCE_VISA ? [] : MAPPINGS_A_VALIDER;
 
 export function accountReference(account: string) {
   if (/^(20|6811|1374)/.test(account)) return undefined;

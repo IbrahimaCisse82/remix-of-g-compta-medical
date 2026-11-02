@@ -1430,5 +1430,11 @@
       "verification": "RECONSTITUE_A_VALIDER",
       "commentaire": "Guide cite DP et DZ"
     }
-  ]
+  ],
+  "visa": {
+    "date": "2026-11-02",
+    "declare_par": "Ibrahima Cissé (administrateur)",
+    "objet": "Plan de comptes et correspondances des états SYSCOHADA_REVISE_2019_V1, y compris les lignes marquées A_VALIDER / PARTIEL",
+    "expert": null
+  }
 }
