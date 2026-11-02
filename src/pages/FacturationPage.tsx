@@ -439,8 +439,8 @@ export default function FacturationPage() {
                 {lignes.map((l, i) => (
                   <tr key={i} className="border-t border-border">
                     <td className="p-1"><input className="inp" value={l.designation} onChange={e => { const n = [...lignes]; n[i] = recomputeLigne({ ...l, designation: e.target.value }); setLignes(n); }} /></td>
-                    <td className="p-1"><input type="number" step="0.01" className="inp text-right" value={l.quantite} onChange={e => { const n = [...lignes]; n[i] = recomputeLigne({ ...l, quantite: Number(e.target.value) }); setLignes(n); }} /></td>
-                    <td className="p-1"><input type="number" className="inp text-right" value={l.prix_unitaire} onChange={e => { const n = [...lignes]; n[i] = recomputeLigne({ ...l, prix_unitaire: Number(e.target.value) }); setLignes(n); }} /></td>
+                    <td className="p-1 min-w-[64px]"><input type="number" min="0" step="0.01" className="inp text-right" value={l.quantite} onChange={e => { const n = [...lignes]; n[i] = recomputeLigne({ ...l, quantite: Number(e.target.value) }); setLignes(n); }} /></td>
+                    <td className="p-1 min-w-[110px]"><input type="number" min="0" step="1" aria-label="Prix unitaire" className="inp text-right" value={l.prix_unitaire} onChange={e => { const n = [...lignes]; n[i] = recomputeLigne({ ...l, prix_unitaire: Math.max(0, Number(e.target.value) || 0) }); setLignes(n); }} /></td>
                     <td className="p-1"><input type="number" step="0.01" className="inp text-right" value={l.remise_pct} onChange={e => { const n = [...lignes]; n[i] = recomputeLigne({ ...l, remise_pct: Number(e.target.value) }); setLignes(n); }} /></td>
                     <td className="p-1 text-right font-mono">{fmt(l.montant_ht)}</td>
                     <td className="p-1 text-center"><button onClick={() => setLignes(lignes.filter((_, j) => j !== i))} className="text-destructive text-[10px]">✕</button></td>
