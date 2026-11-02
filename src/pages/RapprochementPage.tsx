@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import PlanNonInstalle from '@/components/PlanNonInstalle';
 
 type Operation = Tables<'operations_bancaires'>;
 type Statement = Tables<'releves_bancaires'>;
@@ -17,7 +18,12 @@ const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('fr-FR')
 
 export default function RapprochementPage() {
   const { journal, balance, plan, entreprise, exercice, demo } = useApp();
-  const accounts = useMemo(() => plan.filter(p => p.actif && p.numero.startsWith('52')), [plan]);
+  // Comptes bancaires du plan, complétés par les comptes 52 déjà mouvementés (dossier sans plan installé).
+  const accounts = useMemo(() => {
+    const comptes = new Map(plan.filter(p => p.actif && p.numero.startsWith('52')).map(p => [p.numero, p]));
+    for (const b of balance) if (b.compte.startsWith('52') && !comptes.has(b.compte)) comptes.set(b.compte, { numero: b.compte, intitule: b.intitule || 'Banque' } as (typeof plan)[number]);
+    return [...comptes.values()].sort((a, b) => a.numero.localeCompare(b.numero));
+  }, [plan, balance]);
   const [account, setAccount] = useState('');
   const [statements, setStatements] = useState<Statement[]>([]);
   const [operations, setOperations] = useState<Operation[]>([]);
@@ -129,6 +135,7 @@ export default function RapprochementPage() {
   const column = (key: keyof BankMapping, label: string) => <label key={key} className="space-y-1 text-xs text-muted-foreground">{label}<Select value={String(mapping[key])} onValueChange={v => setMapping(m => ({ ...m, [key]: Number(v) }))}><SelectTrigger aria-label={`Colonne ${label}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="-1">Non sélectionnée</SelectItem>{file?.headers.map((h, i) => <SelectItem key={i} value={String(i)}>{h || `Colonne ${i + 1}`}</SelectItem>)}</SelectContent></Select></label>;
   return <div className="p-4 sm:p-6 space-y-5">
     <header className="flex flex-wrap justify-between gap-4 items-start"><div><h1 className="font-serif text-2xl flex items-center gap-2"><Landmark className="h-5 w-5 text-primary" />Rapprochement bancaire</h1><p className="text-xs text-muted-foreground mt-1">{entreprise?.nom ?? 'Aucune entreprise'} · Exercice {exercice?.annee ?? '—'}</p></div><div className="flex gap-2"><Button variant="outline" size="icon" title="Actualiser" aria-label="Actualiser" disabled={busy} onClick={() => void load()}><RefreshCw /></Button><Button disabled={!writable || !account || busy || loading} onClick={() => { setOpening('0'); setImportOpen(true); }}><Upload />Importer un relevé</Button></div></header>
+    <PlanNonInstalle objet="les comptes bancaires (52) ne sont proposés que s’ils sont déjà mouvementés" />
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {demo && <p className="text-muted-foreground text-sm">L’import nécessite une entreprise connectée.</p>}
     {!accounts.length && <p className="text-muted-foreground text-sm">Aucun compte bancaire actif dans le plan comptable.</p>}
