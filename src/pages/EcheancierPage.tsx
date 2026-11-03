@@ -25,11 +25,11 @@ type Echeance = {
 const TYPES = [
   { code: 'TVA', label: 'TVA mensuelle', jour: 15, periodicite: 'mensuelle', compte: '4441' },
   { code: 'IRPP', label: 'IRPP / Retenue salaires', jour: 15, periodicite: 'mensuelle', compte: '4471' },
-  { code: 'IPRES', label: 'IPRES (parts salariale + patronale)', jour: 10, periodicite: 'mensuelle', compte: '4311' },
-  { code: 'CSS', label: 'CSS (Caisse Sécurité Sociale)', jour: 10, periodicite: 'mensuelle', compte: '4312' },
-  { code: 'CFCE', label: 'CFCE (3 % masse salariale)', jour: 15, periodicite: 'mensuelle', compte: '4475' },
+  { code: 'IPRES', label: 'IPRES (parts salariale + patronale)', jour: 10, periodicite: 'mensuelle', compte: '4313' },
+  { code: 'CSS', label: 'CSS (prestations familiales et accidents du travail)', jour: 10, periodicite: 'mensuelle', compte: '4311' },
+  { code: 'CFCE', label: 'CFCE (3 % masse salariale)', jour: 15, periodicite: 'mensuelle', compte: '4472' },
   { code: 'IS', label: 'IS — Acompte / Solde', jour: 15, periodicite: 'trimestrielle', compte: '441' },
-  { code: 'TOB', label: 'TOB (Taxe sur opérations bancaires)', jour: 15, periodicite: 'mensuelle', compte: '4476' },
+  { code: 'TOB', label: 'TOB (Taxe sur opérations bancaires)', jour: 15, periodicite: 'mensuelle', compte: '4478' },
   { code: 'CGU', label: 'Contribution Globale Unique (CGU)', jour: 30, periodicite: 'annuelle', compte: '442' },
   { code: 'DSF', label: 'Dépôt DSF (États financiers annuels)', jour: 30, periodicite: 'annuelle', compte: '' },
 ];
