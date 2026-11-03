@@ -757,6 +757,13 @@
       "when": 1793496000107,
       "tag": "0107_lettrage_inter_exercices",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1793496000108,
+      "tag": "0108_outbox_montant_nul_droits",
+      "breakpoints": true
     }
   ]
 }
