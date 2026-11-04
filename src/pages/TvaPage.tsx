@@ -1,5 +1,6 @@
 import { calculTvaPeriode } from '@/lib/tva-periode';
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +11,7 @@ interface Declaration { id: string; periode: string; date_debut: string; date_fi
 
 export default function TvaPage() {
   const { entreprise, exercice, journal } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [params, setParams] = useState<TvaParam[]>([]);
   const [declarations, setDeclarations] = useState<Declaration[]>([]);
   const [loading, setLoading] = useState(false);
@@ -113,9 +115,9 @@ export default function TvaPage() {
                 </div>
               </div>
             )}
-            <button onClick={() => setShowParamForm(!showParamForm)} className="mb-3 px-3 py-1.5 rounded text-[11px] font-bold border border-border text-fg2 hover:bg-bg3">
+            {canWrite && <button onClick={() => setShowParamForm(!showParamForm)} className="mb-3 px-3 py-1.5 rounded text-[11px] font-bold border border-border text-fg2 hover:bg-bg3">
               {showParamForm ? '✕' : '+ Nouveau taux'}
-            </button>
+            </button>}
             <div className="bg-bg2 border border-border rounded-lg overflow-hidden">
               <table className="w-full border-collapse">
                 <thead><tr>
@@ -132,7 +134,7 @@ export default function TvaPage() {
                       <td className="px-3 py-1.5 text-[11px] font-mono border-b border-border/50">{p.compte_tva_collectee}</td>
                       <td className="px-3 py-1.5 text-[11px] font-mono border-b border-border/50">{p.compte_tva_deductible}</td>
                       <td className="px-3 py-1.5 border-b border-border/50">
-                        <button onClick={async () => { await supabase.from('tva_parametrage').delete().eq('id', p.id); await loadData(); }} className="text-destructive text-xs">🗑</button>
+                        {canDelete && <button onClick={async () => { await supabase.from('tva_parametrage').delete().eq('id', p.id); await loadData(); }} className="text-destructive text-xs">🗑</button>}
                       </td>
                     </tr>
                   ))}
@@ -177,7 +179,7 @@ export default function TvaPage() {
                     {calcTva.aPayer >= 0 ? fmt(calcTva.aPayer) : `Crédit: ${fmt(Math.abs(calcTva.aPayer))}`}
                   </span>
                 </div>
-                <button onClick={saveDeclaration} disabled={loading} className="mt-3 px-4 py-1.5 rounded text-[11px] font-bold bg-primary text-primary-foreground">
+                <button onClick={saveDeclaration} disabled={loading || !canWrite} className="mt-3 px-4 py-1.5 rounded text-[11px] font-bold bg-primary text-primary-foreground">
                   ✓ Enregistrer la déclaration
                 </button>
               </div>
@@ -211,7 +213,7 @@ export default function TvaPage() {
                       </span>
                     </td>
                     <td className="px-3 py-1.5 border-b border-border/50">
-                      {d.statut !== 'validee' && (
+                      {canWrite && d.statut !== 'validee' && (
                         <button onClick={() => validerDecl(d.id)} className="text-[10px] text-success hover:underline">Valider</button>
                       )}
                     </td>

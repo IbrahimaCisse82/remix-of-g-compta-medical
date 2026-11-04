@@ -17,10 +17,19 @@ export const COMPTES_REFERENCE: CompteReference[] = REFERENCE_ACCOUNTS
     type_compte: TYPE[r.classe] ?? 'Bilan',
   }));
 
-/** Comptes du référentiel absents du plan du dossier (rien n'est modifié ni supprimé). */
+/** Sous-comptes santé des prestations (rattachés à 7061 « Services vendus dans la Région ») : comptes par défaut des
+ *  recettes par catégorie de l'espace santé (sante_compte_defaut) ; les médicaments vendus vont en 7011 (marchandises). */
+export const COMPTES_SANTE: CompteReference[] = [
+  ['70611', 'Prestations de santé — consultations'],
+  ['70612', 'Prestations de santé — actes et soins'],
+  ['70613', 'Prestations de santé — analyses de laboratoire'],
+  ['70618', 'Prestations de santé — autres'],
+].map(([numero, intitule]) => ({ numero, intitule, classe: '7', sens: 'C', type_compte: 'Résultat' }));
+
+/** Comptes du référentiel (et sous-comptes santé) absents du plan du dossier (rien n'est modifié ni supprimé). */
 export function comptesManquants(existants: Iterable<string>): CompteReference[] {
   const deja = new Set(existants);
-  return COMPTES_REFERENCE.filter(c => !deja.has(c.numero));
+  return [...COMPTES_REFERENCE, ...COMPTES_SANTE].filter(c => !deja.has(c.numero));
 }
 
 /** Lignes à insérer, découpées en lots pour l'API. */

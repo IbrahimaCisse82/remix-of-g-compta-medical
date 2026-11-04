@@ -22,7 +22,7 @@ const EMPTY_EMP: Omit<EmployeeRow, 'id'> = {
 
 export default function PaiePage() {
   const { entreprise, exercice } = useApp();
-  const { canWrite } = useUserRole();
+  const { canWrite, canDelete } = useUserRole();
   const [versionPaie, setVersionPaie] = useState(0);
   const [tab, setTab] = useState<'employes' | 'bulletins' | 'parametres' | 'ecritures'>('employes');
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
@@ -225,7 +225,7 @@ export default function PaiePage() {
           <div>
             <div className="flex justify-between mb-3">
               <h2 className="font-serif text-base">Registre du personnel</h2>
-              <button onClick={openNew} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold">+ Nouvel employé</button>
+              {canWrite && <button onClick={openNew} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold">+ Nouvel employé</button>}
             </div>
             <div className="bg-bg2 border border-border rounded-lg overflow-x-auto">
               <table className="w-full text-xs">
@@ -249,8 +249,8 @@ export default function PaiePage() {
                         <td className="px-3 py-2 text-right font-mono">{fmtMoney(e.salaire_base)}</td>
                         <td className="px-3 py-2 text-right font-mono">{fmtMoney(e.sursalaire)}</td>
                         <td className="px-3 py-2 text-right">
-                          <button onClick={() => openEdit(e)} className="text-primary hover:underline mr-2">✎</button>
-                          <button onClick={() => deleteEmp(e.id)} className="text-destructive hover:underline">🗑</button>
+                          {canWrite && <button onClick={() => openEdit(e)} className="text-primary hover:underline mr-2">✎</button>}
+                          {canDelete && <button onClick={() => deleteEmp(e.id)} className="text-destructive hover:underline">🗑</button>}
                         </td>
                       </tr>
                     );
@@ -270,7 +270,7 @@ export default function PaiePage() {
             <div className="flex justify-between mb-3">
               <h2 className="font-serif text-base">Bulletins de paie — {MOIS[mois - 1]} {annee}</h2>
               <div className="flex gap-2">
-                <button onClick={genererBulletins} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold">💾 Générer & sauvegarder</button>
+                {canWrite && <button onClick={genererBulletins} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold">💾 Générer & sauvegarder</button>}
                 <button onClick={() => window.print()} className="border border-border px-3 py-1.5 rounded text-xs">🖨 Imprimer</button>
               </div>
             </div>
@@ -321,7 +321,7 @@ export default function PaiePage() {
           <div>
             <div className="flex justify-between mb-3">
               <h2 className="font-serif text-base">Paramètres de cotisation</h2>
-              <button onClick={saveParams} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold">💾 Sauvegarder</button>
+              {canWrite && <button onClick={saveParams} className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-xs font-semibold">💾 Sauvegarder</button>}
             </div>
             <div className="bg-bg2 border border-border rounded-lg overflow-hidden">
               <table className="w-full text-xs">
@@ -366,7 +366,7 @@ export default function PaiePage() {
           <div>
             <div className="flex justify-between mb-3">
               <h2 className="font-serif text-base">Écritures comptables — Journal PA</h2>
-              <button onClick={comptabiliserPaie} className="bg-accent text-accent-foreground px-3 py-1.5 rounded text-xs font-semibold">📋 Comptabiliser dans le journal</button>
+              {canWrite && <button onClick={comptabiliserPaie} className="bg-accent text-accent-foreground px-3 py-1.5 rounded text-xs font-semibold">📋 Comptabiliser dans le journal</button>}
             </div>
             <div className="mb-3"><PaiementsPaie key={`${periode}-${versionPaie}`} periode={periode} libellePeriode={`${MOIS[mois - 1]} ${annee}`} canWrite={canWrite} /></div>
             <div className="bg-bg2 border border-border rounded-lg overflow-x-auto">

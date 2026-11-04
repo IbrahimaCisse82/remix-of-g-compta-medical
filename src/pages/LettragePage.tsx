@@ -1,4 +1,5 @@
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { fmt } from '@/lib/accounting';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { chargerTout } from '@/lib/pagination';
@@ -17,6 +18,7 @@ interface LettrageEntry {
 
 export default function LettragePage() {
   const { journal, entreprise, exercice } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [compteFilter, setCompteFilter] = useState('411');
   const [lettrages, setLettrages] = useState<LettrageEntry[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -154,7 +156,7 @@ export default function LettragePage() {
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div><div className="font-serif text-[17px]">🔗 Lettrage des Comptes Tiers</div>
         <div className="text-[10px] text-fg3 font-mono">Rapprochement manuel, automatique et par pièce · à-nouveaux détaillés lettrables avec les règlements de l’exercice</div></div>
-        <div className="flex items-center gap-2">
+        {canWrite && <div className="flex items-center gap-2">
           <button onClick={handleAutoLettrage} disabled={loading} className="px-3 py-1.5 rounded text-[11px] font-bold border border-accent/30 text-accent hover:bg-accent/10">
             ⚡ Lettrage Auto
           </button>
@@ -162,7 +164,7 @@ export default function LettragePage() {
             className="px-3 py-1.5 rounded text-[11px] font-bold border border-primary/30 text-primary hover:bg-primary/10 disabled:opacity-40">
             🧾 Lettrage par pièce ({propositions.length})
           </button>
-        </div>
+        </div>}
       </div>
       <div className="p-5">
         {/* Filters */}
@@ -210,7 +212,7 @@ export default function LettragePage() {
                   return (
                     <tr key={e.id} className={`hover:bg-[rgba(56,189,248,.02)] ${isLettred ? 'opacity-50' : ''}`}>
                       <td className="px-3 py-1.5 border-b border-border/50">
-                        {!isLettred && <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleSelect(e.id)} className="accent-primary" />}
+                        {canWrite && !isLettred && <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleSelect(e.id)} className="accent-primary" />}
                       </td>
                       <td className="px-3 py-1.5 text-[11px] font-mono border-b border-border/50">{e.date_ecriture}</td>
                       <td className="px-3 py-1.5 text-[11px] border-b border-border/50"><span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[9px] font-bold font-mono">{e.piece}</span></td>
@@ -220,7 +222,7 @@ export default function LettragePage() {
                       <td className="px-3 py-1.5 text-[11px] font-mono text-right text-success border-b border-border/50">{e.credit ? fmt(e.credit) : ''}</td>
                       <td className="px-3 py-1.5 text-[11px] border-b border-border/50">
                         {lettre && (
-                          <span className="bg-success/10 text-success rounded px-1.5 py-0.5 text-[9px] font-bold font-mono cursor-pointer" onClick={() => handleDelettrage(lettre.code_lettrage)} title="Cliquer pour délettrer">
+                          <span className={`bg-success/10 text-success rounded px-1.5 py-0.5 text-[9px] font-bold font-mono ${canDelete ? 'cursor-pointer' : ''}`} onClick={canDelete ? () => handleDelettrage(lettre.code_lettrage) : undefined} title={canDelete ? 'Cliquer pour délettrer' : undefined}>
                             {lettre.code_lettrage}
                           </span>
                         )}

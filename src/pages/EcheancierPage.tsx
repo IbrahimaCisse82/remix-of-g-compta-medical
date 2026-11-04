@@ -2,6 +2,7 @@ import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
 
@@ -57,6 +58,7 @@ function joursAvant(dateLimite: string): number {
 
 export default function EcheancierPage() {
   const { entreprise, exercice } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [list, setList] = useState<Echeance[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<string>('tous');
@@ -236,7 +238,7 @@ export default function EcheancierPage() {
     <div>
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div className="font-serif text-[17px]">📅 Échéancier Fiscal & Social</div>
-        <div className="flex items-center gap-2">
+        {canWrite && <div className="flex items-center gap-2">
           <button onClick={genererCalendrierAnnee}
             className="text-[11px] px-3 py-1 rounded border border-border bg-bg3 hover:bg-primary/10 hover:border-primary">
             ⚙️ Générer calendrier {exercice?.annee}
@@ -249,7 +251,7 @@ export default function EcheancierPage() {
             className="text-[11px] px-3 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90">
             + Nouvelle échéance
           </button>
-        </div>
+        </div>}
       </div>
 
       <div className="p-5 space-y-4">
@@ -339,22 +341,22 @@ export default function EcheancierPage() {
                     </td>
                     <td className="px-3 py-2 text-center">
                       <div className="flex gap-1 justify-center">
-                        {e.statut === 'a_declarer' || e.statut === 'en_retard' ? (
+                        {canWrite && (e.statut === 'a_declarer' || e.statut === 'en_retard') ? (
                           <button onClick={() => updateStatut(e.id, 'declaree')}
                             className="text-[10px] px-2 py-0.5 rounded bg-info/20 text-info hover:bg-info/30">
                             Déclarer
                           </button>
                         ) : null}
-                        {e.statut !== 'payee' && (
+                        {canWrite && e.statut !== 'payee' && (
                           <button onClick={() => updateStatut(e.id, 'payee', { montant_paye: e.montant_du })}
                             className="text-[10px] px-2 py-0.5 rounded bg-success/20 text-success hover:bg-success/30">
                             Payer
                           </button>
                         )}
-                        <button onClick={() => supprimer(e.id)}
+                        {canDelete && <button onClick={() => supprimer(e.id)}
                           className="text-[10px] px-2 py-0.5 rounded bg-destructive/10 text-destructive hover:bg-destructive/20">
                           ✕
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

@@ -2,6 +2,7 @@ import { confirmer, saisir } from '@/components/Confirmation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
 import { enregistrerLignesJournal } from '@/lib/ecritures';
@@ -46,6 +47,7 @@ const opInfo = (code: string) => OPERATEURS.find(o => o.code === code) || OPERAT
 
 export default function MobileMoneyPage() {
   const { entreprise, exercice, plan, rafraichirComptabilite } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [moyens, setMoyens] = useState<Moyen[]>([]);
   const [trx, setTrx] = useState<Trx[]>([]);
   const [loading, setLoading] = useState(true);
@@ -281,11 +283,11 @@ export default function MobileMoneyPage() {
                   {moyens.map(m => <option key={m.id} value={m.id}>{opInfo(m.operateur).icon} {m.libelle}</option>)}
                 </select>
               </div>
-              <button onClick={() => { setTrxForm({ ...trxForm, moyen_id: selectedMoyen !== 'all' ? selectedMoyen : moyens[0]?.id || '' }); setShowTrxForm(true); }}
+              {canWrite && <button onClick={() => { setTrxForm({ ...trxForm, moyen_id: selectedMoyen !== 'all' ? selectedMoyen : moyens[0]?.id || '' }); setShowTrxForm(true); }}
                 disabled={moyens.length === 0}
                 className="text-[11px] bg-primary text-primary-foreground px-2.5 py-1 rounded font-mono disabled:opacity-50">
                 + Ajouter
-              </button>
+              </button>}
             </div>
             <table className="w-full border-collapse text-[11px]">
               <thead>
@@ -317,13 +319,13 @@ export default function MobileMoneyPage() {
                       </td>
                       <td className="px-2 py-1.5 border-b border-border/50">
                         <div className="flex gap-1 justify-end">
-                          {t.statut === 'importee' && (
+                          {canWrite && t.statut === 'importee' && (
                             <>
                               <button onClick={() => rapprocher(t)} className="text-[10px] bg-success/10 text-success px-1.5 py-0.5 rounded font-mono hover:bg-success/20">Rapprocher</button>
                               <button onClick={() => ignorer(t)} className="text-[10px] bg-bg4 text-fg3 px-1.5 py-0.5 rounded font-mono hover:bg-bg3">Ignorer</button>
                             </>
                           )}
-                          <button onClick={() => supprimerTrx(t)} className="text-[10px] text-destructive px-1 hover:underline">✕</button>
+                          {canDelete && <button onClick={() => supprimerTrx(t)} className="text-[10px] text-destructive px-1 hover:underline">✕</button>}
                         </div>
                       </td>
                     </tr>
@@ -339,7 +341,7 @@ export default function MobileMoneyPage() {
           <div className="bg-bg2 border border-border rounded-lg overflow-hidden">
             <div className="px-3.5 py-2 border-b border-border flex items-center justify-between">
               <span className="text-xs font-semibold">Moyens de paiement Mobile Money</span>
-              <button onClick={() => setShowMoyenForm(true)} className="text-[11px] bg-primary text-primary-foreground px-2.5 py-1 rounded font-mono">+ Ajouter</button>
+              {canWrite && <button onClick={() => setShowMoyenForm(true)} className="text-[11px] bg-primary text-primary-foreground px-2.5 py-1 rounded font-mono">+ Ajouter</button>}
             </div>
             <table className="w-full border-collapse text-[11px]">
               <thead>
@@ -360,12 +362,12 @@ export default function MobileMoneyPage() {
                       <td className="px-2 py-1.5 font-mono border-b border-border/50">{m.compte_associe}</td>
                       <td className="px-2 py-1.5 font-mono text-fg3 border-b border-border/50">{m.devise}</td>
                       <td className="px-2 py-1.5 border-b border-border/50">
-                        <button onClick={() => toggleMoyen(m)} className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${m.actif ? 'bg-success/10 text-success' : 'bg-bg4 text-fg3'}`}>
+                        <button disabled={!canWrite} onClick={() => toggleMoyen(m)} className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${m.actif ? 'bg-success/10 text-success' : 'bg-bg4 text-fg3'}`}>
                           {m.actif ? '● Actif' : '○ Inactif'}
                         </button>
                       </td>
                       <td className="px-2 py-1.5 border-b border-border/50 text-right">
-                        <button onClick={() => deleteMoyen(m)} className="text-[10px] text-destructive hover:underline">Supprimer</button>
+                        {canDelete && <button onClick={() => deleteMoyen(m)} className="text-[10px] text-destructive hover:underline">Supprimer</button>}
                       </td>
                     </tr>
                   );
@@ -401,7 +403,7 @@ export default function MobileMoneyPage() {
             />
             <div className="flex justify-end gap-2">
               <button onClick={() => setCsvText('')} className="text-[11px] bg-bg3 text-fg2 px-3 py-1.5 rounded font-mono">Effacer</button>
-              <button onClick={parseCsv} disabled={!csvText.trim() || !csvMoyen}
+              <button onClick={parseCsv} disabled={!canWrite || !csvText.trim() || !csvMoyen}
                 className="text-[11px] bg-primary text-primary-foreground px-3 py-1.5 rounded font-mono disabled:opacity-50">
                 Importer
               </button>

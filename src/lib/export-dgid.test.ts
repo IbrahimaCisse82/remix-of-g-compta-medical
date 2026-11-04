@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { BalanceLine, Entreprise, Exercice } from './accounting';
 import { Classeur, dureeMois, genererClasseurDgid, MODELE_DGID } from './export-dgid';
+import { calculerLiasse } from './liasse-dgid';
 
 const b = (compte: string, d: Partial<BalanceLine>): BalanceLine => ({ compte, intitule: compte, sd: 0, sc: 0, md: 0, mc: 0, sfd: 0, sfc: 0, ...d });
 const entreprise = { id: 'e', nom: 'Clinique Test & Fils', sigle: 'CT', ninea: '0012345 2G3', rccm: 'SN-DKR-2024-B-1', tel: '33 800 00 00', adresse: 'Dakar', forme_juridique: 'SARL', secteur: 'Santé', monnaie: 'FCFA' } as Entreprise;
@@ -48,13 +49,20 @@ describe('export Excel modèle DGID', () => {
     expect(c.lire('Page de garde', 'L35')).toBe('Clinique Test & Fils');
     expect(c.lire('Page de garde', 'N51')).toBe('0012345 2G3');
     expect(c.lire('Page de garde', 'B17')).toBe('CENTRE DE DEPOT : ');
-    expect(c.lire('Page de garde', 'B19')).toContain('ÉTATS PROVISOIRES');
-    expect(provisoire).not.toContain('REF-VISA');
+    // Premier exercice tenu dans l'application (pas de N-1) : C02 est une information, les états ne sont pas provisoires.
+    expect(provisoire).toEqual([]);
+    expect(String(c.lire('Page de garde', 'B19') ?? '')).not.toContain('ÉTATS PROVISOIRES');
     const R1 = 'Fiche de renseignement R1';
     expect(c.lire(R1, 'T71')).toBeNull();
     expect(c.lire(R1, 'I24')).toBe('SN-DKR-2024-B-1');
     expect(c.lire(R1, 'J4')).toBe('Clinique Test & Fils');
     expect(c.lire('BILAN PAYSAGE', 'D5')).toBe('0012345 2G3');
     expect(c.lire('BILAN PAYSAGE', 'J3')).toBe(46387); // 31/12/2026
+  });
+  it('marque les états provisoires quand un contrôle bloquant échoue', () => {
+    const desequilibre = [b('521', { md: 1_000, sfd: 1_000 }), b('706', { mc: 900, sfc: 900 })];
+    const r = calculerLiasse({ entreprise, exercice, balance: desequilibre, balanceN1: [] });
+    expect(r.provisoire).toContain('C01');
+    expect(String(r.cellules['Page de garde']?.B19)).toContain('ÉTATS PROVISOIRES');
   });
 });

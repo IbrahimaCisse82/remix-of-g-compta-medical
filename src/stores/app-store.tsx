@@ -180,9 +180,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadBalanceN1 = useCallback(async (exercicesList: Exercice[], currentExercice: Exercice) => {
-    const prevExercice = exercicesList
-      .filter(e => e.annee < currentExercice.annee)
-      .sort((a, b) => b.annee - a.annee)[0];
+    // N-1 = l'année immédiatement précédente : un exercice plus ancien (année manquante) ne sert pas de référence à C02.
+    const prevExercice = exercicesList.find(e => e.annee === currentExercice.annee - 1);
     if (!prevExercice) { setBalanceN1([]); return; }
     try {
       setBalanceN1(await chargerBalance(prevExercice.entreprise_id, prevExercice.id));

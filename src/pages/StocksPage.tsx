@@ -2,6 +2,7 @@ import { confirmer } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
 import { calculerMouvement, valeurStock, compterRuptures, compteDeprecStock, lignesDepreciationStock } from '@/lib/stocks';
@@ -46,6 +47,7 @@ const emptyArticle = (): Partial<Article> => ({
 
 export default function StocksPage() {
   const { entreprise, exercice, rafraichirComptabilite } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [articles, setArticles] = useState<Article[]>([]);
   const [mvts, setMvts] = useState<Mvt[]>([]);
   const [loading, setLoading] = useState(false);
@@ -188,10 +190,10 @@ export default function StocksPage() {
     <div>
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div className="font-serif text-[17px]">📦 Gestion des Stocks (CUMP — inventaire permanent)</div>
-        <button onClick={() => { setForm(emptyArticle()); setShowForm(true); }}
+        {canWrite && <button onClick={() => { setForm(emptyArticle()); setShowForm(true); }}
           className="px-3 py-1 rounded-md text-xs bg-primary text-primary-foreground hover:opacity-90">
           + Nouvel article
-        </button>
+        </button>}
       </div>
 
       <div className="p-5 space-y-4">
@@ -239,14 +241,14 @@ export default function StocksPage() {
                     <td className="p-2 text-right space-x-1 whitespace-nowrap">
                       <button onClick={() => { setSelected(a); loadMvts(a.id); }}
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">📊 Mvt</button>
-                      <button onClick={() => { setSelected(a); setShowMvt(true); }}
+                      {canWrite && <><button onClick={() => { setSelected(a); setShowMvt(true); }}
                         className="text-[10px] px-2 py-1 rounded border border-primary text-primary hover:bg-primary/10">+ Mvt</button>
                       <button onClick={() => { setSelected(a); setDepForm({ valeur_realisation: Math.round(a.quantite_stock * a.prix_achat_moyen), date: new Date().toISOString().slice(0, 10) }); setShowDep(true); }}
                         className="text-[10px] px-2 py-1 rounded border border-warning/50 text-warning hover:bg-warning/10" title="Dépréciation (valeur nette de réalisation)">📉</button>
                       <button onClick={() => { setForm(a); setShowForm(true); }}
-                        className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">✏️</button>
-                      <button onClick={() => remove(a.id)}
-                        className="text-[10px] px-2 py-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10">🗑</button>
+                        className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">✏️</button></>}
+                      {canDelete && <button onClick={() => remove(a.id)}
+                        className="text-[10px] px-2 py-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10">🗑</button>}
                     </td>
                   </tr>
                 );

@@ -771,6 +771,13 @@
       "when": 1793496000109,
       "tag": "0109_mobile_money_equipe",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1793496000110,
+      "tag": "0110_produits_sante_par_categorie",
+      "breakpoints": true
     }
   ]
 }

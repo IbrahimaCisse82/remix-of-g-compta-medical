@@ -34,8 +34,10 @@ export function comptesNonRepris(balance: BalanceLine[]): { compte: string; sold
  * gestion, ou 13 s'il était déjà constaté) est affecté à l'ouverture en réserves, report à nouveau ou
  * dividendes : l'écart sur les comptes 11, 12, 13 et 465 doit donc égaler ce résultat.
  */
-function controleOuverture(balance: BalanceLine[], previous: BalanceLine[]): [boolean, string] {
-  if (!previous.length) return [false, 'Correspondance ouverture / clôture précédente ; non vérifiable sans N−1'];
+function controleOuverture(balance: BalanceLine[], previous: BalanceLine[]): [boolean, string, boolean] {
+  // Sans exercice N-1 tenu dans l'application (premier exercice du dossier, ou année précédente absente), la reprise
+  // ne peut pas être vérifiée ici : information non bloquante, les à-nouveaux se contrôlent sur le bilan N-1 arrêté.
+  if (!previous.length) return [false, 'Exercice N−1 absent de l’application (premier exercice du dossier ou année précédente non saisie) : à-nouveaux à contrôler avec le bilan N−1 arrêté', false];
   const bilan = (c: string) => /^[1-5]/.test(c);
   const affectation = (c: string) => /^(11|12|13|465)/.test(c);
   const ouv = new Map<string, number>(), clo = new Map<string, number>();
@@ -54,7 +56,7 @@ function controleOuverture(balance: BalanceLine[], previous: BalanceLine[]): [bo
   return [ok, ok ? `Ouverture = clôture N-1 ; résultat N-1 (${Math.round(resultatN1)}) affecté` : [
     ecarts.length ? `Ouverture ≠ clôture N-1 : ${ecarts.join(', ')}` : '',
     affecte ? '' : `Affectation du résultat N-1 : ${Math.round(-ecartAffectation)} au lieu de ${Math.round(resultatN1)}`,
-  ].filter(Boolean).join(' ; ')];
+  ].filter(Boolean).join(' ; '), true];
 }
 
 export interface ControleSyscohada { code: string; ok: boolean; detail: string; bloquant: boolean }
