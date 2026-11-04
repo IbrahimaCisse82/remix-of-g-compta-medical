@@ -38,5 +38,6 @@ describe('Régression chiffrée SYSCOHADA révisé', () => {
     const faux=[b('101',{sc:100000,mc:100000,sfc:100000}),b('121',{sc:40000,mc:40000,sfc:40000}),b('521',{sd:140000,md:140000,sfd:140000})];
     expect(controlesSyscohada(faux,n1).find(c=>c.code==='C02')?.detail).toContain('521');
   });
+  it('C02 sans exercice N-1 : information non bloquante',()=>expect(controlesSyscohada([b('521',{sd:1000,sfd:1000}),b('101',{sc:1000,sfc:1000})]).find(c=>c.code==='C02')).toMatchObject({ ok: false, bloquant: false, detail: expect.stringMatching(/N−1 absent/) }));
   it('REF-VISA satisfait par le visa de l’expert-comptable',()=>expect(controlesSyscohada([]).find(c=>c.code==='REF-VISA')).toMatchObject({ ok: true, detail: expect.stringMatching(/visé/) }));
 });

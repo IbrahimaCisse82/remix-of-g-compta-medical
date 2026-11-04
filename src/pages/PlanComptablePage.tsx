@@ -2,6 +2,7 @@ import { comptesManquants } from '@/lib/plan-reference';
 import { accountReference, REFERENCE_VERSION } from '@/lib/syscohada-reference';
 import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { useState, useMemo, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { exportCsv } from '@/lib/csv-export';
@@ -14,6 +15,8 @@ const TYPE_AUTO: Record<string, string> = { '1': 'Bilan', '2': 'Bilan', '3': 'Bi
 
 export default function PlanComptablePage() {
   const { plan, toggleCompte, addCompte, deleteCompte, demo, installerPlanReference } = useApp();
+  const { canWrite, canDelete } = useUserRole();
+  const ecriture = !demo && canWrite;
   const manquants = useMemo(() => comptesManquants(plan.map(p => p.numero)).length, [plan]);
   const [installation, setInstallation] = useState(false);
   const installer = async () => {
@@ -90,7 +93,7 @@ export default function PlanComptablePage() {
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono text-accent bg-accent/10 border border-accent/20 rounded-full px-2.5 py-0.5">{totalActif} / {plan.length} comptes actifs</span>
           <button onClick={handleExport} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-border text-fg2 hover:bg-bg3">📥 CSV</button>
-          {!demo && (
+          {ecriture && (
             <button onClick={() => setShowForm(!showForm)} className="px-3 py-1.5 rounded-md text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90">
               {showForm ? '✕' : '+ Compte'}
             </button>
@@ -99,7 +102,7 @@ export default function PlanComptablePage() {
       </div>
       <div className="p-5">
         <p className="text-xs text-muted-foreground mb-3">Référentiel {REFERENCE_VERSION} — 1 422 comptes, classes 1 à 9 ; mappings en attente de visa.</p>
-        {!demo && manquants > 0 && (
+        {ecriture && manquants > 0 && (
           <div className="border border-border bg-bg2 rounded-lg p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-fg2 max-w-2xl">{plan.length === 0
               ? 'Ce dossier n’a pas encore de plan comptable : la saisie manuelle et le rapprochement bancaire en ont besoin. Installez le plan SYSCOHADA révisé (classes 1 à 8).'
@@ -170,7 +173,7 @@ export default function PlanComptablePage() {
           <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
             <table className="w-full border-collapse">
               <thead className="sticky top-0 z-10"><tr>
-                {['N° Compte', 'Intitulé', 'Classe', 'Sens', 'Type', 'Actif', ...(demo ? [] : [''])].map(h => (
+                {['N° Compte', 'Intitulé', 'Classe', 'Sens', 'Type', 'Actif', ...(!demo && canDelete ? [''] : [])].map(h => (
                   <th key={h} className="bg-bg3 px-3 py-1.5 text-left text-[9px] font-bold text-fg3 uppercase tracking-[1px] font-mono border-b border-border whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
@@ -194,11 +197,11 @@ export default function PlanComptablePage() {
                         <Switch
                           checked={r.actif}
                           onCheckedChange={() => handleToggle(r.id)}
-                          disabled={toggling.has(r.id)}
+                          disabled={!ecriture || toggling.has(r.id)}
                           className="scale-75"
                         />
                       </td>
-                      {!demo && (
+                      {!demo && canDelete && (
                         <td className="px-3 py-1.5 border-b border-border/50">
                           <button onClick={() => deleteCompte(r.id)} className="text-destructive text-xs hover:underline">🗑</button>
                         </td>

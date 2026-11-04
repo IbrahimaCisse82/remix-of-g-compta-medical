@@ -2,6 +2,7 @@ import { confirmer, saisir } from '@/components/Confirmation';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { toast } from 'sonner';
 import { fmt } from '@/lib/accounting';
 import { enregistrerLignesJournal, lignesEnVigueur } from '@/lib/ecritures';
@@ -38,6 +39,7 @@ const empty = (): Partial<Provision> => ({
 
 export default function ProvisionsPage() {
   const { entreprise, exercice } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [list, setList] = useState<Provision[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -147,10 +149,10 @@ export default function ProvisionsPage() {
     <div>
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div className="font-serif text-[17px]">🛡️ Provisions & Dépréciations</div>
-        <button onClick={() => { setForm(empty()); setShowForm(true); }}
+        {canWrite && <button onClick={() => { setForm(empty()); setShowForm(true); }}
           className="px-3 py-1 rounded-md text-xs bg-primary text-primary-foreground hover:opacity-90">
           + Nouvelle provision
-        </button>
+        </button>}
       </div>
 
       <div className="p-5 space-y-4">
@@ -196,7 +198,7 @@ export default function ProvisionsPage() {
                         'bg-fg3/20 text-fg3'
                       }`}>{p.statut}</span>
                     </td>
-                    <td className="p-2 text-right space-x-1 whitespace-nowrap">
+                    <td className="p-2 text-right space-x-1 whitespace-nowrap">{canWrite && <>
                       <button onClick={() => comptabiliserDotation(p)} title="Comptabiliser dotation"
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">💾 Doter</button>
                       {p.statut !== 'reprise_totale' && (
@@ -210,9 +212,9 @@ export default function ProvisionsPage() {
                       )}
                       <button onClick={() => { setForm(p); setShowForm(true); }}
                         className="text-[10px] px-2 py-1 rounded border border-border hover:bg-bg3">✏️</button>
-                      <button onClick={() => remove(p.id)}
-                        className="text-[10px] px-2 py-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10">🗑</button>
-                    </td>
+                      {canDelete && <button onClick={() => remove(p.id)}
+                        className="text-[10px] px-2 py-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10">🗑</button>}
+                    </>}</td>
                   </tr>
                 );
               })}

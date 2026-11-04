@@ -1,8 +1,10 @@
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { useState } from 'react';
 
 export default function ExercicesPage() {
   const { exercices, openExercice, deleteExercice, addExercice, exercice, entreprise, clotureExercice, loading, demo } = useApp();
+  const { canWrite, canCloturer, canDelete } = useUserRole();
   const [confirming, setConfirming] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [newAnnee, setNewAnnee] = useState(new Date().getFullYear() + 1);
@@ -33,12 +35,12 @@ export default function ExercicesPage() {
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div className="font-serif text-[17px]">Exercices Comptables</div>
         <div className="flex items-center gap-2">
-          {!demo && (
+          {!demo && canWrite && (
             <button onClick={() => setShowForm(!showForm)} className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-border text-fg2 hover:bg-bg3">
               {showForm ? '✕ Fermer' : '+ Nouvel Exercice'}
             </button>
           )}
-          {canCloture && (
+          {canCloture && canCloturer && (
             <>
               {confirming && <span className="text-[10px] text-destructive font-semibold animate-pulse">Confirmer la clôture ?</span>}
               <button
@@ -120,7 +122,7 @@ export default function ExercicesPage() {
                     <button onClick={() => openExercice(e.id)} className="text-[10px] px-2.5 py-1 rounded bg-primary text-primary-foreground font-semibold">
                       {exercice?.id === e.id ? '✓ Ouvert' : 'Ouvrir'}
                     </button>
-                    {e.statut === 'en_cours' && exercice?.id !== e.id && !demo && (
+                    {e.statut === 'en_cours' && exercice?.id !== e.id && !demo && canDelete && (
                       <button onClick={() => deleteExercice(e.id)} className="text-[10px] px-2 py-1 rounded bg-destructive/10 text-destructive">🗑</button>
                     )}
                   </td>

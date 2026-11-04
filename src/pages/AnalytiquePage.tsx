@@ -1,4 +1,5 @@
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +12,7 @@ interface Ventilation { id: string; journal_entry_id: string; axe_id: string; ce
 
 export default function AnalytiquePage() {
   const { entreprise, exercice, journal } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [axes, setAxes] = useState<Axe[]>([]);
   const [ventilations, setVentilations] = useState<Ventilation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,14 +103,14 @@ export default function AnalytiquePage() {
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div><div className="font-serif text-[17px]">📊 Comptabilité Analytique</div>
         <div className="text-[10px] text-fg3 font-mono">Multi-axes — Ventilation des charges et produits</div></div>
-        <div className="flex items-center gap-2">
+        {canWrite && <div className="flex items-center gap-2">
           <button onClick={() => setShowAxeForm(!showAxeForm)} className="px-3 py-1.5 rounded text-[11px] font-bold border border-border text-fg2 hover:bg-bg3">
             {showAxeForm ? '✕' : '+ Nouvel Axe'}
           </button>
           <button onClick={() => setShowVentForm(!showVentForm)} className="px-3 py-1.5 rounded text-[11px] font-bold border border-primary/30 text-primary hover:bg-primary/10">
             + Ventiler
           </button>
-        </div>
+        </div>}
       </div>
       <div className="p-5">
         {/* Add axe form */}
@@ -229,7 +231,7 @@ export default function AnalytiquePage() {
                       <td className="px-3 py-1.5 text-[11px] font-mono text-right border-b border-border/50">{fmt(v.montant)}</td>
                       <td className="px-3 py-1.5 text-[11px] font-mono text-right text-fg3 border-b border-border/50">{v.pourcentage} %</td>
                       <td className="px-3 py-1.5 border-b border-border/50">
-                        <button onClick={async () => { await supabase.from('ventilations_analytiques').delete().eq('id', v.id); await loadData(); }} className="text-destructive text-xs">🗑</button>
+                        {canDelete && <button onClick={async () => { await supabase.from('ventilations_analytiques').delete().eq('id', v.id); await loadData(); }} className="text-destructive text-xs">🗑</button>}
                       </td>
                     </tr>
                   );

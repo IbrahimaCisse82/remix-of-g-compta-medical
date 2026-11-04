@@ -1,4 +1,5 @@
 import { useApp } from '@/stores/app-store';
+import { useUserRole } from '@/hooks/use-user-role';
 import { fmt } from '@/lib/accounting';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +13,7 @@ const MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', '
 
 export default function BudgetPage() {
   const { entreprise, exercice, journal, balance } = useApp();
+  const { canWrite, canDelete } = useUserRole();
   const [budgets, setBudgets] = useState<BudgetLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -77,9 +79,9 @@ export default function BudgetPage() {
       <div className="h-12 bg-bg2 border-b border-border flex items-center justify-between px-5">
         <div><div className="font-serif text-[17px]">💰 Gestion Budgétaire</div>
         <div className="text-[10px] text-fg3 font-mono">Budget vs Réalisé — Exercice {exercice?.annee}</div></div>
-        <button onClick={() => setShowForm(!showForm)} className="px-3 py-1.5 rounded text-[11px] font-bold border border-border text-fg2 hover:bg-bg3">
+        {canWrite && <button onClick={() => setShowForm(!showForm)} className="px-3 py-1.5 rounded text-[11px] font-bold border border-border text-fg2 hover:bg-bg3">
           {showForm ? '✕' : '+ Nouveau Budget'}
-        </button>
+        </button>}
       </div>
       <div className="p-5">
         {showForm && (
@@ -153,7 +155,7 @@ export default function BudgetPage() {
                         <span className={tb - tr >= 0 ? 'text-success' : 'text-destructive'}>{fmt(tb - tr)}</span>
                       </td>
                       <td className="px-2 py-1 border-b border-border/30" rowSpan={2}>
-                        <button onClick={() => deleteBudget(compte)} className="text-destructive text-xs">🗑</button>
+                        {canDelete && <button onClick={() => deleteBudget(compte)} className="text-destructive text-xs">🗑</button>}
                       </td>
                     </tr>
                     <tr key={`${compte}-r`} className="bg-accent/5">
