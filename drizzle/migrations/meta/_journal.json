@@ -764,6 +764,13 @@
       "when": 1793496000108,
       "tag": "0108_outbox_montant_nul_droits",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1793496000109,
+      "tag": "0109_mobile_money_equipe",
+      "breakpoints": true
     }
   ]
 }
