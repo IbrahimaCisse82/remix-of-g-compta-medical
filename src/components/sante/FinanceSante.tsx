@@ -390,7 +390,9 @@ export function CreancesOrganismesCard({ structureId, refresh = 0 }: { structure
       {!loading && !error && classes.length > 0 && <div className="border-b border-border pb-4 mb-4"><h4 className="text-sm font-semibold mb-2">Principaux organismes débiteurs</h4><ol className="space-y-2">{classes.slice(0,5).map((r,i)=><li key={r.organisme} className="flex flex-wrap items-center justify-between gap-2 text-sm"><span><span className="font-mono text-fg3 mr-2">{i+1}.</span>{r.organisme}</span><span><strong>{fcfa(Number(r.total))}</strong><span className="text-fg3 ml-2">{(Number(r.total)/Math.max(1,totauxBalance(classes).total)*100).toFixed(1)} %</span></span></li>)}</ol></div>}
       <Input aria-label="Rechercher un organisme débiteur" placeholder="Rechercher un organisme" className="mb-3" value={recherche} onChange={e => setRecherche(e.target.value)} />
       {loading && <p role="status" className="text-sm text-fg3">Chargement des créances…</p>}
-      {error && <div role="alert" className="text-destructive text-sm">{error}<Button variant="outline" size="sm" onClick={() => void load()}>Réessayer</Button></div>}
+      {error && (/accès refusé/i.test(error)
+        ? <p role="status" className="text-sm text-fg3">Balance âgée réservée à l’administrateur, au comptable et au gestionnaire du tiers payant.</p>
+        : <div role="alert" className="text-destructive text-sm">{error}<Button variant="outline" size="sm" onClick={() => void load()}>Réessayer</Button></div>)}
       {!loading && !error && !visibles.length && <p className="text-sm text-fg3">Aucune créance trouvée.</p>}
       <table aria-label="Balance âgée des créances" className="w-full min-w-[760px] text-sm"><thead className="text-xs text-fg3 text-left"><tr><th>Organisme</th><th>0–30 j</th><th>31–60 j</th><th>61–90 j</th><th>Plus de 90 j</th><th>Total</th><th>Relance</th><th /></tr></thead>
         <tbody>{visibles.map(r => <tr key={r.organisme} className="border-t border-border">
