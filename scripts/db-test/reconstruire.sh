@@ -31,8 +31,14 @@ fi
 
 fichiers=()
 while IFS= read -r f; do fichiers+=("$f"); done < <(ls db/baseline-lovable/*.sql | sort)
-while IFS= read -r t; do fichiers+=("drizzle/migrations/$t.sql"); done < <(
-  node -e "for (const e of require('./drizzle/migrations/meta/_journal.json').entries.sort((a,b)=>a.idx-b.idx)) console.log(e.tag)")
+# Migrations du dépôt dans l'ordre de l'index ; les 6 migrations restaurées du 22/10/2026 (db/restaurees-2026-10-22)
+# s'insèrent après 0048_sante_onboarding_atomic, comme en production.
+while IFS= read -r t; do
+  fichiers+=("drizzle/migrations/$t.sql")
+  if [ "$t" = "0048_sante_onboarding_atomic" ]; then
+    while IFS= read -r r; do [ -n "$r" ] && fichiers+=("db/restaurees-2026-10-22/$r.sql"); done < db/restaurees-2026-10-22/ORDRE
+  fi
+done < <(node -e "for (const e of require('./drizzle/migrations/meta/_journal.json').entries.sort((a,b)=>a.idx-b.idx)) console.log(e.tag)")
 
 appliques=0; ignores=0
 for f in "${fichiers[@]}"; do
