@@ -6,6 +6,7 @@ import ConsentementPatient from './ConsentementPatient';
 import IdentitePatient from './IdentitePatient';
 import { statutCouverture } from '@/lib/organismes-import';
 import { useApp } from '@/stores/app-store';
+import { peut } from '@/domain/sante/droits';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,16 +20,20 @@ type Ligne = { id: string; numero_dossier: string; nom: string; prenoms: string;
 const PAGE = 25;
 
 export default function PatientsPage({ structureId }: { structureId: string }) {
+  const { medicalRoles } = useApp();
+  const lecture = peut(medicalRoles, 'lire_patients');
+  const creation = peut(medicalRoles, 'creer_patient');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<Ligne[]>([]);
   const [mode, setMode] = useState<'liste' | 'nouveau' | { id: string }>('liste');
 
   const load = useCallback(async () => {
+    if (!lecture) return;
     const { data, error } = await supabase.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: q, _limit: PAGE, _offset: page * PAGE });
     if (error) return toast.error(error.message);
     setRows((data ?? []) as Ligne[]);
-  }, [structureId, q, page]);
+  }, [structureId, q, page, lecture]);
 
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [load]);
 
@@ -40,8 +45,12 @@ export default function PatientsPage({ structureId }: { structureId: string }) {
     <div className="max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
         <div><p className="text-xs font-mono uppercase text-primary mb-1">Dossier patient</p><h1 className="font-serif text-3xl">Patients</h1></div>
-        <Button onClick={() => setMode('nouveau')}><Plus />Nouveau patient</Button>
+        {creation && <Button onClick={() => setMode('nouveau')}><Plus />Nouveau patient</Button>}
       </div>
+      {!lecture ? <p role="status" className="border border-border bg-bg2 rounded-md p-6 text-sm text-fg2">
+        Les dossiers patients sont réservés à l’équipe de soins et d’accueil (médecin, biologiste, technicien, préleveur, secrétaire, caissier).
+        Un administrateur qui travaille aussi à l’accueil ou en soins se donne le rôle correspondant dans <strong>Structure &amp; équipe</strong>.
+      </p> : <>
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fg3" />
         <Input aria-label="Rechercher un patient" className="pl-9" placeholder="Nom, prénom, n° de dossier ou téléphone" value={q} onChange={e => { setQ(e.target.value); setPage(0); }} />
@@ -68,6 +77,7 @@ export default function PatientsPage({ structureId }: { structureId: string }) {
           <Button size="sm" variant="outline" disabled={(page + 1) * PAGE >= total} onClick={() => setPage(p => p + 1)}>Suivant</Button>
         </div>
       </div>
+      </>}
     </div>
   );
 }

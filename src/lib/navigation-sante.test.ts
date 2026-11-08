@@ -127,10 +127,11 @@ describe('filtrage du menu — rôle utilisateur', () => {
     expect(visible('sante_agenda', 'mixte', ['comptable'])).toBe(false);
   });
 
-  it('le lecteur consulte la comptabilité et le pilotage mais ne voit ni saisie ni données cliniques', () => {
+  it('le lecteur consulte la comptabilité mais ne voit ni saisie, ni données cliniques, ni pilotage nominatif', () => {
     expect(visible('journal', 'cabinet', ['lecteur'])).toBe(true);
     expect(visible('bilan', 'cabinet', ['lecteur'])).toBe(true);
-    expect(visible('sante_pilotage', 'cabinet', ['lecteur'])).toBe(true);
+    // sante_tableau_bord (productivité par praticien et technicien nommés) : refusé au lecteur côté serveur.
+    expect(visible('sante_pilotage', 'cabinet', ['lecteur'])).toBe(false);
     expect(visible('saisie', 'cabinet', ['lecteur'])).toBe(false);
     expect(visible('cloture', 'cabinet', ['lecteur'])).toBe(false);
     expect(visible('sante_patients', 'cabinet', ['lecteur'])).toBe(false);

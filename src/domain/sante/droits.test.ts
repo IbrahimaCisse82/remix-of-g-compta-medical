@@ -42,4 +42,11 @@ describe('formaterResultat', () => {
     expect(formaterResultat(12500, 0)).toBe('12500');
     expect(formaterResultat(0.123456, 2)).toBe('0,1235');
   });
+  it('dossiers patients : équipe de soins et d’accueil, pas l’administrateur seul', () => {
+    expect(peut(['admin_structure'], 'lire_patients')).toBe(false);
+    expect(peut(['admin_structure', 'secretaire'], 'lire_patients')).toBe(true);
+    expect(peut(['caissier'], 'lire_patients')).toBe(true);
+    expect(peut(['caissier'], 'creer_patient')).toBe(false);
+    expect(peut(['comptable', 'lecteur', 'tiers_payant'], 'lire_patients')).toBe(false);
+  });
 });
