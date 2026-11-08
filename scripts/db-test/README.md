@@ -24,6 +24,19 @@ Il reprend après le dernier fichier réussi et compare enfin la structure à `e
 
 Depuis GitHub : onglet **Actions › Base de test (reconstruction) › Run workflow**.
 
+Sans secret ni psql : `reconstruire-depuis-github.sql`, à exécuter dans l'éditeur SQL du projet de test. La base
+télécharge elle-même les migrations depuis GitHub (dépôt public) et les applique dans l'ordre de la production.
+
+## Projet de test
+
+« G-Santé test » — organisation Grow Hub Sarl, région eu-west-3 (Paris), réf. `lduxaknsqzxymbpbolxi`,
+monté le 08/11/2026 : 148 migrations + 0111, structure identique à la production.
+
+## Tâche propre à chaque environnement
+
+`sante-rappels-18h` appelle la fonction `sante-rappels` du projet avec le jeton de `sante_cron_config` : elle est
+créée à la main dans chaque environnement (jamais dans une migration, l'URL et le jeton diffèrent).
+
 ## Secrets GitHub (Settings › Secrets and variables › Actions)
 
 | Secret | Où le trouver (projet Supabase de TEST) |
