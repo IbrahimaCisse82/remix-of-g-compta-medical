@@ -10,7 +10,7 @@ export default function ProtectionDonneesPage() {
 
       <div className="max-w-3xl mx-auto px-5 py-12">
         <h1 className="font-serif text-3xl text-foreground mb-2">Protection des Données Personnelles</h1>
-        <p className="text-xs text-fg3 font-mono mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p className="text-xs text-fg3 font-mono mb-8">Dernière mise à jour : 8 mars 2026</p>
 
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 mb-8">
           <p className="text-sm text-foreground leading-relaxed">

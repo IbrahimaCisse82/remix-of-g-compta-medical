@@ -1,51 +1,52 @@
 import { useUserRole } from '@/hooks/use-user-role';
 import { useApp, type PageId } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useTheme } from '@/hooks/use-theme';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import NotificationsBell from '@/components/NotificationsBell';
-import Dashboard from '@/pages/Dashboard';
-import JournalPage from '@/pages/JournalPage';
-import BalancePage from '@/pages/BalancePage';
-import BilanPage from '@/pages/BilanPage';
-import ResultatPage from '@/pages/ResultatPage';
-import TFTPage from '@/pages/TFTPage';
-import PlanComptablePage from '@/pages/PlanComptablePage';
-import ExercicesPage from '@/pages/ExercicesPage';
-import ParametresPage from '@/pages/ParametresPage';
-import SaisiePage from '@/pages/SaisiePage';
-import GrandLivrePage from '@/pages/GrandLivrePage';
-import BalanceAgeePage from '@/pages/BalanceAgeePage';
-import RapprochementPage from '@/pages/RapprochementPage';
-import NotesAnnexesPage from '@/pages/NotesAnnexesPage';
-import AuditTrailPage from '@/pages/AuditTrailPage';
-import LiasseFiscalePage from '@/pages/LiasseFiscalePage';
-import ImportPage from '@/pages/ImportPage';
-import CabinetPage from '@/pages/CabinetPage';
-import LettragePage from '@/pages/LettragePage';
-import AnalytiquePage from '@/pages/AnalytiquePage';
-import BudgetPage from '@/pages/BudgetPage';
-import TvaPage from '@/pages/TvaPage';
-import AbonnementPage from '@/pages/AbonnementPage';
-import MonAbonnementPage from '@/pages/MonAbonnementPage';
-import AbonnementsClientsPage from '@/pages/AbonnementsClientsPage';
-import CloturePage from '@/pages/CloturePage';
-import ImmobilisationsPage from '@/pages/ImmobilisationsPage';
-import FacturationPage from '@/pages/FacturationPage';
-import FournisseursPage from '@/pages/FournisseursPage';
-import PaiePage from '@/pages/PaiePage';
-import EcheancierPage from '@/pages/EcheancierPage';
-import StocksPage from '@/pages/StocksPage';
-import ProvisionsPage from '@/pages/ProvisionsPage';
-import DocumentsPage from '@/pages/DocumentsPage';
-import ValidationPage from '@/pages/ValidationPage';
-import PortailPage from '@/pages/PortailPage';
-import KpiCollabPage from '@/pages/KpiCollabPage';
-import MobileMoneyPage from '@/pages/MobileMoneyPage';
-import FacturesDgidPage from '@/pages/FacturesDgidPage';
-import AnomaliesPage from '@/pages/AnomaliesPage';
-import HealthShell, { type HealthView } from '@/components/HealthShell';
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const JournalPage = lazy(() => import('@/pages/JournalPage'));
+const BalancePage = lazy(() => import('@/pages/BalancePage'));
+const BilanPage = lazy(() => import('@/pages/BilanPage'));
+const ResultatPage = lazy(() => import('@/pages/ResultatPage'));
+const TFTPage = lazy(() => import('@/pages/TFTPage'));
+const PlanComptablePage = lazy(() => import('@/pages/PlanComptablePage'));
+const ExercicesPage = lazy(() => import('@/pages/ExercicesPage'));
+const ParametresPage = lazy(() => import('@/pages/ParametresPage'));
+const SaisiePage = lazy(() => import('@/pages/SaisiePage'));
+const GrandLivrePage = lazy(() => import('@/pages/GrandLivrePage'));
+const BalanceAgeePage = lazy(() => import('@/pages/BalanceAgeePage'));
+const RapprochementPage = lazy(() => import('@/pages/RapprochementPage'));
+const NotesAnnexesPage = lazy(() => import('@/pages/NotesAnnexesPage'));
+const AuditTrailPage = lazy(() => import('@/pages/AuditTrailPage'));
+const LiasseFiscalePage = lazy(() => import('@/pages/LiasseFiscalePage'));
+const ImportPage = lazy(() => import('@/pages/ImportPage'));
+const CabinetPage = lazy(() => import('@/pages/CabinetPage'));
+const LettragePage = lazy(() => import('@/pages/LettragePage'));
+const AnalytiquePage = lazy(() => import('@/pages/AnalytiquePage'));
+const BudgetPage = lazy(() => import('@/pages/BudgetPage'));
+const TvaPage = lazy(() => import('@/pages/TvaPage'));
+const AbonnementPage = lazy(() => import('@/pages/AbonnementPage'));
+const MonAbonnementPage = lazy(() => import('@/pages/MonAbonnementPage'));
+const AbonnementsClientsPage = lazy(() => import('@/pages/AbonnementsClientsPage'));
+const CloturePage = lazy(() => import('@/pages/CloturePage'));
+const ImmobilisationsPage = lazy(() => import('@/pages/ImmobilisationsPage'));
+const FacturationPage = lazy(() => import('@/pages/FacturationPage'));
+const FournisseursPage = lazy(() => import('@/pages/FournisseursPage'));
+const PaiePage = lazy(() => import('@/pages/PaiePage'));
+const EcheancierPage = lazy(() => import('@/pages/EcheancierPage'));
+const StocksPage = lazy(() => import('@/pages/StocksPage'));
+const ProvisionsPage = lazy(() => import('@/pages/ProvisionsPage'));
+const DocumentsPage = lazy(() => import('@/pages/DocumentsPage'));
+const ValidationPage = lazy(() => import('@/pages/ValidationPage'));
+const PortailPage = lazy(() => import('@/pages/PortailPage'));
+const KpiCollabPage = lazy(() => import('@/pages/KpiCollabPage'));
+const MobileMoneyPage = lazy(() => import('@/pages/MobileMoneyPage'));
+const FacturesDgidPage = lazy(() => import('@/pages/FacturesDgidPage'));
+const AnomaliesPage = lazy(() => import('@/pages/AnomaliesPage'));
+import type { HealthView } from '@/components/HealthShell';
+const HealthShell = lazy(() => import('@/components/HealthShell'));
 import HealthOnboarding from '@/components/HealthOnboarding';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
 import { moduleInDelivery } from '@/lib/delivery-scope';
@@ -135,6 +136,11 @@ const NAV: NavSection[] = [
 ];
 
 const NAV_STORAGE = 'gsante.nav.open';
+
+/** Affiché pendant le chargement d'un écran (chaque page est téléchargée à sa première ouverture). */
+function ChargementPage() {
+  return <div role="status" aria-live="polite" className="p-8 text-sm text-fg3">Chargement…</div>;
+}
 
 const PAGES: Record<string, React.ComponentType> = {
   dashboard: Dashboard, journal: JournalPage, balance: BalancePage,
@@ -395,7 +401,9 @@ export default function AppShell() {
 
         <main className="flex-1 overflow-y-auto">
           {!healthView && moduleInDelivery(currentPage) && <BandeauConsultationSeule page={currentPage} />}
-          {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell key={medicalStructure.id} embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent key={entreprise?.id ?? 'none'} />}
+          <Suspense fallback={<ChargementPage />}>
+            {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell key={medicalStructure.id} embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent key={entreprise?.id ?? 'none'} />}
+          </Suspense>
         </main>
       </div>
     </div>

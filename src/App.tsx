@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { ConfirmationHost } from '@/components/Confirmation';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,15 +7,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import CguPage from "./pages/CguPage";
-import ConfidentialitePage from "./pages/ConfidentialitePage";
-import ProtectionDonneesPage from "./pages/ProtectionDonneesPage";
-import PortailPublicPage from "./pages/PortailPublicPage";
-import InvitationPage from "./pages/InvitationPage";
-import NotFound from "./pages/NotFound";
-import PortailPatientPage from "./pages/PortailPatientPage";
-import VerifierCrPage from "./pages/VerifierCrPage";
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const CguPage = lazy(() => import("./pages/CguPage"));
+const ConfidentialitePage = lazy(() => import("./pages/ConfidentialitePage"));
+const ProtectionDonneesPage = lazy(() => import("./pages/ProtectionDonneesPage"));
+const PortailPublicPage = lazy(() => import("./pages/PortailPublicPage"));
+const InvitationPage = lazy(() => import("./pages/InvitationPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PortailPatientPage = lazy(() => import("./pages/PortailPatientPage"));
+const VerifierCrPage = lazy(() => import("./pages/VerifierCrPage"));
 
 const queryClient = new QueryClient();
 
@@ -26,7 +27,7 @@ const App = () => (
       <ConfirmationHost />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
+          <Suspense fallback={<div role="status" aria-live="polite" className="p-8 text-sm">Chargement…</div>}><Routes>
             <Route path="/" element={<Index />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/cgu" element={<CguPage />} />
@@ -37,7 +38,7 @@ const App = () => (
             <Route path="/verifier/:token" element={<VerifierCrPage />} />
             <Route path="/invitation/:id" element={<InvitationPage />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
+          </Routes></Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
