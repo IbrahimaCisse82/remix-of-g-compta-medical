@@ -26,11 +26,15 @@ export default function PilotagePage({ structureId }: { structureId: string }) {
   const [debut, setDebut] = useState(iso(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [fin, setFin] = useState(iso(now));
   const [d, setD] = useState<any>(null);
+  const [refus, setRefus] = useState('');
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc('sante_tableau_bord', { _structure_id: structureId, _debut: debut, _fin: fin });
-    if (error) { toast.error(error.message.includes('Droit') ? 'Réservé à la direction, aux médecins, biologistes et comptables.' : error.message); return; }
-    setD(data);
+    if (error) {
+      const msg = /droit|refus/i.test(error.message) ? 'Tableau de bord réservé à la direction, aux médecins, biologistes et comptables.' : error.message;
+      setRefus(msg); toast.error(msg); return;
+    }
+    setRefus(''); setD(data);
   }, [structureId, debut, fin]);
   useEffect(() => { void load(); }, [load]);
 
@@ -43,6 +47,7 @@ export default function PilotagePage({ structureId }: { structureId: string }) {
         <div className="flex items-center gap-2"><BarChart3 className="text-primary" /><h1 className="font-serif text-2xl">Pilotage médico-économique</h1></div>
         <div className="flex gap-2 items-center text-sm"><Input type="date" aria-label="Début" value={debut} onChange={e => setDebut(e.target.value)} /><span>→</span><Input type="date" aria-label="Fin" value={fin} onChange={e => setFin(e.target.value)} /></div>
       </div>
+      {refus && !d && <p role="status" className="border border-border bg-bg2 rounded-md p-6 text-sm text-fg2">{refus}</p>}
       {d && <>
         <h2 className="font-semibold">Direction / Clinique</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -62,7 +62,8 @@ export const VISIBILITE_MODULES: Partial<Record<PageId, RegleVisibilite>> = {
   fournisseurs: { roles: COMPTA_ECRITURE },
 
   // ─── Pilotage ───
-  sante_pilotage: { roles: ['admin_structure', 'medecin', 'biologiste', 'comptable', 'lecteur'] },
+  // sante_tableau_bord : direction, médecins, biologistes, comptables (le lecteur n'y a pas accès côté serveur).
+  sante_pilotage: { roles: ['admin_structure', 'medecin', 'biologiste', 'comptable'] },
   dashboard: { roles: COMPTA_LECTURE },
   clients: { roles: COMPTA_ECRITURE },
   cabinet_mgmt: { roles: COMPTA_ECRITURE },

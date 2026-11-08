@@ -21,6 +21,9 @@ export const DROITS_SANTE = {
   annuler_facture: ['admin_structure'],
   rejeter_tiers: ['admin_structure', 'tiers_payant'],
   analyse_chiffre_affaires: ['admin_structure', 'comptable'],
+  // sante_rechercher_patients : l'administrateur seul ne lit pas les identités patients (minimisation des données).
+  lire_patients: ['medecin', 'biologiste', 'technicien', 'preleveur', 'secretaire', 'caissier'],
+  creer_patient: ['medecin', 'secretaire', 'biologiste', 'preleveur'],
 } as const satisfies Record<string, readonly RoleMedical[]>;
 
 export type ActionSante = keyof typeof DROITS_SANTE;
