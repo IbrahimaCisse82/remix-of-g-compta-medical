@@ -12,7 +12,8 @@ La structure se reconstruit à partir du dépôt :
 1. `db/baseline-lovable/` — les 31 migrations Lovable d'origine (mars → septembre 2026), retirées du dépôt lors
    du remix du 2 octobre et restaurées ici. Elles ne sont **pas** dans `supabase/migrations` pour que Lovable ne
    les rejoue jamais sur la production.
-2. `drizzle/migrations/` — les migrations du dépôt, dans l'ordre de `meta/_journal.json`.
+2. `drizzle/migrations/` — les migrations du dépôt, dans l'ordre de `meta/_journal.json`, avec les 6 migrations
+   restaurées de `db/restaurees-2026-10-22/` insérées après `0048_sante_onboarding_atomic` (voir leur README).
 
 ```bash
 TEST_DATABASE_URL='postgresql://postgres:…@db.<ref-test>.supabase.co:5432/postgres' scripts/db-test/reconstruire.sh
