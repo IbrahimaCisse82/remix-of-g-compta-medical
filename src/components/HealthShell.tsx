@@ -1,5 +1,4 @@
-import PilotagePage from './sante/PilotagePage';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Building2, CalendarClock, ClipboardList, FlaskConical, HandCoins, LayoutDashboard, LogOut, MapPin, Plus, Send, Settings, Stethoscope, SunMoon, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
@@ -9,22 +8,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import AgendaPage from '@/components/sante/AgendaPage';
-import ConsultationPage from '@/components/sante/ConsultationPage';
-import PatientsPage from '@/components/sante/PatientsPage';
-import LaboratoirePage from '@/components/sante/LaboratoirePage';
-import CataloguePage from '@/components/sante/CataloguePage';
-import QualitePage from '@/components/sante/QualitePage';
-import FacturationPage from '@/components/sante/FacturationPage';
-import PlanningsPage from '@/components/sante/PlanningsPage';
-import RetrocessionsPage from '@/components/sante/RetrocessionsPage';
+const PilotagePage = lazy(() => import('./sante/PilotagePage'));
+const AgendaPage = lazy(() => import('@/components/sante/AgendaPage'));
+const ConsultationPage = lazy(() => import('@/components/sante/ConsultationPage'));
+const PatientsPage = lazy(() => import('@/components/sante/PatientsPage'));
+const LaboratoirePage = lazy(() => import('@/components/sante/LaboratoirePage'));
+const CataloguePage = lazy(() => import('@/components/sante/CataloguePage'));
+const QualitePage = lazy(() => import('@/components/sante/QualitePage'));
+const FacturationPage = lazy(() => import('@/components/sante/FacturationPage'));
+const PlanningsPage = lazy(() => import('@/components/sante/PlanningsPage'));
+const RetrocessionsPage = lazy(() => import('@/components/sante/RetrocessionsPage'));
 import LierEntrepriseCard from '@/components/LierEntrepriseCard';
 import EmailJournal from '@/components/sante/EmailJournal';
 import EquipeCard from '@/components/sante/EquipeCard';
 import ViolationsCard from '@/components/sante/ViolationsCard';
 import ConformiteCard from '@/components/sante/ConformiteCard';
 import BibliothequeConsentements from '@/components/sante/BibliothequeConsentements';
-import ExploitationPage from '@/components/sante/ExploitationPage';
+const ExploitationPage = lazy(() => import('@/components/sante/ExploitationPage'));
 import { ImportEquipe } from '@/components/sante/ImportsStructure';
 import { roleCompatible } from '@/domain/sante/imports-structure';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
@@ -132,7 +132,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
   };
 
   const content = (
-        <main className="p-5 sm:p-8">
+        <main className="p-5 sm:p-8"><Suspense fallback={<div role="status" aria-live="polite" className="text-sm text-fg3">Chargement…</div>}>
           {view === 'pilotage' && medicalStructure ? <PilotagePage structureId={medicalStructure.id} /> : view === 'facturation' && medicalStructure ? <FacturationPage structureId={medicalStructure.id} /> : view === 'laboratoire' && medicalStructure ? <LaboratoirePage structureId={medicalStructure.id} /> : view === 'qualite' && medicalStructure ? <QualitePage structureId={medicalStructure.id} /> : view === 'catalogue' && medicalStructure ? <CataloguePage structureId={medicalStructure.id} typeStructure={medicalStructure.type} /> : view === 'plannings' && medicalStructure ? <PlanningsPage structureId={medicalStructure.id} /> : view === 'retrocessions' && medicalStructure ? <RetrocessionsPage structureId={medicalStructure.id} /> : view === 'agenda' && medicalStructure ? (consultationId ? <ConsultationPage id={consultationId} onBack={() => setConsultationId(null)} /> : <AgendaPage structureId={medicalStructure.id} onConsultation={setConsultationId} />) : view === 'patients' && medicalStructure ? <PatientsPage structureId={medicalStructure.id} /> : view === 'accueil' ? (
           <div className="max-w-5xl">
             <p className="text-xs font-mono uppercase text-primary mb-2">Espace Santé</p>
@@ -185,7 +185,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               {medicalStructure && <FiscalSecoursCard structureId={medicalStructure.id} />}
             </div>
           )}
-        </main>
+        </Suspense></main>
   );
   if (embeddedView) return content;
 

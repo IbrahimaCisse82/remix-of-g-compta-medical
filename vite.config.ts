@@ -18,4 +18,19 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Bibliothèques stables dans des fichiers séparés : mises en cache par le navigateur d'une version à l'autre.
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          supabase: ["@supabase/supabase-js"],
+          radix: [
+            "@radix-ui/react-dialog", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-popover",
+            "@radix-ui/react-dropdown-menu", "@radix-ui/react-tooltip", "@radix-ui/react-checkbox",
+          ],
+        },
+      },
+    },
+  },
 }));
