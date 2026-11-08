@@ -83,6 +83,9 @@ describe.skipIf(!url || !key || !service)('Back-office : opérateurs et journal 
     expect(r.error).not.toBeNull();
   });
   it('le dernier propriétaire actif ne peut pas se retirer', async () => {
+    // Base de test partagée : on neutralise les propriétaires laissés par d'autres exécutions.
+    const autres = await admin.from('plateforme_operateurs').update({ actif: false }).eq('role', 'proprietaire').neq('user_id', idProprio);
+    expect(autres.error).toBeNull();
     const r = await proprio.rpc('plateforme_operateur_definir', { _email: (await admin.auth.admin.getUserById(idProprio)).data.user!.email!, _role: 'operateur', _actif: true });
     expect(r.error?.message).toMatch(/propriétaire actif/);
   });

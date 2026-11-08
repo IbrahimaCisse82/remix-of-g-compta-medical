@@ -1,5 +1,9 @@
 name: Securite base (P0)
 on: [push, pull_request]
+# Une seule exécution à la fois contre la base de test partagée (sinon les tests se marchent dessus).
+concurrency:
+  group: base-de-test
+  cancel-in-progress: false
 jobs:
   tests:
     runs-on: ubuntu-latest
