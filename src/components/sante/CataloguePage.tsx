@@ -9,12 +9,14 @@ import LabotestCatalogue from './LabotestCatalogue';
 import AnalyseDetail from './AnalyseDetail';
 import CatalogueTableur from './CatalogueTableur';
 import { ImportActes } from './ImportsStructure';
+import { sectionsCatalogue, titreCatalogue, type TypeStructure } from '@/domain/sante/catalogue-structure';
 import { aValider, avancementCatalogue, compterParametres, filtrerCatalogue, type FiltreCatalogue } from '@/domain/sante/catalogue-suivi';
 
 const VALID_MAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
 /** Paramétrage : praticiens, actes facturables, catalogue d'analyses. Écriture réservée aux administrateurs (contrôlé par la base). */
-export default function CataloguePage({ structureId }: { structureId: string }) {
+export default function CataloguePage({ structureId, typeStructure }: { structureId: string; typeStructure?: TypeStructure | null }) {
+  const affichage = sectionsCatalogue(typeStructure);
   const [praticiens, setPraticiens] = useState<any[]>([]);
   const [actes, setActes] = useState<any[]>([]);
   const [analyses, setAnalyses] = useState<any[]>([]);
@@ -76,27 +78,27 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
 
   return (
     <div className="max-w-6xl space-y-8">
-      <div><p className="text-xs font-mono uppercase text-primary mb-1">Paramétrage</p><h1 className="font-serif text-3xl">Praticiens, actes et analyses</h1><p className="text-sm text-fg2">Les tarifs sont propres à votre structure : aucun prix n’est imposé par le logiciel.</p></div>
-      <Tabs value={vue} onValueChange={setVue}><TabsList><TabsTrigger value="structure">Catalogue de la structure</TabsTrigger><TabsTrigger value="labotest">Labotest · démo</TabsTrigger></TabsList></Tabs>
-      {vue === 'labotest' ? <LabotestCatalogue /> : <>
-      <section className="border border-border bg-bg2 rounded-md p-4">
+      <div><p className="text-xs font-mono uppercase text-primary mb-1">Paramétrage</p><h1 className="font-serif text-3xl">{titreCatalogue(affichage)}</h1><p className="text-sm text-fg2">Les tarifs sont propres à votre structure : aucun prix n’est imposé par le logiciel.</p></div>
+      {affichage.nomenclatureLabo && <Tabs value={vue} onValueChange={setVue}><TabsList><TabsTrigger value="structure">Catalogue de la structure</TabsTrigger><TabsTrigger value="labotest">Labotest · démo</TabsTrigger></TabsList></Tabs>}
+      {affichage.nomenclatureLabo && vue === 'labotest' ? <LabotestCatalogue /> : <>
+      {affichage.validationBiologique && <section className="border border-border bg-bg2 rounded-md p-4">
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={derog} onChange={async e => { const v = e.target.checked; if (ok((await supabase.from('structures').update({ derogation_validation_unique: v } as any).eq('id', structureId)).error, v ? 'Biologiste seul autorisé' : 'Double validation rétablie')) setDerog(v); }} />
           <span><strong>Laboratoire avec un seul biologiste</strong><br /><span className="text-fg3">Autorise le biologiste à saisir et valider seul (technique puis biologique). Chaque utilisation est tracée. Laissez décoché si une autre personne peut faire la validation technique.</span></span></label>
-      </section>
-      <div className="grid lg:grid-cols-2 gap-6">
+      </section>}
+      <div className={`grid gap-6 ${affichage.actes ? 'lg:grid-cols-2' : ''}`}>
         <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
           <h2 className="font-semibold">Praticiens</h2>
           <form onSubmit={addPr} className="grid grid-cols-2 gap-2"><Input required aria-label="Nom" placeholder="Dr Nom" value={pr.nom} onChange={e => setPr({ ...pr, nom: e.target.value })} /><Input aria-label="Spécialité" placeholder="Spécialité" value={pr.specialite} onChange={e => setPr({ ...pr, specialite: e.target.value })} /><Input aria-label="N° ordre" placeholder="N° ordre" value={pr.numero_ordre} onChange={e => setPr({ ...pr, numero_ordre: e.target.value })} /><Input aria-label="E-mail du praticien" type="email" placeholder="E-mail (notifications)" value={pr.email} onChange={e => setPr({ ...pr, email: e.target.value })} /><label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={pr.moi} onChange={e => setPr({ ...pr, moi: e.target.checked })} /> C’est ma fiche (nécessaire pour signer les ordonnances et valider les résultats)</label><Button size="sm" className="col-span-2" aria-label="Ajouter le praticien"><Plus /> Ajouter le praticien</Button></form>
           {praticiens.map(p => <Ligne key={p.id} actif={p.actif} onToggle={() => toggle('sante_praticiens', p.id, p.actif)}><span className="flex-1 min-w-0"><strong>{p.nom}</strong> <span className="text-fg3">{p.specialite} · {p.numero_ordre}</span> {p.user_id ? <span className="text-xs text-primary">· compte relié</span> : <button type="button" className="text-xs underline text-primary" onClick={() => lierMoi(p.id)}>C’est moi</button>}<Input aria-label={`E-mail de ${p.nom}`} className="h-8 mt-1" placeholder="E-mail (notifications)" defaultValue={p.email ?? ''} onBlur={e => e.target.value !== (p.email ?? '') && mail(p.id, e.target.value)} /></span></Ligne>)}
         </section>
-        <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
+        {affichage.actes && <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
           <h2 className="font-semibold">Actes facturables</h2>
           <ImportActes structureId={structureId} onDone={() => void load()} />
           <form onSubmit={addAc} className="grid grid-cols-[1fr_3fr_1fr_auto] gap-2"><Input required aria-label="Code" placeholder="Code" value={ac.code} onChange={e => setAc({ ...ac, code: e.target.value })} /><Input required aria-label="Libellé" placeholder="Libellé" value={ac.libelle} onChange={e => setAc({ ...ac, libelle: e.target.value })} /><Input required aria-label="Tarif" inputMode="numeric" placeholder="FCFA" value={ac.tarif} onChange={e => setAc({ ...ac, tarif: e.target.value })} /><Button size="icon" aria-label="Ajouter"><Plus /></Button></form>
           {actes.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_actes', a.id, a.actif)}><span className="flex-1"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle}</span><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_actes', a.id, e.target.value)} /></Ligne>)}
-        </section>
+        </section>}
       </div>
-      <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
+      {affichage.analyses && <section className="border border-border bg-bg2 rounded-md p-4 space-y-2">
         <h2 className="font-semibold">Catalogue d’analyses</h2>
         <form onSubmit={addAn} className="grid grid-cols-2 md:grid-cols-5 gap-2">
           <Input required aria-label="Code analyse" placeholder="Code (ex. GLY)" value={an.code} onChange={e => setAn({ ...an, code: e.target.value })} />
@@ -126,7 +128,7 @@ export default function CataloguePage({ structureId }: { structureId: string }) 
           {visibles.length === 0 && <p className="text-xs text-fg3">Aucune analyse ne correspond à ces filtres.</p>}
           {visibles.map(a => <Ligne key={a.id} actif={a.actif} onToggle={() => toggle('sante_analyses', a.id, a.actif)}><span className="flex-1 min-w-0"><span className="font-mono text-xs text-primary">{a.code}</span> {a.libelle} <span className="text-xs text-fg3">· {a.section} · rendu {a.delai_heures} h · {a.nb_parametres} paramètre{a.nb_parametres > 1 ? 's' : ''}</span>{aValider(a) && <span className="ml-2 text-xs text-destructive">à valider</span>}</span><Button size="sm" variant="outline" onClick={() => setFiche(a.id)}>Fiche</Button><Input aria-label={`Tarif ${a.code}`} className="w-28 h-8" defaultValue={a.tarif} onBlur={e => e.target.value !== String(a.tarif) && tarif('sante_analyses', a.id, e.target.value)} /></Ligne>)}
         </>}
-      </section>
+      </section>}
       <AnalyseDetail structureId={structureId} analyseId={fiche} onClose={() => setFiche(null)} onSaved={() => void load()} />
       </>}
     </div>

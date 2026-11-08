@@ -15,6 +15,7 @@ import { OrganismesPayeurs, CouverturePatient } from './TiersPayantSaisie';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/stores/app-store';
 import { peut, type ActionSante } from '@/domain/sante/droits';
+import { sectionsCatalogue } from '@/domain/sante/catalogue-structure';
 
 type Item = { code: string; libelle: string; tarif: number };
 type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; envoye_tiers_le: string | null; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
@@ -24,7 +25,7 @@ const db = supabase as any;
 const TIERS: Record<string, string> = { sans: '—', a_facturer: 'À facturer', envoye: 'Envoyé', paye: 'Payé', rejete: 'Rejeté' };
 
 export default function FacturationPage({ structureId }: { structureId: string }) {
-  const { medicalRoles } = useApp();
+  const { medicalRoles, medicalStructure } = useApp();
   const droit = (a: ActionSante) => peut(medicalRoles, a);
   const [session, setSession] = useState<Session>(null);
   const [fond, setFond] = useState('0');
@@ -60,9 +61,10 @@ export default function FacturationPage({ structureId }: { structureId: string }
     setLoadError('');
     setSession(s.data);
     setFactures((f.data || []).map((x: any) => ({ ...x, encaisse: (x.enc || []).filter((e: any) => e.mode !== 'organisme').reduce((t: number, e: any) => t + Number(e.montant), 0) })));
-    setCatalogue([...(a.data || []), ...(an.data || [])].map((i: any) => ({ ...i, tarif: Number(i.tarif) })));
+    const sections = sectionsCatalogue(medicalStructure?.type);
+    setCatalogue([...(sections.actes ? a.data || [] : []), ...(sections.analyses ? an.data || [] : [])].map((i: any) => ({ ...i, tarif: Number(i.tarif) })));
   };
-  useEffect(() => { void load(); }, [structureId]);
+  useEffect(() => { void load(); }, [structureId, medicalStructure?.type]);
 
   const chercher = async () => {
     const { data } = await db.rpc('sante_rechercher_patients', { _structure_id: structureId, _q: q, _limit: 10, _offset: 0 });
