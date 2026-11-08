@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.fn_creer_ecriture(uuid, uuid, text, date, text, jsonb, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_creer_ecriture(uuid, uuid, text, date, text, jsonb, text, text, text) TO authenticated, service_role;

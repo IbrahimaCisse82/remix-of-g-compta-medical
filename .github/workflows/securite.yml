@@ -8,8 +8,22 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bunx vitest run
-      - run: bun run test:db
+      # Tests de sécurité de la base : uniquement contre la base de TEST (jamais la production, cf. tests/db/garde-production.ts).
+      - name: Base de test configurée ?
+        id: base
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          URL: ${{ secrets.TEST_SUPABASE_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::warning title=Tests de sécurité NON exécutés::Secrets TEST_SUPABASE_* absents : les tests de la base sont sautés. Voir scripts/db-test/README.md."
+            echo "## ⚠️ Tests de sécurité de la base non exécutés (base de test non configurée)" >> "$GITHUB_STEP_SUMMARY"
+            echo "actif=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "actif=oui" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.base.outputs.actif == 'oui'
+        run: bun run test:db
+        env:
+          SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
