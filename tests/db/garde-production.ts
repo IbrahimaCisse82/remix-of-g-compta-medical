@@ -4,11 +4,14 @@
  * Chargé avant chaque fichier de test (vitest.db.config.ts › setupFiles).
  */
 export const REF_PRODUCTION = 'otyqiiumbdgaxvkcqpht';
+/** Nouvelle production Supabase (G-Santé production, Grow Hub Sarl), créée le 08/11/2026. */
+export const REFS_PRODUCTION = [REF_PRODUCTION, 'azusqndpbstvzzohlkba'];
 
 export function verifierCibleTests(url: string | undefined): void {
-  if (url && url.includes(REF_PRODUCTION)) {
+  const ref = url ? REFS_PRODUCTION.find(r => url.includes(r)) : undefined;
+  if (ref) {
     throw new Error(
-      `Tests de base refusés : SUPABASE_URL vise la PRODUCTION (${REF_PRODUCTION}). ` +
+      `Tests de base refusés : SUPABASE_URL vise la PRODUCTION (${ref}). ` +
       'Utilisez la base de test (voir scripts/db-test/README.md).',
     );
   }

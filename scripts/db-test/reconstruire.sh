@@ -10,10 +10,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-REF_PRODUCTION="otyqiiumbdgaxvkcqpht"
 URL="${TEST_DATABASE_URL:-}"
 [ -n "$URL" ] || { echo "TEST_DATABASE_URL manquant." >&2; exit 2; }
-case "$URL" in *"$REF_PRODUCTION"*) echo "REFUS : TEST_DATABASE_URL vise la base de PRODUCTION." >&2; exit 3;; esac
+# Productions : Lovable Cloud (otyqiiumbdgaxvkcqpht) et Supabase « G-Santé production » (azusqndpbstvzzohlkba).
+case "$URL" in *otyqiiumbdgaxvkcqpht*|*azusqndpbstvzzohlkba*) echo "REFUS : TEST_DATABASE_URL vise une base de PRODUCTION." >&2; exit 3;; esac
 
 PSQL=(psql "$URL" -v ON_ERROR_STOP=1 -X -q -t -A)
 
