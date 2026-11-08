@@ -1,19 +1,58 @@
 {
   "releve_le": "2026-11-08",
-  "source": "production Lovable Cloud (otyqiiumbdgaxvkcqpht), migration 0110 appliquée",
+  "source": "production Lovable Cloud (otyqiiumbdgaxvkcqpht) après 0111 ; code des fonctions comparé sans commentaires ni espaces ; tâches appelant une URL exclues",
   "categories": {
-    "colonne": { "nombre": 1619, "empreinte": "ac2fed4cf2f1f7bdc732e35876de1f84" },
-    "contrainte": { "nombre": 592, "empreinte": "ceded2eb5b28433dc6dd2ce8c9ada175" },
-    "declencheur": { "nombre": 108, "empreinte": "4ca19ea99ed5ca2901d1ff6086265443" },
-    "droit_fonction": { "nombre": 253, "empreinte": "9eb163f2b6a55e85a940fc1d9b1e1103" },
-    "fonction": { "nombre": 253, "empreinte": "7e38fd20898a55b184ebdfd849ff983d" },
-    "index": { "nombre": 289, "empreinte": "10f06b082dfcbda916d3ed7a888aa0af" },
-    "politique": { "nombre": 357, "empreinte": "66a1a6a45ab16bdbc94752c9ea42f978" },
-    "politique_stockage": { "nombre": 8, "empreinte": "3e1fee41ee003d204809ab6258b64412" },
-    "rls": { "nombre": 146, "empreinte": "d2ccec9f3b94f4fc1e203279484c61c5" },
-    "stockage": { "nombre": 2, "empreinte": "a0d0b2f0593416afdb99b7bc31a7891a" },
-    "tache_planifiee": { "nombre": 4, "empreinte": "f948a5c72b66076f2a0ca93de8a4f783" },
-    "type": { "nombre": 5, "empreinte": "1e13182c850b15456972a5f909e9c64d" },
-    "vue": { "nombre": 1, "empreinte": "36895118b0af65cfb4edec08faf09c6a" }
+    "colonne": {
+      "nombre": 1619,
+      "empreinte": "ac2fed4cf2f1f7bdc732e35876de1f84"
+    },
+    "contrainte": {
+      "nombre": 592,
+      "empreinte": "ceded2eb5b28433dc6dd2ce8c9ada175"
+    },
+    "declencheur": {
+      "nombre": 108,
+      "empreinte": "4ca19ea99ed5ca2901d1ff6086265443"
+    },
+    "droit_fonction": {
+      "nombre": 253,
+      "empreinte": "9eb163f2b6a55e85a940fc1d9b1e1103"
+    },
+    "fonction": {
+      "nombre": 253,
+      "empreinte": "b6a46e08ace90c1afce49ef2dd1a91af"
+    },
+    "index": {
+      "nombre": 289,
+      "empreinte": "10f06b082dfcbda916d3ed7a888aa0af"
+    },
+    "politique": {
+      "nombre": 357,
+      "empreinte": "66a1a6a45ab16bdbc94752c9ea42f978"
+    },
+    "politique_stockage": {
+      "nombre": 8,
+      "empreinte": "3e1fee41ee003d204809ab6258b64412"
+    },
+    "rls": {
+      "nombre": 146,
+      "empreinte": "d2ccec9f3b94f4fc1e203279484c61c5"
+    },
+    "stockage": {
+      "nombre": 2,
+      "empreinte": "a0d0b2f0593416afdb99b7bc31a7891a"
+    },
+    "tache_planifiee": {
+      "nombre": 4,
+      "empreinte": "02d65f2a9b2e666f3e5b4c559b974be9"
+    },
+    "type": {
+      "nombre": 5,
+      "empreinte": "1e13182c850b15456972a5f909e9c64d"
+    },
+    "vue": {
+      "nombre": 1,
+      "empreinte": "36895118b0af65cfb4edec08faf09c6a"
+    }
   }
 }

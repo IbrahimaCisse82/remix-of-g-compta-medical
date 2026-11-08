@@ -1,4 +1,5 @@
 -- Empreinte résumée : une ligne par catégorie (nombre d'objets + md5 de l'ensemble).
+-- Le code des fonctions est comparé sans commentaires ni espaces (la production les a perdus à l'application).
 -- Deux bases de même structure donnent exactement le même résultat.
 WITH d AS (
   SELECT * FROM (
@@ -14,7 +15,7 @@ WITH d AS (
   SELECT 'index', indexname, indexdef FROM pg_indexes WHERE schemaname = 'public'
   UNION ALL
   SELECT 'fonction', p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')',
-         md5(p.prosrc) || '|' || p.prosecdef || '|' || coalesce(array_to_string(p.proconfig, ','), '') || '|' || pg_get_function_result(p.oid)
+         md5(regexp_replace(regexp_replace(p.prosrc, '--[^\n]*', '', 'g'), '\s+', '', 'g')) || '|' || p.prosecdef || '|' || coalesce(array_to_string(p.proconfig, ','), '') || '|' || pg_get_function_result(p.oid)
     FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND p.prokind IN ('f', 'p')
   UNION ALL
   SELECT 'droit_fonction', p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')',
@@ -38,7 +39,8 @@ WITH d AS (
   SELECT 'vue', c.relname, md5(pg_get_viewdef(c.oid))
     FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('v', 'm')
   UNION ALL
-  SELECT 'tache_planifiee', jobname, schedule || '|' || command FROM cron.job
+  -- Les tâches qui appellent une URL (net.http_post, propre à chaque environnement) sont exclues.
+  SELECT 'tache_planifiee', jobname, schedule || '|' || command FROM cron.job WHERE command NOT LIKE '%net.http_post%'
   UNION ALL
   SELECT 'stockage', id, public::text || '|' || coalesce(file_size_limit::text, '') || '|' || coalesce(array_to_string(allowed_mime_types, ','), '') FROM storage.buckets
   UNION ALL
