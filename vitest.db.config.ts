@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/db/**/*.db.test.ts"],
+    // Refuse toute exécution contre la base de production.
+    setupFiles: ["tests/db/garde-production.ts"],
     testTimeout: 60_000,
     hookTimeout: 180_000,
     fileParallelism: false,
