@@ -1,10 +1,17 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+<<<<<<< HEAD
+import { randomBytes } from 'node:crypto';
+import { totp } from './totp';
+=======
 import { createHmac, randomBytes } from 'node:crypto';
+>>>>>>> origin/main
 const url = process.env.SUPABASE_URL ?? '';
 const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? '';
 const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
+<<<<<<< HEAD
+=======
 /** Code TOTP (RFC 6238, SHA-1, 30 s, 6 chiffres) à partir du secret base32 renvoyé par l'enrôlement. */
 function totp(secret: string, decalage = 0): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -17,6 +24,7 @@ function totp(secret: string, decalage = 0): string {
   return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, '0');
 }
 
+>>>>>>> origin/main
 describe.skipIf(!url || !key || !service)('Back-office : opérateurs et journal (0114)', () => {
   const admin = createClient(url, service);
   let proprio: SupabaseClient, client: SupabaseClient, proprioSansMfa: SupabaseClient;

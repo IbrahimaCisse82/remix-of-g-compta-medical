@@ -1,4 +1,5 @@
 import { useUserRole } from '@/hooks/use-user-role';
+import RetourBouton from '@/components/RetourBouton';
 import { useApp, type PageId } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
@@ -405,6 +406,7 @@ export default function AppShell() {
             {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell key={medicalStructure.id} embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent key={entreprise?.id ?? 'none'} />}
           </Suspense>
         </main>
+        {!demo && <RetourBouton />}
       </div>
     </div>
   );
