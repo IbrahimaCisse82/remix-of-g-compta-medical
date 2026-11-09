@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+<<<<<<< HEAD
 import { rpcPlateforme } from '@/lib/rpc-plateforme';
+=======
+import { rpcPlateforme } from './rpc';
+>>>>>>> origin/main
 import { useAuth } from '@/hooks/useAuth';
 import MfaGate from '@/components/MfaGate';
 import MfaCard from '@/components/MfaCard';
@@ -9,14 +13,21 @@ import { Button } from '@/components/ui/button';
 import { etatAcces, MODULES_BACKOFFICE, type MoiPlateforme } from '@/lib/backoffice';
 import OperateursPanel from './OperateursPanel';
 import JournalPanel from './JournalPanel';
+<<<<<<< HEAD
 import RetoursPanel from './RetoursPanel';
+=======
+>>>>>>> origin/main
 
 
 /** Espace réservé aux opérateurs de la plateforme (équipe Grow Hub). Aucune donnée médicale n'y est affichée. */
 export default function AdminPage() {
   const { user, loading, signOut } = useAuth();
   const [moi, setMoi] = useState<MoiPlateforme | null | undefined>(undefined);
+<<<<<<< HEAD
   const [module, setModule] = useState('retours');
+=======
+  const [module, setModule] = useState('journal');
+>>>>>>> origin/main
 
   const charger = useCallback(async () => {
     if (!user) return;
@@ -74,7 +85,10 @@ export default function AdminPage() {
           <main className="flex-1 p-6 overflow-auto">
             {module === 'operateurs' && <OperateursPanel proprietaire={moi?.role === 'proprietaire'} />}
             {module === 'journal' && <JournalPanel />}
+<<<<<<< HEAD
             {module === 'retours' && <RetoursPanel />}
+=======
+>>>>>>> origin/main
           </main>
         </div>
       )}

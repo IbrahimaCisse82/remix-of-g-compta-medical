@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
+<<<<<<< HEAD
 import { rpcPlateforme } from '@/lib/rpc-plateforme';
+=======
+import { rpcPlateforme } from './rpc';
+>>>>>>> origin/main
 import { Button } from '@/components/ui/button';
 import { libelleAction } from '@/lib/backoffice';
 

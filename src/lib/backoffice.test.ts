@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
+<<<<<<< HEAD
 import { contexteRetour, erreurRetour, etatAcces, libelleAction, libelleStatutRetour, MODULES_BACKOFFICE } from './backoffice';
+=======
+import { etatAcces, libelleAction, MODULES_BACKOFFICE } from './backoffice';
+>>>>>>> origin/main
 
 describe('accès au back-office', () => {
   it('attend la session puis la réponse du serveur', () => {
@@ -24,6 +28,7 @@ describe('libellés', () => {
     expect(libelleAction('operateur_ajoute')).toBe('Opérateur ajouté');
     expect(libelleAction('abonnement_active')).toBe('abonnement active');
   });
+<<<<<<< HEAD
   it('modules disponibles : retours, opérateurs, journal', () => {
     expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['retours', 'operateurs', 'journal']);
   });
@@ -45,5 +50,9 @@ describe('retours des pilotes', () => {
     expect(Object.keys(c).sort()).toEqual(['ecran', 'langue', 'navigateur', 'version']);
     expect(c.navigateur).toHaveLength(200);
     expect(c.ecran).toBe('1280x800');
+=======
+  it('seuls les modules du socle sont disponibles à ce stade', () => {
+    expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['operateurs', 'journal']);
+>>>>>>> origin/main
   });
 });
