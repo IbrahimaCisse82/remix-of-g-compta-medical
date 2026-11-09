@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { rpcPlateforme } from './rpc';
+import { rpcPlateforme } from '@/lib/rpc-plateforme';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';

@@ -16,6 +16,7 @@ export function etatAcces(connecte: boolean | null, moi: MoiPlateforme | null | 
 const ACTIONS: Record<string, string> = {
   operateur_ajoute: 'Opérateur ajouté',
   operateur_modifie: 'Opérateur modifié',
+  retour_traite: 'Retour traité',
 };
 export function libelleAction(action: string): string {
   return ACTIONS[action] ?? action.replace(/_/g, ' ');
@@ -24,10 +25,52 @@ export function libelleAction(action: string): string {
 export type ModuleBackoffice = { id: string; libelle: string; lot: 'socle' | 'pilote' | 'commercial'; disponible: boolean };
 export const MODULES_BACKOFFICE: ModuleBackoffice[] = [
   { id: 'tableau', libelle: 'Tableau de bord', lot: 'pilote', disponible: false },
-  { id: 'retours', libelle: 'Retours pilotes', lot: 'pilote', disponible: false },
+  { id: 'retours', libelle: 'Retours pilotes', lot: 'pilote', disponible: true },
   { id: 'clients', libelle: 'Clients', lot: 'pilote', disponible: false },
   { id: 'utilisateurs', libelle: 'Utilisateurs', lot: 'pilote', disponible: false },
   { id: 'support', libelle: 'Support', lot: 'pilote', disponible: false },
   { id: 'operateurs', libelle: 'Opérateurs', lot: 'socle', disponible: true },
   { id: 'journal', libelle: "Journal d'audit", lot: 'socle', disponible: true },
 ];
+
+export type TypeRetour = 'bug' | 'amelioration' | 'question';
+export type StatutRetour = 'nouveau' | 'en_cours' | 'planifie' | 'resolu' | 'rejete';
+export type PrioriteRetour = 'basse' | 'normale' | 'haute' | 'bloquante';
+export const TYPES_RETOUR: { id: TypeRetour; libelle: string }[] = [
+  { id: 'bug', libelle: 'Un problème' },
+  { id: 'amelioration', libelle: 'Une idée d\'amélioration' },
+  { id: 'question', libelle: 'Une question' },
+];
+export const STATUTS_RETOUR: { id: StatutRetour; libelle: string }[] = [
+  { id: 'nouveau', libelle: 'Nouveau' },
+  { id: 'en_cours', libelle: 'En cours' },
+  { id: 'planifie', libelle: 'Planifié' },
+  { id: 'resolu', libelle: 'Résolu' },
+  { id: 'rejete', libelle: 'Non retenu' },
+];
+export const PRIORITES_RETOUR: { id: PrioriteRetour; libelle: string }[] = [
+  { id: 'bloquante', libelle: 'Bloquante' },
+  { id: 'haute', libelle: 'Haute' },
+  { id: 'normale', libelle: 'Normale' },
+  { id: 'basse', libelle: 'Basse' },
+];
+export function libelleStatutRetour(s: string): string {
+  return STATUTS_RETOUR.find(x => x.id === s)?.libelle ?? s;
+}
+export function libelleTypeRetour(t: string): string {
+  return TYPES_RETOUR.find(x => x.id === t)?.libelle ?? t;
+}
+
+/** Contrôle avant envoi (le serveur refait les mêmes contrôles). */
+export function erreurRetour(type: string, message: string): string | null {
+  if (!TYPES_RETOUR.some(t => t.id === type)) return 'Choisissez le type de retour.';
+  const m = message.trim();
+  if (m.length < 5) return 'Décrivez en quelques mots (5 caractères au moins).';
+  if (m.length > 4000) return 'Message trop long (4 000 caractères au plus).';
+  return null;
+}
+
+/** Contexte technique joint au retour : jamais de donnée de patient ni de jeton. */
+export function contexteRetour(nav: { userAgent: string; language: string }, ecran: { width: number; height: number }, version: string) {
+  return { navigateur: nav.userAgent.slice(0, 200), langue: nav.language, ecran: `${ecran.width}x${ecran.height}`, version };
+}
