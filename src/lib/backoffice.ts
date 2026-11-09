@@ -17,6 +17,7 @@ const ACTIONS: Record<string, string> = {
   operateur_ajoute: 'Opérateur ajouté',
   operateur_modifie: 'Opérateur modifié',
   retour_traite: 'Retour traité',
+  utilisateur_recherche: 'Recherche d\'utilisateur',
 };
 export function libelleAction(action: string): string {
   return ACTIONS[action] ?? action.replace(/_/g, ' ');
@@ -24,10 +25,10 @@ export function libelleAction(action: string): string {
 
 export type ModuleBackoffice = { id: string; libelle: string; lot: 'socle' | 'pilote' | 'commercial'; disponible: boolean };
 export const MODULES_BACKOFFICE: ModuleBackoffice[] = [
-  { id: 'tableau', libelle: 'Tableau de bord', lot: 'pilote', disponible: false },
+  { id: 'tableau', libelle: 'Tableau de bord', lot: 'pilote', disponible: true },
   { id: 'retours', libelle: 'Retours pilotes', lot: 'pilote', disponible: true },
-  { id: 'clients', libelle: 'Clients', lot: 'pilote', disponible: false },
-  { id: 'utilisateurs', libelle: 'Utilisateurs', lot: 'pilote', disponible: false },
+  { id: 'clients', libelle: 'Clients', lot: 'pilote', disponible: true },
+  { id: 'utilisateurs', libelle: 'Utilisateurs', lot: 'pilote', disponible: true },
   { id: 'support', libelle: 'Support', lot: 'pilote', disponible: false },
   { id: 'operateurs', libelle: 'Opérateurs', lot: 'socle', disponible: true },
   { id: 'journal', libelle: "Journal d'audit", lot: 'socle', disponible: true },
@@ -73,4 +74,14 @@ export function erreurRetour(type: string, message: string): string | null {
 /** Contexte technique joint au retour : jamais de donnée de patient ni de jeton. */
 export function contexteRetour(nav: { userAgent: string; language: string }, ecran: { width: number; height: number }, version: string) {
   return { navigateur: nav.userAgent.slice(0, 200), langue: nav.language, ecran: `${ecran.width}x${ecran.height}`, version };
+}
+
+/** « il y a 3 j », « jamais » : dernière connexion lisible. */
+export function depuis(date: string | null | undefined, maintenant = new Date()): string {
+  if (!date) return 'jamais';
+  const minutes = Math.floor((maintenant.getTime() - new Date(date).getTime()) / 60000);
+  if (minutes < 60) return 'il y a moins d\'une heure';
+  if (minutes < 1440) return `il y a ${Math.floor(minutes / 60)} h`;
+  const jours = Math.floor(minutes / 1440);
+  return jours < 60 ? `il y a ${jours} j` : `il y a ${Math.floor(jours / 30)} mois`;
 }

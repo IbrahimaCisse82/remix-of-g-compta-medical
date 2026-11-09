@@ -10,13 +10,16 @@ import { etatAcces, MODULES_BACKOFFICE, type MoiPlateforme } from '@/lib/backoff
 import OperateursPanel from './OperateursPanel';
 import JournalPanel from './JournalPanel';
 import RetoursPanel from './RetoursPanel';
+import TableauPanel from './TableauPanel';
+import ClientsPanel from './ClientsPanel';
+import UtilisateursPanel from './UtilisateursPanel';
 
 
 /** Espace réservé aux opérateurs de la plateforme (équipe Grow Hub). Aucune donnée médicale n'y est affichée. */
 export default function AdminPage() {
   const { user, loading, signOut } = useAuth();
   const [moi, setMoi] = useState<MoiPlateforme | null | undefined>(undefined);
-  const [module, setModule] = useState('retours');
+  const [module, setModule] = useState('tableau');
 
   const charger = useCallback(async () => {
     if (!user) return;
@@ -75,6 +78,9 @@ export default function AdminPage() {
             {module === 'operateurs' && <OperateursPanel proprietaire={moi?.role === 'proprietaire'} />}
             {module === 'journal' && <JournalPanel />}
             {module === 'retours' && <RetoursPanel />}
+            {module === 'tableau' && <TableauPanel ouvrir={setModule} />}
+            {module === 'clients' && <ClientsPanel />}
+            {module === 'utilisateurs' && <UtilisateursPanel />}
           </main>
         </div>
       )}

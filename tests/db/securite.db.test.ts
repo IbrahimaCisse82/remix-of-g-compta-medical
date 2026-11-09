@@ -33,8 +33,13 @@ const S: Record<'A' | 'B', Ctx> = {} as never;
 
 async function compte(email: string): Promise<SupabaseClient> {
   const password = randomBytes(18).toString('base64url');
-  const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const ex = list?.users.find(u => u.email === email);
+  // La base de test accumule les comptes des exécutions : parcourir toutes les pages.
+  let ex: { id: string } | undefined;
+  for (let page = 1; !ex; page++) {
+    const { data: list } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    ex = list?.users.find(u => u.email === email);
+    if (!list || list.users.length < 1000) break;
+  }
   if (ex) await admin.auth.admin.updateUserById(ex.id, { password });
   else { const { error } = await admin.auth.admin.createUser({ email, password, email_confirm: true }); if (error) throw error; }
   const c = createClient(URL, ANON, { auth: { persistSession: false } });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contexteRetour, erreurRetour, etatAcces, libelleAction, libelleStatutRetour, MODULES_BACKOFFICE } from './backoffice';
+import { contexteRetour, depuis, erreurRetour, etatAcces, libelleAction, libelleStatutRetour, MODULES_BACKOFFICE } from './backoffice';
 
 describe('accès au back-office', () => {
   it('attend la session puis la réponse du serveur', () => {
@@ -24,8 +24,8 @@ describe('libellés', () => {
     expect(libelleAction('operateur_ajoute')).toBe('Opérateur ajouté');
     expect(libelleAction('abonnement_active')).toBe('abonnement active');
   });
-  it('modules disponibles : retours, opérateurs, journal', () => {
-    expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['retours', 'operateurs', 'journal']);
+  it('modules disponibles du lot pilote (support à venir)', () => {
+    expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['tableau', 'retours', 'clients', 'utilisateurs', 'operateurs', 'journal']);
   });
 });
 
@@ -45,5 +45,16 @@ describe('retours des pilotes', () => {
     expect(Object.keys(c).sort()).toEqual(['ecran', 'langue', 'navigateur', 'version']);
     expect(c.navigateur).toHaveLength(200);
     expect(c.ecran).toBe('1280x800');
+  });
+});
+
+describe('dernière connexion', () => {
+  const t = new Date('2026-11-09T12:00:00Z');
+  it('formats', () => {
+    expect(depuis(null, t)).toBe('jamais');
+    expect(depuis('2026-11-09T11:30:00Z', t)).toBe("il y a moins d'une heure");
+    expect(depuis('2026-11-09T07:00:00Z', t)).toBe('il y a 5 h');
+    expect(depuis('2026-11-06T12:00:00Z', t)).toBe('il y a 3 j');
+    expect(depuis('2026-06-09T12:00:00Z', t)).toBe('il y a 5 mois');
   });
 });
