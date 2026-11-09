@@ -16,6 +16,7 @@ const InvitationPage = lazy(() => import("./pages/InvitationPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const PortailPatientPage = lazy(() => import("./pages/PortailPatientPage"));
 const VerifierCrPage = lazy(() => import("./pages/VerifierCrPage"));
+const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/resultats" element={<PortailPatientPage />} />
             <Route path="/verifier/:token" element={<VerifierCrPage />} />
             <Route path="/invitation/:id" element={<InvitationPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes></Suspense>
         </AuthProvider>

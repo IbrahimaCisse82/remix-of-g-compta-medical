@@ -5,6 +5,10 @@ name: Base de test (reconstruction)
 #   TEST_DATABASE_URL, TEST_SUPABASE_URL, TEST_SUPABASE_PUBLISHABLE_KEY, TEST_SUPABASE_SERVICE_ROLE_KEY
 on:
   workflow_dispatch:
+# Une seule exécution à la fois contre la base de test partagée (sinon les tests se marchent dessus).
+concurrency:
+  group: base-de-test
+  cancel-in-progress: false
 jobs:
   reconstruire:
     runs-on: ubuntu-latest
