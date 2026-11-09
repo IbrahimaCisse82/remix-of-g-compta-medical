@@ -18,6 +18,10 @@ const ACTIONS: Record<string, string> = {
   operateur_modifie: 'Opérateur modifié',
   retour_traite: 'Retour traité',
   utilisateur_recherche: 'Recherche d\'utilisateur',
+  support_demande: 'Accès de support demandé',
+  support_accorde: 'Accès de support accordé',
+  support_refuse: 'Accès de support refusé',
+  support_revoque: 'Accès de support révoqué',
 };
 export function libelleAction(action: string): string {
   return ACTIONS[action] ?? action.replace(/_/g, ' ');
@@ -29,7 +33,7 @@ export const MODULES_BACKOFFICE: ModuleBackoffice[] = [
   { id: 'retours', libelle: 'Retours pilotes', lot: 'pilote', disponible: true },
   { id: 'clients', libelle: 'Clients', lot: 'pilote', disponible: true },
   { id: 'utilisateurs', libelle: 'Utilisateurs', lot: 'pilote', disponible: true },
-  { id: 'support', libelle: 'Support', lot: 'pilote', disponible: false },
+  { id: 'support', libelle: 'Support', lot: 'pilote', disponible: true },
   { id: 'operateurs', libelle: 'Opérateurs', lot: 'socle', disponible: true },
   { id: 'journal', libelle: "Journal d'audit", lot: 'socle', disponible: true },
 ];

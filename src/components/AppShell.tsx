@@ -1,4 +1,5 @@
 import { useUserRole } from '@/hooks/use-user-role';
+import SupportBandeau from '@/components/SupportBandeau';
 import RetourBouton from '@/components/RetourBouton';
 import { useApp, type PageId } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
@@ -401,6 +402,7 @@ export default function AppShell() {
         </aside>
 
         <main className="flex-1 overflow-y-auto">
+          {!demo && <SupportBandeau />}
           {!healthView && moduleInDelivery(currentPage) && <BandeauConsultationSeule page={currentPage} />}
           <Suspense fallback={<ChargementPage />}>
             {!moduleInDelivery(currentPage) ? <Dashboard /> : healthView ? (medicalStructure ? <HealthShell key={medicalStructure.id} embeddedView={healthView} /> : <HealthOnboarding />) : <PageComponent key={entreprise?.id ?? 'none'} />}
