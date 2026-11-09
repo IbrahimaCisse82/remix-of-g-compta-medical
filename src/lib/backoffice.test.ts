@@ -24,8 +24,8 @@ describe('libellés', () => {
     expect(libelleAction('operateur_ajoute')).toBe('Opérateur ajouté');
     expect(libelleAction('abonnement_active')).toBe('abonnement active');
   });
-  it('modules disponibles du lot pilote (support à venir)', () => {
-    expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['tableau', 'retours', 'clients', 'utilisateurs', 'operateurs', 'journal']);
+  it('tous les modules du lot pilote sont disponibles', () => {
+    expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['tableau', 'retours', 'clients', 'utilisateurs', 'support', 'operateurs', 'journal']);
   });
 });
 

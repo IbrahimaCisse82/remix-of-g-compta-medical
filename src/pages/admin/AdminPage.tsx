@@ -13,6 +13,7 @@ import RetoursPanel from './RetoursPanel';
 import TableauPanel from './TableauPanel';
 import ClientsPanel from './ClientsPanel';
 import UtilisateursPanel from './UtilisateursPanel';
+import SupportPanel from './SupportPanel';
 
 
 /** Espace réservé aux opérateurs de la plateforme (équipe Grow Hub). Aucune donnée médicale n'y est affichée. */
@@ -81,6 +82,7 @@ export default function AdminPage() {
             {module === 'tableau' && <TableauPanel ouvrir={setModule} />}
             {module === 'clients' && <ClientsPanel />}
             {module === 'utilisateurs' && <UtilisateursPanel />}
+            {module === 'support' && <SupportPanel />}
           </main>
         </div>
       )}
