@@ -848,6 +848,13 @@
       "when": 1793496000121,
       "tag": "0121_cim10_diagnostics_chroniques",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1793496000122,
+      "tag": "0122_specialites_cim10",
+      "breakpoints": true
     }
   ]
 }

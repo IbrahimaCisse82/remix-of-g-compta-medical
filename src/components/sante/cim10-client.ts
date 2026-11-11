@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { rpcPlateforme } from '@/lib/rpc-plateforme';
 
 /** Accès au référentiel CIM-10, aux diagnostics codés et aux maladies chroniques (0121, hors types générés). */
-export type Cim10 = { code: string; libelle: string; chapitre: string | null };
+export type Cim10 = { code: string; libelle: string; chapitre: string | null; dans_specialite?: boolean };
 export type DiagnosticCode = { id: string; consultation_id: string; code: string; libelle: string; principal: boolean; created_at: string };
 export type MaladieChronique = { id: string; code: string | null; libelle: string; depuis: string | null; statut: 'active' | 'resolue'; note: string | null; created_at: string };
 
@@ -11,6 +11,11 @@ type Requete<T> = { select: (c: string) => Requete<T>; eq: (c: string, v: string
 const table = <T,>(t: string) => (supabase as unknown as { from: (t: string) => Requete<T> }).from(t);
 
 export const chercherCim10 = (q: string) => rpcPlateforme<Cim10[]>('sante_cim10_chercher', { _q: q, _limite: 15 });
+/** Recherche classée selon la spécialité du praticien de la consultation (0122), sinon recherche générale. */
+export async function chercherCim10Consultation(consultationId: string, q: string, toutes: boolean) {
+  const r = await rpcPlateforme<Cim10[]>('sante_cim10_specialite', { _consultation_id: consultationId, _q: q, _toutes: toutes, _limite: 15 });
+  return r.error && /sante_cim10_specialite|function/i.test(r.error.message) ? chercherCim10(q) : r;
+}
 export const coderDiagnostic = (consultationId: string, code: string, principal = false) =>
   rpcPlateforme<string>('sante_diagnostic_coder', { _consultation_id: consultationId, _code: code, _principal: principal });
 export const retirerDiagnostic = (id: string) => rpcPlateforme<null>('sante_diagnostic_retirer', { _id: id });

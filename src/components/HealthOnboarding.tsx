@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChoixSpecialites } from '@/components/sante/SpecialitesCard';
+import { definirSpecialites } from '@/components/sante/specialites-client';
 
 type StructureType = MedicalStructure['type'];
 
@@ -29,6 +31,7 @@ export default function HealthOnboarding() {
   const [adresse, setAdresse] = useState('');
   const [telephone, setTelephone] = useState('');
   const [saving, setSaving] = useState(false);
+  const [specialites, setSpecialites] = useState<string[]>([]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -48,6 +51,11 @@ export default function HealthOnboarding() {
     if (error || !data) {
       toast.error(error?.message || 'Création impossible.');
       return;
+    }
+    if (type !== 'laboratoire' && specialites.length > 0) {
+      // Les spécialités fixent les codes CIM-10 proposés ; un échec n'empêche pas l'accès (modifiable dans Structure & équipe).
+      const sp = await definirSpecialites(data, specialites);
+      if (sp.error) toast.warning('Spécialités non enregistrées : choisissez-les dans Structure & équipe.');
     }
     completeHealthOnboarding({ id: data, nom: nom.trim(), type, theme_medical: palette });
     toast.success('Votre structure Santé est prête.');
@@ -100,6 +108,12 @@ export default function HealthOnboarding() {
               </SelectContent>
             </Select>
           </div>
+
+          {type !== 'laboratoire' && <fieldset>
+            <legend className="text-sm font-semibold mb-1">Spécialités de la structure</legend>
+            <p className="text-xs text-fg2 mb-3">Elles déterminent les codes CIM-10 proposés aux médecins pour coder leurs diagnostics. Modifiables ensuite dans Structure & équipe.</p>
+            <ChoixSpecialites valeur={specialites} onChange={setSpecialites} disabled={saving} />
+          </fieldset>}
 
           <fieldset>
             <legend className="text-sm font-semibold mb-3">Palette médicale</legend>
