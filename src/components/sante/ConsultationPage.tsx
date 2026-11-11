@@ -155,7 +155,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
             {CHAMPS.map(([k, l]) => (
               <div key={k}><Label htmlFor={`c-${k}`}>{l}{(k === 'motif' || k === 'diagnostic') && ' *'}</Label>
                 <Textarea id={`c-${k}`} rows={k === 'motif' ? 1 : 3} disabled={verrou || busy} value={c[k] ?? ''} onChange={e => setC(s => s ? ({ ...s, [k]: e.target.value }) : s)} />
-                {k === 'diagnostic' && <DiagnosticsCodes consultationId={id} patientId={c.patient_id} verrou={verrou} diagnosticTexte={c.diagnostic ?? ''} onTexte={t => setC(s => s ? ({ ...s, diagnostic: t }) : s)} />}</div>
+                {k === 'diagnostic' && <DiagnosticsCodes consultationId={id} patientId={c.patient_id} structureId={c.structure_id} verrou={verrou} diagnosticTexte={c.diagnostic ?? ''} onTexte={t => setC(s => s ? ({ ...s, diagnostic: t }) : s)} />}</div>
             ))}
           </section>
 

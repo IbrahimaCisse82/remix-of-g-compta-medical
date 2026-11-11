@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SPECIALITES } from '@/domain/sante/specialites';
 import { couvertureCim10, definirSpecialites, lireSpecialitesStructure, type Couverture } from './specialites-client';
+import { definirModeCim10, modeCim10, statistiquesCim10, type ModeCim10 } from './cim10-client';
 
 /** Choix des spécialités (création de la structure ou Structure & équipe). */
 export function ChoixSpecialites({ valeur, onChange, disabled }: { valeur: string[]; onChange: (v: string[]) => void; disabled?: boolean }) {
@@ -27,11 +28,15 @@ export default function SpecialitesCard({ structureId }: { structureId: string }
   const [initial, setInitial] = useState<string[]>([]);
   const [couverture, setCouverture] = useState<Couverture[]>([]);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<ModeCim10 | null>(null);
+  const [stats, setStats] = useState<{ codages: number; hors_specialite: number } | null>(null);
   const charger = useCallback(async () => {
     const s = await lireSpecialitesStructure(structureId);
     setChoix(s); setInitial(s ?? []);
     const c = await couvertureCim10(structureId);
     setCouverture(c.error ? [] : c.data ?? []);
+    const [m, st] = await Promise.all([modeCim10(structureId), statistiquesCim10(structureId)]);
+    setMode(m.error ? null : m.data); setStats(st.error ? null : st.data?.[0] ?? null);
   }, [structureId]);
   useEffect(() => { void charger(); }, [charger]);
   if (choix === null) return null;
@@ -44,11 +49,16 @@ export default function SpecialitesCard({ structureId }: { structureId: string }
     if (error) return toast.error(error.message);
     toast.success('Spécialités enregistrées'); await charger();
   };
+  const changerMode = async (m: ModeCim10) => {
+    const { error } = await definirModeCim10(structureId, m);
+    if (error) return toast.error(error.message);
+    setMode(m); toast.success(m === 'strict' ? 'Mode strict : seuls les codes de la spécialité' : 'Mode recommandé');
+  };
   const total = couverture.reduce((t, c) => Math.max(t, Number(c.codes)), 0);
   return (
     <section className="border border-border bg-bg2 rounded-md p-5 mt-8" aria-labelledby="titre-specialites">
       <h2 id="titre-specialites" className="font-semibold mb-1">Spécialités et codes CIM-10</h2>
-      <p className="text-xs text-fg3 mb-3">Les médecins ne voient que les codes CIM-10 des spécialités choisies. Un praticien dont la spécialité est renseignée (Catalogue → Praticiens) ne voit que les codes de sa spécialité. Médecine générale, pédiatrie et urgences donnent accès à toute la classification.</p>
+      <p className="text-xs text-fg3 mb-3">Les spécialités choisies déterminent les codes CIM-10 proposés aux médecins. Un praticien dont la spécialité est renseignée (Catalogue → Praticiens) se voit proposer ceux de sa spécialité. Médecine générale, pédiatrie et urgences donnent accès à toute la classification.</p>
       <ChoixSpecialites valeur={choix} onChange={setChoix} disabled={busy} />
       <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
         <p className="text-xs text-fg2">{couverture.length === 0 ? 'Aucune spécialité enregistrée : toute la CIM-10 est proposée.'
@@ -56,6 +66,14 @@ export default function SpecialitesCard({ structureId }: { structureId: string }
           : couverture.map(c => `${c.libelle} : ${Number(c.codes).toLocaleString('fr-FR')} codes`).join(' · ')}</p>
         <Button disabled={busy || !modifie} onClick={enregistrer}>Enregistrer</Button>
       </div>
+      {mode && <fieldset className="mt-4 border-t border-border pt-3 space-y-2 text-sm">
+        <legend className="font-semibold text-sm">Codes proposés aux médecins</legend>
+        <label className="flex items-start gap-2"><input type="radio" name="mode-cim10" checked={mode === 'recommande'} onChange={() => changerMode('recommande')} className="mt-1" />
+          <span><b>Recommandé</b> — codes de la spécialité, plus symptômes, motifs de recours et pathologies fréquentes (paludisme, HTA, diabète, VIH, drépanocytose, anémies, tuberculose). Un autre code reste possible ; il est marqué « hors spécialité ».</span></label>
+        <label className="flex items-start gap-2"><input type="radio" name="mode-cim10" checked={mode === 'strict'} onChange={() => changerMode('strict')} className="mt-1" />
+          <span><b>Strict</b> — uniquement les codes de la spécialité.</span></label>
+        {stats && Number(stats.codages) > 0 && <p className="text-xs text-fg2">Sur 90 jours : {Number(stats.codages).toLocaleString('fr-FR')} diagnostics codés, dont {Number(stats.hors_specialite).toLocaleString('fr-FR')} hors spécialité ({Math.round(100 * Number(stats.hors_specialite) / Number(stats.codages))} %).</p>}
+      </fieldset>}
     </section>
   );
 }

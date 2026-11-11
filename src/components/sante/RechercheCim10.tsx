@@ -41,13 +41,13 @@ export default function RechercheCim10({ onChoisir, placeholder = 'Code ou mots 
           {res.map((c, i) => (
             <li key={c.code} role="option" aria-selected={i === actif}>
               <button type="button" className={`w-full text-left px-2 py-1.5 text-sm hover:bg-bg3 ${i === actif ? 'bg-bg3' : ''}`} onMouseEnter={() => setActif(i)} onClick={() => choisir(c)}>
-                <span className="font-mono text-xs text-primary mr-2">{c.code}</span>{c.libelle}
+                <span className="font-mono text-xs text-primary mr-2">{c.code}</span>{c.libelle}{c.dans_specialite === false && <span className="ml-2 text-xs text-warning">hors spécialité</span>}
               </button>
             </li>
           ))}
         </ul>
       )}
-      {etat === 'vide' && <p className="text-xs text-fg3 mt-1">Aucun code trouvé dans la spécialité.</p>}
+      {etat === 'vide' && <p className="text-xs text-fg3 mt-1">Aucun code trouvé.</p>}
       {etat === 'indisponible' && <p className="text-xs text-fg3 mt-1">Référentiel CIM-10 indisponible pour le moment : le diagnostic en texte libre suffit.</p>}
     </div>
   );
