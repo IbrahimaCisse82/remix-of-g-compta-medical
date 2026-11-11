@@ -11,11 +11,17 @@ type Requete<T> = { select: (c: string) => Requete<T>; eq: (c: string, v: string
 const table = <T,>(t: string) => (supabase as unknown as { from: (t: string) => Requete<T> }).from(t);
 
 export const chercherCim10 = (q: string) => rpcPlateforme<Cim10[]>('sante_cim10_chercher', { _q: q, _limite: 15 });
-/** Recherche classée selon la spécialité du praticien de la consultation (0122), sinon recherche générale. */
-export async function chercherCim10Consultation(consultationId: string, q: string, toutes: boolean) {
-  const r = await rpcPlateforme<Cim10[]>('sante_cim10_specialite', { _consultation_id: consultationId, _q: q, _toutes: toutes, _limite: 15 });
+/** Recherche en consultation : uniquement les codes de la spécialité du praticien (à défaut, de la structure). */
+export async function chercherCim10Consultation(consultationId: string, q: string) {
+  const r = await rpcPlateforme<Cim10[]>('sante_cim10_specialite', { _consultation_id: consultationId, _q: q, _limite: 15 });
   return r.error && /sante_cim10_specialite|function/i.test(r.error.message) ? chercherCim10(q) : r;
 }
+/** Recherche depuis le dossier patient : spécialité du médecin connecté, à défaut celles de la structure. */
+export async function chercherCim10Patient(patientId: string, q: string) {
+  const r = await rpcPlateforme<Cim10[]>('sante_cim10_patient', { _patient_id: patientId, _q: q, _limite: 15 });
+  return r.error && /sante_cim10_patient|function/i.test(r.error.message) ? chercherCim10(q) : r;
+}
+
 export const coderDiagnostic = (consultationId: string, code: string, principal = false) =>
   rpcPlateforme<string>('sante_diagnostic_coder', { _consultation_id: consultationId, _code: code, _principal: principal });
 export const retirerDiagnostic = (id: string) => rpcPlateforme<null>('sante_diagnostic_retirer', { _id: id });

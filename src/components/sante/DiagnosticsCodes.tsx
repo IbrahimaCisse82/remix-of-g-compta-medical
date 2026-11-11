@@ -14,8 +14,7 @@ export default function DiagnosticsCodes({ consultationId, patientId, verrou, di
 }) {
   const [codes, setCodes] = useState<DiagnosticCode[]>([]);
   const [chroniques, setChroniques] = useState<MaladieChronique[]>([]);
-  const [toutes, setToutes] = useState(false);
-  const rechercher = useCallback((q: string) => chercherCim10Consultation(consultationId, q, toutes), [consultationId, toutes]);
+  const rechercher = useCallback((q: string) => chercherCim10Consultation(consultationId, q), [consultationId]);
   const charger = useCallback(async () => {
     const [d, c] = await Promise.all([lireDiagnostics('consultation_id', consultationId), lireChroniques(patientId)]);
     setCodes(d); setChroniques(c ?? []);
@@ -49,8 +48,7 @@ export default function DiagnosticsCodes({ consultationId, patientId, verrou, di
   return (
     <div className="mt-2 space-y-2">
       {!verrou && <>
-        <RechercheCim10 rechercher={rechercher} onChoisir={c => void ajouter(c.code, c.libelle)} placeholder="Coder en CIM-10 : code ou mots (ex. I10, paludisme)" />
-        <label className="flex items-center gap-2 text-xs text-fg2"><input type="checkbox" checked={toutes} onChange={e => setToutes(e.target.checked)} />Chercher aussi hors de ma spécialité</label>
+        <RechercheCim10 rechercher={rechercher} onChoisir={c => void ajouter(c.code, c.libelle)} placeholder="Coder en CIM-10 (codes de votre spécialité) : code ou mots" />
       </>}
       {codes.length > 0 && (
         <ul className="space-y-1" aria-label="Diagnostics codés">

@@ -48,7 +48,7 @@ export default function SpecialitesCard({ structureId }: { structureId: string }
   return (
     <section className="border border-border bg-bg2 rounded-md p-5 mt-8" aria-labelledby="titre-specialites">
       <h2 id="titre-specialites" className="font-semibold mb-1">Spécialités et codes CIM-10</h2>
-      <p className="text-xs text-fg3 mb-3">Les spécialités choisies déterminent les codes CIM-10 proposés en consultation. Chaque praticien peut avoir sa propre spécialité (Catalogue → Praticiens) ; à défaut, ce sont celles de la structure. Médecine générale, pédiatrie et urgences donnent accès à toute la classification.</p>
+      <p className="text-xs text-fg3 mb-3">Les médecins ne voient que les codes CIM-10 des spécialités choisies. Un praticien dont la spécialité est renseignée (Catalogue → Praticiens) ne voit que les codes de sa spécialité. Médecine générale, pédiatrie et urgences donnent accès à toute la classification.</p>
       <ChoixSpecialites valeur={choix} onChange={setChoix} disabled={busy} />
       <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
         <p className="text-xs text-fg2">{couverture.length === 0 ? 'Aucune spécialité enregistrée : toute la CIM-10 est proposée.'

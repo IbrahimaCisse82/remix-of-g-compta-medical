@@ -14,7 +14,7 @@ const CODES = [
   { code: 'R99.TA', libelle: 'Recette spécialité symptôme vasculaire' },
 ];
 
-describe.skipIf(!url || !key || !service)('Spécialités et CIM-10 (0122)', () => {
+describe.skipIf(!url || !key || !service)('Spécialités et CIM-10 (0122, 0124)', () => {
   const admin = createClient(url, service);
   let medecin: SupabaseClient, secretaire: SupabaseClient;
   let structure = '', patient = '', praticien = '', consultation = '';
@@ -69,14 +69,23 @@ describe.skipIf(!url || !key || !service)('Spécialités et CIM-10 (0122)', () =
     expect((await medecin.rpc('sante_structure_specialites_definir', { _structure_id: structure, _specialites: ['inconnue'] })).error).not.toBeNull();
     const r = await medecin.rpc('sante_structure_specialites_definir', { _structure_id: structure, _specialites: ['cardiologie', 'pneumologie'] });
     expect(r.error).toBeNull(); expect(r.data).toBe(2);
-    expect(await codes('recette specialite vasculaire')).toEqual(['I99.TA', 'J99.TA', 'R99.TA']);
+    // Le cabinet ne voit que les codes de ses spécialités (les symptômes R ne sont pas ajoutés).
+    expect(await codes('recette specialite vasculaire')).toEqual(['I99.TA', 'J99.TA']);
     const c = await medecin.rpc('sante_cim10_couverture', { _structure_id: structure });
     expect(c.data?.map((x: { specialite_id: string }) => x.specialite_id)).toEqual(['cardiologie', 'pneumologie']);
   });
-  it('la spécialité du praticien prime : cardiologie → codes I et symptômes ; « toutes » élargit en signalant le hors-spécialité', async () => {
+  it('le praticien spécialiste ne voit que les codes de sa spécialité, même en demandant « toutes »', async () => {
     expect((await medecin.from('sante_praticiens').update({ specialite_id: 'cardiologie' }).eq('id', praticien)).error).toBeNull();
-    expect(await codes('recette specialite vasculaire')).toEqual(['I99.TA', 'R99.TA']);
-    expect(await codes('recette specialite vasculaire', true)).toEqual(['I99.TA', 'R99.TA', 'J99.TA (hors)']);
+    expect(await codes('recette specialite vasculaire')).toEqual(['I99.TA']);
+    expect(await codes('recette specialite vasculaire', true)).toEqual(['I99.TA']);
+  });
+  it('un code hors spécialité est refusé à l’enregistrement (diagnostic et maladie chronique)', async () => {
+    expect((await medecin.rpc('sante_diagnostic_coder', { _consultation_id: consultation, _code: 'J99.TA' })).error?.message).toMatch(/hors de la spécialité/);
+    expect((await medecin.rpc('sante_diagnostic_coder', { _consultation_id: consultation, _code: 'I99.TA' })).error).toBeNull();
+    // Hors consultation : la spécialité du médecin connecté (sa fiche praticien) s'applique.
+    expect((await medecin.rpc('sante_chronique_declarer', { _patient_id: patient, _code: 'J99.TA' })).error?.message).toMatch(/hors de votre spécialité/);
+    const p = await medecin.rpc('sante_cim10_patient', { _patient_id: patient, _q: 'recette specialite vasculaire' });
+    expect((p.data ?? []).filter((x: { code: string }) => x.code.endsWith('.TA')).map((x: { code: string }) => x.code)).toEqual(['I99.TA']);
   });
   it('médecine générale : tout est dans la spécialité ; la secrétaire ne peut pas chercher pour la consultation', async () => {
     await medecin.from('sante_praticiens').update({ specialite_id: 'medecine-generale' }).eq('id', praticien);
