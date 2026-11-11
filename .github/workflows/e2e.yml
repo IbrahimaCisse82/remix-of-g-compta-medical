@@ -38,9 +38,3 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - if: steps.base.outputs.actif == 'oui'
         run: bunx playwright test
-      - if: failure() && steps.base.outputs.actif == 'oui'
-        uses: actions/upload-artifact@v4
-        with:
-          name: rapport-e2e
-          path: playwright-report/
-          retention-days: 7

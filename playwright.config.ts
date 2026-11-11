@@ -14,12 +14,11 @@ export default defineConfig({
   timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
+  reporter: [['list']],
   use: {
     baseURL: 'http://localhost:8080',
     viewport: { width: 1280, height: 1800 },
     headless: true,
-    trace: process.env.CI ? 'retain-on-failure' : 'off',
     // Navigateur fourni par l'environnement de développement (nix) s'il existe ; sinon celui de Playwright (CI).
     launchOptions: chromium ? { executablePath: chromium } : {},
   },
