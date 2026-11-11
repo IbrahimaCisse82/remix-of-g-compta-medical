@@ -17,13 +17,14 @@ type Vis = 'P' | 'C' | 'L' | 'X';
 const LABELS: [string, Record<Role, Vis>][] = [
   ['Patients', { admin_structure: 'P', medecin: 'P', biologiste: 'P', technicien: 'P', preleveur: 'P', secretaire: 'P', caissier: 'X', comptable: 'X', lecteur: 'X', tiers_payant: 'X' }],
   ['Agenda & consultations', { admin_structure: 'C', medecin: 'C', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'C', caissier: 'X', comptable: 'X', lecteur: 'X', tiers_payant: 'X' }],
-  ['Pharmacie & consommables', { admin_structure: 'C', medecin: 'C', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'C', caissier: 'X', comptable: 'X', lecteur: 'X', tiers_payant: 'X' }],
+  // Gestion du stock réservée à l'administrateur et au comptable (navigation-sante.ts) ; médecin et secrétaire voient le stock dans la consultation.
+  ['Pharmacie & consommables', { admin_structure: 'C', medecin: 'X', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'X', comptable: 'C', lecteur: 'X', tiers_payant: 'X' }],
   ['Plannings & gardes', { admin_structure: 'P', medecin: 'P', biologiste: 'P', technicien: 'P', preleveur: 'P', secretaire: 'P', caissier: 'P', comptable: 'P', lecteur: 'P', tiers_payant: 'P' }],
   ['Rétrocessions', { admin_structure: 'C', medecin: 'C', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'X', comptable: 'C', lecteur: 'X', tiers_payant: 'X' }],
   ['Laboratoire', { admin_structure: 'L', medecin: 'L', biologiste: 'L', technicien: 'L', preleveur: 'L', secretaire: 'L', caissier: 'X', comptable: 'X', lecteur: 'X', tiers_payant: 'X' }],
   ['Qualité & réactifs', { admin_structure: 'L', medecin: 'X', biologiste: 'L', technicien: 'L', preleveur: 'X', secretaire: 'X', caissier: 'X', comptable: 'X', lecteur: 'X', tiers_payant: 'X' }],
   ['Factures & caisse', { admin_structure: 'P', medecin: 'X', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'P', comptable: 'P', lecteur: 'X', tiers_payant: 'P' }],
-  ['Tableaux de bord santé', { admin_structure: 'P', medecin: 'P', biologiste: 'P', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'X', comptable: 'P', lecteur: 'P', tiers_payant: 'X' }],
+  ['Tableaux de bord santé', { admin_structure: 'P', medecin: 'P', biologiste: 'P', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'X', comptable: 'P', lecteur: 'X', tiers_payant: 'X' }],
   ['Journal', { admin_structure: 'P', medecin: 'X', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'X', comptable: 'P', lecteur: 'P', tiers_payant: 'X' }],
   ["Saisie d'écritures", { admin_structure: 'P', medecin: 'X', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'X', comptable: 'P', lecteur: 'X', tiers_payant: 'X' }],
   ['Rapprochement', { admin_structure: 'P', medecin: 'X', biologiste: 'X', technicien: 'X', preleveur: 'X', secretaire: 'X', caissier: 'P', comptable: 'P', lecteur: 'X', tiers_payant: 'X' }],
@@ -37,7 +38,8 @@ const visible = (v: Vis, type: TypeStructure) =>
 async function ouvrirEspaceSante(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-  await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+  // Espace santé ouvert : le menu latéral est affiché (la page d'arrivée dépend du rôle, ex. configuration pour l'administrateur).
+  await expect(page.locator('aside nav button[aria-expanded]').first()).toBeVisible({ timeout: 20_000 });
 }
 
 // Les modules sont rangés dans des groupes repliables : tout déplier avant de vérifier.

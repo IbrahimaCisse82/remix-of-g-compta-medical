@@ -16,7 +16,8 @@ const admin = actif ? createClient(URL, SERVICE, { auth: { persistSession: false
 async function ouvrirEspaceSante(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-  await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+  // Espace santé ouvert : le menu latéral est affiché (la page d'arrivée dépend du rôle, ex. configuration pour l'administrateur).
+  await expect(page.locator('aside nav button[aria-expanded]').first()).toBeVisible({ timeout: 20_000 });
   await deplierGroupes(page);
 }
 
@@ -56,7 +57,7 @@ test.describe('Actualisation après changement de rôle', () => {
     // Rechargement : les permissions affichées suivent le nouveau rôle.
     await page.reload();
     await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-    await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('aside nav button[aria-expanded]').first()).toBeVisible({ timeout: 20_000 });
     await deplierGroupes(page);
     await expect(menu.getByText('Patients', { exact: true })).toHaveCount(0);
     await expect(menu.getByText('Journal', { exact: true }).first()).toBeVisible();
@@ -80,7 +81,7 @@ test.describe('Actualisation après changement de type de structure', () => {
 
     await page.reload();
     await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-    await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('aside nav button[aria-expanded]').first()).toBeVisible({ timeout: 20_000 });
     await deplierGroupes(page);
     await expect(menu.getByText('Laboratoire', { exact: true }).first()).toBeVisible();
     await expect(menu.getByText('Qualité & réactifs', { exact: true }).first()).toBeVisible();
