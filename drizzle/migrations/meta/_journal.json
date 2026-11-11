@@ -855,6 +855,13 @@
       "when": 1793496000122,
       "tag": "0122_specialites_cim10",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1793496000123,
+      "tag": "0123_cim10_recherche_abreviations",
+      "breakpoints": true
     }
   ]
 }
