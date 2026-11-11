@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import BordereauCompta from './BordereauCompta';
 import { OutboxCard, RemboursementsCard, ReglementOrganismeCard, ConventionsCard, BonsPecCard, CreancesOrganismesCard, AnalytiqueSanteCard, SaisieSecoursCard } from './FinanceSante';
 import { MODES_PAIEMENT, fcfa, resteAEncaisser, totalLignes, ventiler } from '@/domain/sante/tiers-payant';
-import { montantCaisse } from '@/lib/caisse-montant';
+import { ancienneteSession, montantCaisse } from '@/lib/caisse-montant';
+import { rpcPlateforme } from '@/lib/rpc-plateforme';
 import { escapeHtml } from '@/lib/impression';
 import { OrganismesPayeurs, CouverturePatient } from './TiersPayantSaisie';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +21,7 @@ import { sectionsCatalogue } from '@/domain/sante/catalogue-structure';
 type Item = { code: string; libelle: string; tarif: number };
 type Facture = { id: string; numero: string; type: string; total: number; part_patient: number; part_organisme: number; organisme: string | null; statut_tiers: string; envoye_tiers_le: string | null; annulee: boolean; created_at: string; patient: { nom: string; prenoms: string | null; numero_dossier: string } | null; encaisse: number };
 type Session = { id: string; fond_initial: number; ouverte_le: string } | null;
+type AFacturer = { consultation_id: string; cloturee_le: string; patient_id: string; numero_dossier: string; patient: string; praticien: string | null; acte_code: string | null; acte_libelle: string | null; acte_tarif: number | null };
 
 const db = supabase as any;
 const TIERS: Record<string, string> = { sans: '—', a_facturer: 'À facturer', envoye: 'Envoyé', paye: 'Payé', rejete: 'Rejeté' };
@@ -47,6 +49,9 @@ export default function FacturationPage({ structureId }: { structureId: string }
   const [vue, setVue] = useState('factures');
   const [organismesRefresh, setOrganismesRefresh] = useState(0);
   const [catalogueQuery, setCatalogueQuery] = useState('');
+  const [aFacturer, setAFacturer] = useState<AFacturer[] | null>(null);
+  const [consultation, setConsultation] = useState<AFacturer | null>(null);
+  const [anciennes, setAnciennes] = useState<{ id: string; ouverte_le: string; caissier: string }[]>([]);
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -60,6 +65,14 @@ export default function FacturationPage({ structureId }: { structureId: string }
     if (s.error || f.error || a.error || an.error) { setLoadError((s.error ?? f.error ?? a.error ?? an.error).message); return; }
     setLoadError('');
     setSession(s.data);
+    // Consultations clôturées non facturées (0120) et caisses restées ouvertes plus de 24 h : informations d'appoint,
+    // un échec (fonction absente, rôle sans accès) masque simplement le bloc.
+    const [cf, so] = await Promise.all([
+      rpcPlateforme<AFacturer[]>('sante_consultations_a_facturer', { _structure_id: structureId, _jours: 30 }),
+      db.from('sante_sessions_caisse').select('id, ouverte_le, caissier').eq('structure_id', structureId).is('fermee_le', null).lt('ouverte_le', new Date(Date.now() - 86_400_000).toISOString()).order('ouverte_le'),
+    ]);
+    setAFacturer(cf.error ? null : cf.data ?? []);
+    setAnciennes(so.error ? [] : (so.data ?? []).filter((x: { caissier: string }) => x.caissier !== auth.user.id));
     setFactures((f.data || []).map((x: any) => ({ ...x, encaisse: (x.enc || []).filter((e: any) => e.mode !== 'organisme').reduce((t: number, e: any) => t + Number(e.montant), 0) })));
     const sections = sectionsCatalogue(medicalStructure?.type);
     setCatalogue([...(sections.actes ? a.data || [] : []), ...(sections.analyses ? an.data || [] : [])].map((i: any) => ({ ...i, tarif: Number(i.tarif) })));
@@ -108,8 +121,11 @@ export default function FacturationPage({ structureId }: { structureId: string }
     if (!patient || panier.length === 0) return;
     let reduction;
     try { reduction = montantCaisse(remise); } catch (e) { return toast.error((e as Error).message); }
-    const ok = await run('sante_creer_facture', { _patient_id: patient.id, _lignes: panier.map(p => ({ code: p.code, libelle: p.libelle, prix_unitaire: p.tarif, quantite: 1 })), _assurance_id: ass?.id ?? null, _remise: reduction, _motif_remise: motifRemise || null }, 'Facture émise.');
-    if (ok) { setPanier([]); setRemise('0'); setMotifRemise(''); setPatient(null); }
+    const lignes = panier.map(p => ({ code: p.code, libelle: p.libelle, prix_unitaire: p.tarif, quantite: 1 }));
+    const ok = consultation
+      ? await run('sante_facturer_consultation', { _consultation_id: consultation.consultation_id, _patient_id: patient.id, _lignes: lignes, _assurance_id: ass?.id ?? null }, 'Consultation facturée.')
+      : await run('sante_creer_facture', { _patient_id: patient.id, _lignes: lignes, _assurance_id: ass?.id ?? null, _remise: reduction, _motif_remise: motifRemise || null }, 'Facture émise.');
+    if (ok) { setPanier([]); setRemise('0'); setMotifRemise(''); setPatient(null); setConsultation(null); }
   };
 
   const imprimerRapport = async (id: string) => {
@@ -193,7 +209,10 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
       </> : <>
       {droit('gerer_caisse') && <section className="border border-border bg-bg2 rounded-md p-5 flex flex-wrap items-end gap-3">
         {session ? (<>
-          <p className="text-sm flex-1">Caisse ouverte depuis {new Date(session.ouverte_le).toLocaleTimeString('fr-FR')} · fond {fcfa(Number(session.fond_initial))}</p>
+          <div className="flex-1 text-sm">
+            <p>Caisse ouverte le {new Date(session.ouverte_le).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} · fond {fcfa(Number(session.fond_initial))}</p>
+            {ancienneteSession(session.ouverte_le).aCloturer && <p role="alert" className="text-destructive font-semibold mt-1">Ouverte depuis {ancienneteSession(session.ouverte_le).libelle} : comptez les espèces et clôturez-la pour éditer le rapport de fin de journée.</p>}
+          </div>
           <div><Label htmlFor="caisse-compte">Espèces comptées</Label><Input id="caisse-compte" type="number" min={0} step={1} value={fond} onChange={e => setFond(e.target.value)} className="w-40" /></div>
           <Button variant="outline" disabled={busy || !!loadError} onClick={fermer}>Clôturer et imprimer le rapport</Button>
           {droit('remettre_cheques') && <Button variant="ghost" onClick={() => run('sante_remettre_cheques', { _structure_id: structureId }, 'Remise de chèques enregistrée.')}>Remise de chèques en banque</Button>}
@@ -204,9 +223,31 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
         </>)}
       </section>}
 
-      {droit('creer_facture') && <section className="border border-border bg-bg2 rounded-md p-5 space-y-4">
-        <h2 className="font-semibold">Nouvelle facture</h2>
-        {patient ? <p className="text-sm">Patient : <b>{patient.label}</b> <Button size="sm" variant="ghost" onClick={() => setPatient(null)}>Changer</Button></p> : (
+      {anciennes.length > 0 && droit('gerer_caisse') && <p role="alert" className="text-sm border border-destructive text-destructive rounded-md p-3">
+        {anciennes.length === 1 ? 'Une autre caisse est ouverte' : `${anciennes.length} autres caisses sont ouvertes`} depuis plus de 24 h (ouverture : {anciennes.map(a => new Date(a.ouverte_le).toLocaleDateString('fr-FR')).join(', ')}). Demandez au caissier concerné de la clôturer.
+      </p>}
+
+      {droit('creer_facture') && aFacturer && aFacturer.length > 0 && <section className="border border-border bg-bg2 rounded-md p-5" aria-labelledby="titre-a-facturer">
+        <h2 id="titre-a-facturer" className="font-semibold">Consultations à facturer ({aFacturer.length})</h2>
+        <p className="text-xs text-fg3 mb-3">Consultations clôturées ces 30 derniers jours sans facture.</p>
+        <ul className="divide-y divide-border">{aFacturer.map(k => (
+          <li key={k.consultation_id} className="py-2 flex flex-wrap items-center gap-3 text-sm">
+            <span className="flex-1 min-w-48"><b>{k.patient}</b> <span className="font-mono text-xs text-fg3">{k.numero_dossier}</span>
+              <span className="block text-xs text-fg2">{new Date(k.cloturee_le).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}{k.praticien ? ` · ${k.praticien}` : ''}{k.acte_libelle ? ` · ${k.acte_libelle} ${fcfa(Number(k.acte_tarif))}` : ''}</span></span>
+            <Button size="sm" variant={consultation?.consultation_id === k.consultation_id ? 'secondary' : 'outline'} onClick={async () => {
+              setConsultation(k); setPatient({ id: k.patient_id, label: `${k.patient} · ${k.numero_dossier}` }); setRemise('0'); setMotifRemise('');
+              setPanier(k.acte_code ? [{ code: k.acte_code, libelle: k.acte_libelle ?? 'Consultation', tarif: Number(k.acte_tarif) }] : []);
+              await chargerAssurances(k.patient_id);
+              document.getElementById('nouvelle-facture')?.scrollIntoView({ behavior: 'smooth' });
+            }}>Facturer</Button>
+          </li>
+        ))}</ul>
+      </section>}
+
+      {droit('creer_facture') && <section id="nouvelle-facture" className="border border-border bg-bg2 rounded-md p-5 space-y-4">
+        <h2 className="font-semibold">{consultation ? `Facture de la consultation du ${new Date(consultation.cloturee_le).toLocaleDateString('fr-FR')}` : 'Nouvelle facture'}</h2>
+        {consultation && !consultation.acte_code && <p className="text-xs text-fg2">Aucun acte de consultation n’est configuré pour la structure : choisissez l’acte ci-dessous (à définir dans Structure & équipe → Facturation automatique).</p>}
+        {patient ? <p className="text-sm">Patient : <b>{patient.label}</b> <Button size="sm" variant="ghost" onClick={() => { setPatient(null); setConsultation(null); setPanier([]); }}>{consultation ? 'Abandonner' : 'Changer'}</Button></p> : (
           <div><div className="flex gap-2"><Input placeholder="Nom, téléphone ou n° de dossier" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && chercher()} /><Button onClick={chercher}>Chercher</Button></div>
             <div className="mt-2 space-y-1">{patients.map(p => <button key={p.id} className="block w-full text-left text-sm border border-border rounded p-2 hover:bg-muted" onClick={() => choisir(p)}>{p.nom} {p.prenoms} · {p.numero_dossier}</button>)}</div></div>
         )}
@@ -216,7 +257,7 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
         {panier.length > 0 && <ul className="text-sm space-y-1">{panier.map((p, k) => <li key={k} className="flex justify-between border-b border-border py-1"><span>{p.libelle}</span><span>{fcfa(p.tarif)} <button className="text-destructive ml-2" onClick={() => setPanier(panier.filter((_, j) => j !== k))}>×</button></span></li>)}</ul>}
         <div className="grid sm:grid-cols-3 gap-3">
           <div><Label>Prise en charge</Label><Select value={assuranceId} onValueChange={setAssuranceId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="aucune">Aucune</SelectItem>{assurances.map(a => <SelectItem key={a.id} value={a.id}>{a.organisme} ({a.taux_couverture} %)</SelectItem>)}</SelectContent></Select></div>
-          {droit('accorder_remise') && <>
+          {droit('accorder_remise') && !consultation && <>
           <div><Label>Remise</Label><Input type="number" value={remise} onChange={e => setRemise(e.target.value)} /></div>
           <div><Label>Motif de remise</Label><Input value={motifRemise} onChange={e => setMotifRemise(e.target.value)} /></div>
           </>}
