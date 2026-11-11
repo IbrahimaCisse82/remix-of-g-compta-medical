@@ -14,6 +14,7 @@ import CertificatsAnalyses from './CertificatsAnalyses';
 import { DelivranceConsultation } from './StocksSante';
 import { saveBeforeClosing } from '@/lib/consultation-workflow';
 import ControleConsultation from './ControleConsultation';
+import DiagnosticsCodes from './DiagnosticsCodes';
 
 const CHAMPS = [['motif', 'Motif'], ['anamnese', 'Anamnèse'], ['examen', 'Examen clinique'], ['diagnostic', 'Diagnostic'], ['conduite', 'Conduite à tenir']] as const;
 const CONST = [['ta_sys', 'TA sys.'], ['ta_dia', 'TA dia.'], ['pouls', 'Pouls'], ['temperature', 'T° °C'], ['poids', 'Poids kg'], ['taille', 'Taille cm'], ['spo2', 'SpO₂ %'], ['glycemie', 'Glyc. g/L']] as const;
@@ -153,7 +154,8 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
           <section className="border border-border bg-bg2 rounded-md p-4 space-y-3">
             {CHAMPS.map(([k, l]) => (
               <div key={k}><Label htmlFor={`c-${k}`}>{l}{(k === 'motif' || k === 'diagnostic') && ' *'}</Label>
-                <Textarea id={`c-${k}`} rows={k === 'motif' ? 1 : 3} disabled={verrou || busy} value={c[k] ?? ''} onChange={e => setC(s => s ? ({ ...s, [k]: e.target.value }) : s)} /></div>
+                <Textarea id={`c-${k}`} rows={k === 'motif' ? 1 : 3} disabled={verrou || busy} value={c[k] ?? ''} onChange={e => setC(s => s ? ({ ...s, [k]: e.target.value }) : s)} />
+                {k === 'diagnostic' && <DiagnosticsCodes consultationId={id} patientId={c.patient_id} verrou={verrou} diagnosticTexte={c.diagnostic ?? ''} onTexte={t => setC(s => s ? ({ ...s, diagnostic: t }) : s)} />}</div>
             ))}
           </section>
 

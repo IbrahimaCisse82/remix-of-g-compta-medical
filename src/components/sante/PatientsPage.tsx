@@ -204,7 +204,7 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
       <div className="flex gap-1 border-b border-border mb-4 overflow-x-auto" role="tablist">
         {ONGLETS.filter(o => o !== 'Suivi' || medicalRoles.some(r => r === 'medecin' || r === 'biologiste')).map(o => <Button key={o} role="tab" aria-selected={onglet === o} variant={onglet === o ? 'secondary' : 'ghost'} size="sm" onClick={() => setOnglet(o)}>{o}</Button>)}
       </div>
-      {onglet === 'Suivi' ? <SuiviPatient patientId={id} /> : onglet === 'Documents' ? <DocumentsPatient patientId={id} structureId={p.structure_id} items={items} onChange={loadItems} /> : onglet === 'Identité' ? (
+      {onglet === 'Suivi' ? <SuiviPatient patientId={id} medecin={medicalRoles.includes('medecin')} /> : onglet === 'Documents' ? <DocumentsPatient patientId={id} structureId={p.structure_id} items={items} onChange={loadItems} /> : onglet === 'Identité' ? (
         <div className="space-y-4"><dl className="grid sm:grid-cols-2 gap-3 text-sm">
           {[['Téléphone', p.telephone], ['Adresse', p.adresse], ['Personne à prévenir', p.contact_urgence_nom], ['Tél. à prévenir', p.contact_urgence_tel], ['Créé le', new Date(p.created_at).toLocaleDateString('fr-FR')]].map(([k, v]) => (
             <div key={k} className="border border-border rounded-md p-3"><dt className="text-xs text-fg3">{k}</dt><dd>{v || '—'}</dd></div>

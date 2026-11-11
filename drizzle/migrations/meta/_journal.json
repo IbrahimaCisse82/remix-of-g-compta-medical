@@ -841,6 +841,13 @@
       "when": 1793496000120,
       "tag": "0120_consultations_a_facturer",
       "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1793496000121,
+      "tag": "0121_cim10_diagnostics_chroniques",
+      "breakpoints": true
     }
   ]
 }

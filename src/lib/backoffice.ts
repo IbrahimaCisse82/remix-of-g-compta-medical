@@ -36,6 +36,7 @@ export const MODULES_BACKOFFICE: ModuleBackoffice[] = [
   { id: 'support', libelle: 'Support', lot: 'pilote', disponible: true },
   { id: 'operateurs', libelle: 'Opérateurs', lot: 'socle', disponible: true },
   { id: 'journal', libelle: "Journal d'audit", lot: 'socle', disponible: true },
+  { id: 'referentiels', libelle: 'Référentiels', lot: 'socle', disponible: true },
 ];
 
 export type TypeRetour = 'bug' | 'amelioration' | 'question';

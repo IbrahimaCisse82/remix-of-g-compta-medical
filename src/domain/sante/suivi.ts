@@ -102,7 +102,7 @@ export function echeance(prevu: string, aujourdhui: string): { libelle: string; 
 }
 
 export type EvenementSuivi =
-  | { type: 'consultation'; date: string; id: string; motif: string | null; diagnostic: string | null; conduite: string | null; praticien: string | null; statut: string }
+  | { type: 'consultation'; date: string; id: string; motif: string | null; diagnostic: string | null; conduite: string | null; praticien: string | null; statut: string; codes?: { code: string; libelle: string; principal: boolean }[] }
   | { type: 'ordonnance'; date: string; id: string; numero: string; medicaments: number }
   | { type: 'controle'; date: string; id: string; motif: string; statut: string; prevu_le: string };
 
