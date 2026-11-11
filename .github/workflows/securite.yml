@@ -1,9 +1,10 @@
 name: Securite base (P0)
 on: [push, pull_request]
-# Une seule exécution à la fois contre la base de test partagée (sinon les tests se marchent dessus).
+# Une exécution à la fois par branche (la plus récente remplace la précédente). Les tests utilisent des comptes
+# et des structures qui leur sont propres : des branches différentes peuvent tourner en même temps.
 concurrency:
-  group: base-de-test
-  cancel-in-progress: false
+  group: base-de-test-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   tests:
     runs-on: ubuntu-latest
