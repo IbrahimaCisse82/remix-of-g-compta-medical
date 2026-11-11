@@ -827,6 +827,13 @@
       "when": 1793496000117,
       "tag": "0117_acces_support_consenti",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1793496000119,
+      "tag": "0119_suivi_controles",
+      "breakpoints": true
     }
   ]
 }
