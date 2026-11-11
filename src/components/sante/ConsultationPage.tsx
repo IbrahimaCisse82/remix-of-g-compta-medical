@@ -13,6 +13,7 @@ import { imprimerOrdonnance } from './print-ordonnance';
 import CertificatsAnalyses from './CertificatsAnalyses';
 import { DelivranceConsultation } from './StocksSante';
 import { saveBeforeClosing } from '@/lib/consultation-workflow';
+import ControleConsultation from './ControleConsultation';
 
 const CHAMPS = [['motif', 'Motif'], ['anamnese', 'Anamnèse'], ['examen', 'Examen clinique'], ['diagnostic', 'Diagnostic'], ['conduite', 'Conduite à tenir']] as const;
 const CONST = [['ta_sys', 'TA sys.'], ['ta_dia', 'TA dia.'], ['pouls', 'Pouls'], ['temperature', 'T° °C'], ['poids', 'Poids kg'], ['taille', 'Taille cm'], ['spo2', 'SpO₂ %'], ['glycemie', 'Glyc. g/L']] as const;
@@ -185,6 +186,7 @@ export default function ConsultationPage({ id, onBack }: { id: string; onBack: (
               </div>
             ))}
           </section>
+          <ControleConsultation consultationId={id} motifParDefaut={c.diagnostic || c.motif} />
           <DelivranceConsultation consultationId={id} structureId={c.structure_id} />
           <CertificatsAnalyses consultation={c} />
         </div>
