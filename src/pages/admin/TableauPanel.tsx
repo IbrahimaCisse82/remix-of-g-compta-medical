@@ -3,7 +3,7 @@ import { rpcPlateforme } from '@/lib/rpc-plateforme';
 
 type Tableau = {
   structures_reelles: number; structures_test: number; par_type: Record<string, number>; utilisateurs: number; connectes_7j: number;
-  admins_sans_double_auth: number; retours_ouverts: number; retours_nouveaux: number; retours_bloquants: number; compta_en_erreur: number;
+  admins_sans_double_auth: number; erreurs_24h: number; retours_ouverts: number; retours_nouveaux: number; retours_bloquants: number; compta_en_erreur: number;
   activite_7j: { patients: number; consultations: number; demandes_labo: number; factures: number };
 };
 const TYPES: Record<string, string> = { cabinet: 'cabinets', laboratoire: 'laboratoires', mixte: 'mixtes' };
@@ -21,6 +21,7 @@ export default function TableauPanel({ ouvrir }: { ouvrir: (module: string) => v
     t.retours_bloquants > 0 && { texte: `${t.retours_bloquants} retour(s) bloquant(s) à traiter`, module: 'retours' },
     t.retours_nouveaux > 0 && { texte: `${t.retours_nouveaux} nouveau(x) retour(s) à trier`, module: 'retours' },
     t.admins_sans_double_auth > 0 && { texte: `${t.admins_sans_double_auth} administrateur(s) de structure sans double authentification`, module: 'clients' },
+    t.erreurs_24h > 0 && { texte: `${t.erreurs_24h} erreur(s) de l'application ces dernières 24 h`, module: 'erreurs' },
     t.compta_en_erreur > 0 && { texte: `${t.compta_en_erreur} écriture(s) comptable(s) automatique(s) en erreur`, module: 'clients' },
   ].filter(Boolean) as { texte: string; module: string }[];
   return (
