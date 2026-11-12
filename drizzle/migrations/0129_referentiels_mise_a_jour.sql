@@ -101,7 +101,7 @@ BEGIN
   IF NOT public.est_operateur() THEN RAISE EXCEPTION 'Réservé aux opérateurs de la plateforme' USING ERRCODE = '42501'; END IF;
   SELECT * INTO _ref FROM public.syscohada_references WHERE version = _version FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Version % introuvable', _version; END IF;
-  IF _ref.valide_officiellement THEN RAISE EXCEPTION 'La version % est visée : créez une nouvelle version pour la modifier', _version; END IF;
+  IF _ref.valide_officiellement OR _version = public.plan_reference_version() THEN RAISE EXCEPTION 'La version % est visée ou en vigueur : créez une nouvelle version pour la modifier', _version; END IF;
   IF _num !~ '^[1-9][0-9]{1,9}$' THEN RAISE EXCEPTION 'Numéro de compte de 2 à 10 chiffres'; END IF;
   SELECT r INTO _avant FROM jsonb_array_elements(_ref.comptes) r WHERE r->>'compte' = _num;
   IF coalesce(_retirer, false) THEN
@@ -137,7 +137,7 @@ CREATE OR REPLACE FUNCTION public.plateforme_plan_version_supprimer(_version tex
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF NOT public.est_operateur() THEN RAISE EXCEPTION 'Réservé aux opérateurs de la plateforme' USING ERRCODE = '42501'; END IF;
-  DELETE FROM public.syscohada_references WHERE version = _version AND NOT valide_officiellement;
+  DELETE FROM public.syscohada_references WHERE version = _version AND NOT valide_officiellement AND version <> public.plan_reference_version();
   IF NOT FOUND THEN RAISE EXCEPTION 'Seul un brouillon peut être supprimé'; END IF;
   PERFORM public.plateforme_tracer('plan_version_supprimee', 'plan_comptable', _version, '{}'::jsonb);
 END $$;
@@ -151,7 +151,7 @@ DECLARE _ancienne text := public.plan_reference_version(); _ajoutes int := 0; _r
 BEGIN
   IF NOT public.est_proprietaire_plateforme() THEN RAISE EXCEPTION 'Réservé au propriétaire de la plateforme' USING ERRCODE = '42501'; END IF;
   IF length(btrim(coalesce(_expert, ''))) < 3 THEN RAISE EXCEPTION 'Nom de l''expert-comptable qui a visé la version requis'; END IF;
-  PERFORM 1 FROM public.syscohada_references WHERE version = _version AND NOT valide_officiellement FOR UPDATE;
+  PERFORM 1 FROM public.syscohada_references WHERE version = _version AND NOT valide_officiellement AND version <> _ancienne FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Brouillon % introuvable', _version; END IF;
   SELECT jsonb_build_object('ajouts', count(*) FILTER (WHERE nature = 'ajout'), 'modifications', count(*) FILTER (WHERE nature = 'modification'),
                             'retraits', count(*) FILTER (WHERE nature = 'retrait'))
