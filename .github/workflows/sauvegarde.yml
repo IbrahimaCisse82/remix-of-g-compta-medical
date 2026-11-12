@@ -1,0 +1,84 @@
+name: Sauvegarde de la base (chiffrée)
+# Copie complète de la base (rôles, structure, données — contenu clinique compris), chiffrée avec la clé publique
+# de GROW HUB (scripts/sauvegarde/cle-publique.txt) : seul le détenteur de la clé privée, conservée hors ligne,
+# peut la lire. Fichier conservé 30 jours dans les « Artifacts » de l'exécution.
+# - Chaque nuit à 2 h 15 (heure de Dakar) : base de PRODUCTION, secret PROD_DATABASE_URL.
+# - À la main (Actions › Sauvegarde › Run workflow) : production ou test.
+# - Sur une demande de fusion qui modifie ce fichier : base de TEST (secret TEST_DATABASE_URL), pour vérifier la chaîne.
+# Tant que le secret de la base visée n'est pas renseigné, l'exécution s'arrête avec un avertissement.
+on:
+  schedule:
+    - cron: '15 2 * * *'
+  workflow_dispatch:
+    inputs:
+      cible:
+        description: 'Base à sauvegarder'
+        type: choice
+        options: [production, test]
+        default: production
+  pull_request:
+    paths: ['.github/workflows/sauvegarde.yml', 'scripts/sauvegarde/**']
+concurrency:
+  group: sauvegarde-${{ github.event.inputs.cible || (github.event_name == 'pull_request' && 'test') || 'production' }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CIBLE: ${{ github.event.inputs.cible || (github.event_name == 'pull_request' && 'test') || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Adresse de la base
+        id: base
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: |
+          if [ "$CIBLE" = production ]; then URL="$PROD_DATABASE_URL"; else URL="$TEST_DATABASE_URL"; fi
+          if [ -z "$URL" ]; then
+            echo "::warning title=Sauvegarde NON faite::Secret de la base « $CIBLE » absent (PROD_DATABASE_URL ou TEST_DATABASE_URL)."
+            echo "actif=non" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # La base de test ne doit jamais recevoir le secret de production, et inversement.
+          case "$CIBLE:$URL" in test:*otyqiiumbdgaxvkcqpht*|test:*azusqndpbstvzzohlkba*) echo "REFUS : TEST_DATABASE_URL vise la production." >&2; exit 3;; esac
+          echo "::add-mask::$URL"
+          echo "DB_URL=$URL" >> "$GITHUB_ENV"
+          echo "actif=oui" >> "$GITHUB_OUTPUT"
+      - if: steps.base.outputs.actif == 'oui'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - if: steps.base.outputs.actif == 'oui'
+        name: Copie (rôles, structure, données)
+        run: |
+          set -euo pipefail
+          mkdir -p sauvegarde
+          supabase db dump --db-url "$DB_URL" -f sauvegarde/roles.sql --role-only
+          supabase db dump --db-url "$DB_URL" -f sauvegarde/structure.sql
+          supabase db dump --db-url "$DB_URL" -f sauvegarde/donnees.sql --use-copy --data-only
+          # Contrôle : une copie vide ou tronquée ne doit jamais remplacer une bonne sauvegarde sans alerte.
+          tables=$(grep -c '^COPY ' sauvegarde/donnees.sql || true)
+          echo "Tables copiées : $tables"
+          [ "$tables" -ge 100 ] || { echo "::error::Copie incomplète ($tables tables)"; exit 1; }
+          grep -q 'COPY "public"."sante_patients"' sauvegarde/donnees.sql || { echo "::error::Table des patients absente"; exit 1; }
+          ( cd sauvegarde && sha256sum *.sql > empreintes.sha256 && wc -c *.sql )
+      - if: steps.base.outputs.actif == 'oui'
+        name: Chiffrement
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq age > /dev/null
+          nom="g-sante-${CIBLE}-$(TZ=Africa/Dakar date +%Y-%m-%d-%H%M)"
+          tar -czf - -C sauvegarde . | age -R scripts/sauvegarde/cle-publique.txt -o "$nom.tar.gz.age"
+          shred -u sauvegarde/*.sql
+          ls -l "$nom.tar.gz.age"
+          echo "NOM=$nom" >> "$GITHUB_ENV"
+      - if: steps.base.outputs.actif == 'oui'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NOM }}
+          path: ${{ env.NOM }}.tar.gz.age
+          retention-days: 30
+          if-no-files-found: error

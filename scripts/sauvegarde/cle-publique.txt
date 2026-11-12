@@ -1,0 +1,2 @@
+# Clé publique de chiffrement des sauvegardes G-Santé (age). Clé privée : détenue par GROW HUB, hors ligne.
+age1z4gav203n03q85fqrm0ng8trs98hcdwetm36z6dhc2zta0eandas44v7z8
