@@ -34,6 +34,7 @@ export const MODULES_BACKOFFICE: ModuleBackoffice[] = [
   { id: 'clients', libelle: 'Clients', lot: 'pilote', disponible: true },
   { id: 'utilisateurs', libelle: 'Utilisateurs', lot: 'pilote', disponible: true },
   { id: 'support', libelle: 'Support', lot: 'pilote', disponible: true },
+  { id: 'erreurs', libelle: 'Erreurs', lot: 'pilote', disponible: true },
   { id: 'operateurs', libelle: 'Opérateurs', lot: 'socle', disponible: true },
   { id: 'journal', libelle: "Journal d'audit", lot: 'socle', disponible: true },
 ];
