@@ -9,6 +9,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifierCibleTests } from '../db/garde-production';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,8 +33,13 @@ const email = (nom: string) => `e2e-${nom}@gsante.test`;
 
 async function compte(admin: SupabaseClient, nom: string): Promise<SupabaseClient> {
   const password = randomBytes(24).toString('base64url');
-  const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const ex = list?.users.find(u => u.email === email(nom));
+  // La base de test accumule les comptes : parcourir toutes les pages.
+  let ex: { id: string } | undefined;
+  for (let page = 1; !ex; page++) {
+    const { data: list } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    ex = list?.users.find(u => u.email === email(nom));
+    if (!list || list.users.length < 1000) break;
+  }
   if (ex) await admin.auth.admin.updateUserById(ex.id, { password });
   else {
     const { error } = await admin.auth.admin.createUser({ email: email(nom), password, email_confirm: true });
@@ -67,6 +73,7 @@ export default async function globalSetup() {
     console.warn('[e2e] Variables SUPABASE_* absentes : tests écran ignorés.');
     return;
   }
+  verifierCibleTests(SUPA); // jamais contre une base de production
   mkdirSync(AUTH_DIR, { recursive: true });
   const admin = createClient(SUPA, SERVICE, { auth: { persistSession: false } });
 

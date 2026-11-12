@@ -24,13 +24,16 @@ export default function AdminPage() {
   const [moi, setMoi] = useState<MoiPlateforme | null | undefined>(undefined);
   const [module, setModule] = useState('tableau');
 
+  // Dépend de l'identifiant seul : le rafraîchissement de session renvoie un nouvel objet « user »,
+  // ce qui relançait le chargement en boucle (rafraîchissements répétés, puis refus 429 du serveur).
+  const userId = user?.id;
   const charger = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     setMoi(undefined);
     await supabase.auth.refreshSession();
     const { data, error } = await rpcPlateforme<MoiPlateforme>('plateforme_moi');
     setMoi(error ? null : data);
-  }, [user]);
+  }, [userId]);
   useEffect(() => { charger(); }, [charger]);
 
   const etat = etatAcces(loading ? null : !!user, moi);
