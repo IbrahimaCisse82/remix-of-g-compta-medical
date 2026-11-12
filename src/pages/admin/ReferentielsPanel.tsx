@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { lireReferentiel, lots, type LigneCim10 } from '@/domain/sante/cim10';
 import { Label } from '@/components/ui/label';
+import { GestionCim10, VersionsPlan } from './ReferentielsMiseAJour';
 
 type Bilan = { recues: number; enregistrees: number; rejets: string[] };
 
@@ -79,7 +80,9 @@ export default function ReferentielsPanel() {
     const { data, error } = await rpcPlateforme<Etat>('plateforme_referentiels_etat');
     if (error) setErreur(error.message); else { setErreur(null); setEtat(data); }
   }, []);
+  const [proprietaire, setProprietaire] = useState(false);
   useEffect(() => { void charger(); }, [charger]);
+  useEffect(() => { void rpcPlateforme<boolean>('est_proprietaire_plateforme').then(({ data }) => setProprietaire(data === true)); }, []);
 
   return (
     <section className="space-y-6 max-w-4xl">
@@ -97,6 +100,7 @@ export default function ReferentielsPanel() {
           <p className="text-muted-foreground">Codes ajoutés par les structures : {nb(etat.cim10_codes_structures?.codes ?? 0)} code(s) dans {nb(etat.cim10_codes_structures?.structures ?? 0)} structure(s), visibles de chacune seulement.</p>
         </div>}
         <ImportCim10 onCharge={charger} />
+        <GestionCim10 versions={etat?.cim10.map(v => v.version) ?? []} proprietaire={proprietaire} onChange={charger} />
       </div>
 
       <PlanComptable etat={etat} onChange={charger} />
@@ -126,9 +130,11 @@ function PlanComptable({ etat, onChange }: { etat: Etat | null; onChange: () => 
         {p ? <>
           <p><b>{p.version}</b> · {nb(p.comptes_referentiel)} comptes installables (niveaux 3 et plus, classes 1 à 8) · source {p.source}</p>
           <p className={p.valide ? 'text-muted-foreground' : 'text-destructive'}>{p.valide ? `Visé le ${date(p.visa_le)}${p.visa_expert ? ` par ${p.visa_expert}` : ' (expert-comptable à renseigner)'}` : 'Non visé : la clôture des exercices reste bloquée.'}</p>
-          <p className="text-muted-foreground">Le référentiel est un texte normatif : il n'est pas modifiable ici. Une nouvelle version s'installe avec le visa de l'expert-comptable.</p>
+          <p className="text-muted-foreground">Le référentiel est un texte normatif : on le met à jour par une nouvelle version, publiée avec le visa de l'expert-comptable (ci-dessous).</p>
         </> : <p className="text-muted-foreground">Référentiel introuvable.</p>}
       </div>
+
+      <VersionsPlan onChange={onChange} />
 
       <div className="border border-border rounded-md p-4 space-y-3">
         <p className="text-sm font-semibold">Comptes communs de la plateforme</p>
