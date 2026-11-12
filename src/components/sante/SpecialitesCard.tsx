@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SPECIALITES } from '@/domain/sante/specialites';
 import { couvertureCim10, definirSpecialites, lireSpecialitesStructure, type Couverture } from './specialites-client';
+import CodesCim10Structure from './CodesCim10Structure';
 import { definirModeCim10, modeCim10, statistiquesCim10, type ModeCim10 } from './cim10-client';
 
 /** Choix des spécialités (création de la structure ou Structure & équipe). */
@@ -74,6 +75,7 @@ export default function SpecialitesCard({ structureId }: { structureId: string }
           <span><b>Strict</b> — uniquement les codes de la spécialité.</span></label>
         {stats && Number(stats.codages) > 0 && <p className="text-xs text-fg2">Sur 90 jours : {Number(stats.codages).toLocaleString('fr-FR')} diagnostics codés, dont {Number(stats.hors_specialite).toLocaleString('fr-FR')} hors spécialité ({Math.round(100 * Number(stats.hors_specialite) / Number(stats.codages))} %).</p>}
       </fieldset>}
+      <CodesCim10Structure structureId={structureId} />
     </section>
   );
 }

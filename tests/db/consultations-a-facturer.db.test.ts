@@ -92,4 +92,27 @@ describe.skipIf(!url || !key || !service)('Consultations à facturer (0120)', ()
     const r = await caissier.rpc('sante_consultations_a_facturer', { _structure_id: structure });
     expect(r.data.map((x: { consultation_id: string }) => x.consultation_id)).toEqual([cloturee]);
   });
+
+  it('une facture émise à la main se rattache à la consultation, qui sort de la liste (0126)', async () => {
+    const autre = await consultation(true);
+    const lignes = [{ code, libelle: 'Consultation', prix_unitaire: 10000, quantite: 1 }];
+    // Facture saisie à la main, sans lien avec la consultation.
+    const manuelle = await caissier.rpc('sante_creer_facture', { _patient_id: patient, _lignes: lignes, _assurance_id: null, _remise: 0, _motif_remise: null, _consultation_id: null, _demande_id: null });
+    expect(manuelle.error).toBeNull();
+    // Une facture d'un autre patient n'est pas proposée et son rattachement est refusé.
+    const etrangere = await caissier.rpc('sante_creer_facture', { _patient_id: autrePatient, _lignes: lignes, _assurance_id: null, _remise: 0, _motif_remise: null, _consultation_id: null, _demande_id: null });
+    const r = await caissier.rpc('sante_factures_rattachables', { _consultation_id: autre });
+    expect(r.error).toBeNull();
+    const ids = (r.data ?? []).map((x: { facture_id: string }) => x.facture_id);
+    expect(ids).toContain(manuelle.data); expect(ids).not.toContain(etrangere.data);
+    expect((await caissier.rpc('sante_rattacher_facture_consultation', { _consultation_id: autre, _facture_id: etrangere.data })).error?.message).toMatch(/autre patient/);
+    expect((await comptable.rpc('sante_rattacher_facture_consultation', { _consultation_id: autre, _facture_id: manuelle.data })).error).not.toBeNull();
+    expect((await caissier.rpc('sante_rattacher_facture_consultation', { _consultation_id: autre, _facture_id: manuelle.data })).error).toBeNull();
+    const liste = await caissier.rpc('sante_consultations_a_facturer', { _structure_id: structure });
+    expect((liste.data ?? []).map((x: { consultation_id: string }) => x.consultation_id)).not.toContain(autre);
+    // Ni seconde facture pour cette consultation, ni réutilisation de la même facture.
+    expect((await caissier.rpc('sante_facturer_consultation', { _consultation_id: autre, _patient_id: patient, _lignes: lignes })).error?.message).toMatch(/Déjà facturé/);
+    const encore = await consultation(true);
+    expect((await caissier.rpc('sante_rattacher_facture_consultation', { _consultation_id: encore, _facture_id: manuelle.data })).error?.message).toMatch(/déjà rattachée/);
+  });
 });

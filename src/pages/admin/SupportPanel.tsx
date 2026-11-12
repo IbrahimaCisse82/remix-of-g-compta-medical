@@ -13,6 +13,7 @@ const STATUTS: Record<string, string> = { demande: 'En attente de l\'administrat
 export default function SupportPanel() {
   const [acces, setAcces] = useState<Acces[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [avecTests, setAvecTests] = useState(false);
   const [structure, setStructure] = useState('');
   const [motif, setMotif] = useState('');
   const [duree, setDuree] = useState(4);
@@ -48,8 +49,9 @@ export default function SupportPanel() {
         <label className="text-xs">Structure
           <select required value={structure} onChange={e => setStructure(e.target.value)} className="block h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
             <option value="">Choisir…</option>
-            {clients.map(c => <option key={c.structure_id} value={c.structure_id}>{c.nom}{c.est_test ? ' (test)' : ''}</option>)}
+            {clients.filter(c => avecTests || !c.est_test).sort((a, b) => Number(a.est_test) - Number(b.est_test) || a.nom.localeCompare(b.nom)).map(c => <option key={c.structure_id} value={c.structure_id}>{c.nom}{c.est_test ? ' (test)' : ''}</option>)}
           </select>
+          <span className="mt-1 flex items-center gap-1 text-muted-foreground"><input type="checkbox" checked={avecTests} onChange={e => setAvecTests(e.target.checked)} />Afficher les structures de test</span>
         </label>
         <label className="text-xs">Motif (visible par l'administrateur)<Input required minLength={5} maxLength={500} value={motif} onChange={e => setMotif(e.target.value)} placeholder="Ex. : vérifier le paramétrage des tarifs signalé dans un retour" /></label>
         <label className="text-xs">Durée

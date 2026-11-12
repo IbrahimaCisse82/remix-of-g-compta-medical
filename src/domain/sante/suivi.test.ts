@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ajouterJours, ajouterMois, bornes, chronologie, courbesConstantes, echeance, tendance, validerControle } from './suivi';
+import { ajouterJours, ajouterMois, estWeekEnd, jourOuvre, jourSemaine, bornes, chronologie, courbesConstantes, echeance, tendance, validerControle } from './suivi';
 
 describe('courbes de constantes', () => {
   const mesures = [
@@ -52,4 +52,14 @@ it('classe la chronologie du plus récent au plus ancien', () => {
     { type: 'consultation', date: '2026-10-01T09:00:00Z', id: 'c', motif: 'HTA', diagnostic: 'HTA', conduite: null, praticien: 'Dr A', statut: 'cloturee' },
   ]);
   expect(c.map(e => e.id)).toEqual(['k', 'o', 'c']);
+});
+
+describe('jours ouvrés', () => {
+  it('reporte samedi et dimanche au lundi', () => {
+    expect(jourSemaine('2026-12-12')).toBe('samedi');
+    expect(estWeekEnd('2026-12-12')).toBe(true);
+    expect(jourOuvre('2026-12-12')).toBe('2026-12-14');
+    expect(jourOuvre('2026-12-13')).toBe('2026-12-14');
+    expect(jourOuvre('2026-12-11')).toBe('2026-12-11');
+  });
 });

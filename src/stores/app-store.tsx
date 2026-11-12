@@ -1,4 +1,5 @@
 import { controlesSyscohada } from '@/lib/conformite-syscohada';
+import { rpcPlateforme } from '@/lib/rpc-plateforme';
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import type { BalanceLine, JournalLine, PlanCompte, Entreprise, Exercice } from '@/lib/accounting';
 import { supabase } from '@/integrations/supabase/client';
@@ -310,7 +311,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const exc = mapExercice(newExc);
         
         // Plan comptable SYSCOHADA révisé (référentiel 2019)
-        for (const lot of lotsInstallation(ent.id, [])) await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
+        // Installation depuis la base (référentiel visé + comptes communs, 0128) ; liste embarquée si la fonction manque.
+        const inst = await rpcPlateforme<number>('plan_installer_reference', { _entreprise_id: ent.id });
+        if (inst.error) for (const lot of lotsInstallation(ent.id, [])) await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
 
         const userPlan = await lirePlan(ent.id);
 
@@ -638,6 +641,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const installerPlanReference = useCallback(async () => {
     if (!entreprise || demo) return 0;
     let n = 0;
+    const inst = await rpcPlateforme<number>('plan_installer_reference', { _entreprise_id: entreprise.id });
+    if (!inst.error) { setPlan(mapPlan(await lirePlan(entreprise.id))); return inst.data ?? 0; }
+    if (/réservé|42501/i.test(inst.error.message)) throw new Error('Réservé à l’administrateur ou au comptable du dossier.');
     for (const lot of lotsInstallation(entreprise.id, plan.map(p => p.numero))) {
       const { error } = await supabase.from('plan_comptable').upsert(lot, { onConflict: 'entreprise_id,numero', ignoreDuplicates: true });
       if (error) throw new Error(error.message.includes('row-level') ? 'Réservé à l’administrateur ou au comptable du dossier.' : error.message);

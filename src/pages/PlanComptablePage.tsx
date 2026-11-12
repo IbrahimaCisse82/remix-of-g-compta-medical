@@ -1,4 +1,5 @@
 import { comptesManquants } from '@/lib/plan-reference';
+import { LIBELLE_ORIGINE, origineDe, useOriginesPlan, type OrigineCompte } from '@/lib/plan-origines';
 import { accountReference, REFERENCE_VERSION } from '@/lib/syscohada-reference';
 import { toast } from 'sonner';
 import { useApp } from '@/stores/app-store';
@@ -17,7 +18,13 @@ export default function PlanComptablePage() {
   const { plan, toggleCompte, addCompte, deleteCompte, demo, installerPlanReference } = useApp();
   const { canWrite, canDelete } = useUserRole();
   const ecriture = !demo && canWrite;
-  const manquants = useMemo(() => comptesManquants(plan.map(p => p.numero)).length, [plan]);
+  const origines = useOriginesPlan();
+  const manquants = useMemo(() => {
+    if (!origines?.size) return comptesManquants(plan.map(p => p.numero)).length;
+    const presents = new Set(plan.map(p => p.numero));
+    return [...origines.keys()].filter(n => !presents.has(n)).length;
+  }, [plan, origines]);
+  const propres = useMemo(() => origines ? plan.filter(p => origineDe(p.numero, origines) === 'propre').length : 0, [plan, origines]);
   const [installation, setInstallation] = useState(false);
   const installer = async () => {
     setInstallation(true);
@@ -92,6 +99,7 @@ export default function PlanComptablePage() {
         <div className="font-serif text-[17px]">Plan Comptable SYSCOHADA Révisé</div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono text-accent bg-accent/10 border border-accent/20 rounded-full px-2.5 py-0.5">{totalActif} / {plan.length} comptes actifs</span>
+          {propres > 0 && <span className="text-[10px] font-mono text-warning bg-warning/10 border border-warning/20 rounded-full px-2.5 py-0.5" title="Comptes ajoutés par ce dossier, visibles de lui seul">{propres} propre(s) au dossier</span>}
           <button onClick={handleExport} className="px-3 py-1.5 rounded-md text-[11px] font-semibold border border-border text-fg2 hover:bg-bg3">📥 CSV</button>
           {ecriture && (
             <button onClick={() => setShowForm(!showForm)} className="px-3 py-1.5 rounded-md text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90">
@@ -173,7 +181,7 @@ export default function PlanComptablePage() {
           <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
             <table className="w-full border-collapse">
               <thead className="sticky top-0 z-10"><tr>
-                {['N° Compte', 'Intitulé', 'Classe', 'Sens', 'Type', 'Actif', ...(!demo && canDelete ? [''] : [])].map(h => (
+                {['N° Compte', 'Intitulé', 'Origine', 'Classe', 'Sens', 'Type', 'Actif', ...(!demo && canDelete ? [''] : [])].map(h => (
                   <th key={h} className="bg-bg3 px-3 py-1.5 text-left text-[9px] font-bold text-fg3 uppercase tracking-[1px] font-mono border-b border-border whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
@@ -186,6 +194,7 @@ export default function PlanComptablePage() {
                         {r.numero}
                       </td>
                       <td className={`px-3 py-1.5 text-[11px] border-b border-border/50 ${isParent ? 'font-semibold' : ''}`}>{r.intitule}</td>
+                      <td className="px-3 py-1.5 text-[11px] border-b border-border/50">{origines && <BadgeOrigine o={origineDe(r.numero, origines)} />}</td>
                       <td className="px-3 py-1.5 text-[11px] border-b border-border/50">
                         <span className="rounded px-1.5 py-0.5 text-[9px] font-bold font-mono" style={{ background: (CLS_COL[r.classe] || '#888') + '22', color: CLS_COL[r.classe] }}>Cl.{r.classe}</span>
                       </td>
@@ -223,4 +232,12 @@ export default function PlanComptablePage() {
       </div>
     </div>
   );
+}
+const STYLE_ORIGINE: Record<OrigineCompte, string> = {
+  referentiel: 'bg-bg3 text-fg3',
+  plateforme: 'bg-primary/10 text-primary',
+  propre: 'bg-warning/15 text-warning',
+};
+function BadgeOrigine({ o }: { o: OrigineCompte }) {
+  return <span title={o === 'propre' ? 'Ajouté par ce dossier : visible de lui seul' : o === 'plateforme' ? 'Compte commun défini par la plateforme' : 'Référentiel SYSCOHADA révisé visé'} className={`rounded px-1.5 py-0.5 text-[9px] font-semibold whitespace-nowrap ${STYLE_ORIGINE[o]}`}>{LIBELLE_ORIGINE[o]}</span>;
 }

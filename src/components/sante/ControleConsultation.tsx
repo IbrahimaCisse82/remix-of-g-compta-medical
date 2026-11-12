@@ -5,7 +5,7 @@ import { saisir } from '@/components/Confirmation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { aujourdhuiDakar, DELAIS_CONTROLE, echeance, validerControle } from '@/domain/sante/suivi';
+import { aujourdhuiDakar, DELAIS_CONTROLE, echeance, estWeekEnd, jourOuvre, jourSemaine, validerControle } from '@/domain/sante/suivi';
 import { annulerControle, lireControles, messageErreur, programmerControle, type Controle } from './controles';
 
 const dateFr = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -52,7 +52,7 @@ export default function ControleConsultation({ consultationId, motifParDefaut }:
       <p className="text-xs text-fg3 mb-3">Le patient apparaît dans « Patients à revoir » de l’agenda. Avec une heure, le rendez-vous est pris chez le même praticien.</p>
       <div className="flex flex-wrap gap-1 mb-2" role="group" aria-label="Délai du contrôle">
         {DELAIS_CONTROLE.map(d => {
-          const v = d.calcul(jour);
+          const v = jourOuvre(d.calcul(jour));
           return <Button key={d.libelle} type="button" size="sm" variant={date === v ? 'secondary' : 'outline'} onClick={() => setDate(v)}>{d.libelle}</Button>;
         })}
       </div>
@@ -63,6 +63,7 @@ export default function ControleConsultation({ consultationId, motifParDefaut }:
         <Button disabled={busy || !date} onClick={programmer}><CalendarPlus />{busy ? 'Programmation…' : 'Programmer le contrôle'}</Button>
       </div>
       {date && <p className="text-xs text-fg2 mt-2">{dateFr(date)} · {echeance(date, jour).libelle.toLowerCase()}</p>}
+      {date && estWeekEnd(date) && <p role="alert" className="text-xs text-warning mt-1">Ce jour est un {jourSemaine(date)} : vérifiez que le cabinet est ouvert, ou choisissez le lundi {dateFr(jourOuvre(date))}.</p>}
       {controles.length > 0 && (
         <ul className="mt-3 space-y-1">
           {controles.map(k => (
