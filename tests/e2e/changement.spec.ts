@@ -16,7 +16,8 @@ const admin = actif ? createClient(URL, SERVICE, { auth: { persistSession: false
 async function ouvrirEspaceSante(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-  await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+  // Espace santé ouvert : le menu latéral est affiché (la page d'arrivée dépend du rôle, ex. configuration pour l'administrateur).
+  await expect(page.locator('aside nav button[aria-expanded]').first()).toBeVisible({ timeout: 20_000 });
   await deplierGroupes(page);
 }
 
@@ -43,8 +44,12 @@ test.describe('Actualisation après changement de rôle', () => {
 
     // L'administrateur change le rôle côté serveur : secrétaire → comptable.
     const { data: st } = await admin.from('structures').select('id').eq('nom', 'E2E cabinet').single();
-    const list = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const userId = list.data.users.find(u => u.email === 'e2e-change-role@gsante.test')!.id;
+    let userId: string | undefined;
+    for (let p = 1; !userId; p++) {
+      const list = await admin.auth.admin.listUsers({ page: p, perPage: 1000 });
+      userId = list.data.users.find(u => u.email === 'e2e-change-role@gsante.test')?.id;
+      if (list.data.users.length < 1000) break;
+    }
     const { data: m } = await admin.from('structure_memberships').select('id').eq('structure_id', st!.id).eq('user_id', userId!).single();
     await admin.from('medical_user_roles').delete().eq('membership_id', m!.id);
     await admin.from('medical_user_roles').insert({ membership_id: m!.id, role: 'comptable' });
@@ -52,7 +57,7 @@ test.describe('Actualisation après changement de rôle', () => {
     // Rechargement : les permissions affichées suivent le nouveau rôle.
     await page.reload();
     await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-    await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('aside nav button[aria-expanded]').first()).toBeVisible({ timeout: 20_000 });
     await deplierGroupes(page);
     await expect(menu.getByText('Patients', { exact: true })).toHaveCount(0);
     await expect(menu.getByText('Journal', { exact: true }).first()).toBeVisible();
@@ -76,7 +81,7 @@ test.describe('Actualisation après changement de type de structure', () => {
 
     await page.reload();
     await page.getByRole('button', { name: 'Accéder à mon espace' }).click();
-    await expect(page.getByText('Accueil santé', { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('aside nav button[aria-expanded]').first()).toBeVisible({ timeout: 20_000 });
     await deplierGroupes(page);
     await expect(menu.getByText('Laboratoire', { exact: true }).first()).toBeVisible();
     await expect(menu.getByText('Qualité & réactifs', { exact: true }).first()).toBeVisible();
