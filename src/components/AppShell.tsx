@@ -1,5 +1,6 @@
 import { useUserRole } from '@/hooks/use-user-role';
 import SupportBandeau from '@/components/SupportBandeau';
+import { definirContexteErreurs } from '@/lib/signalement-erreurs';
 import RetourBouton from '@/components/RetourBouton';
 import { useApp, type PageId } from '@/stores/app-store';
 import { useAuth } from '@/hooks/useAuth';
@@ -275,6 +276,7 @@ export default function AppShell() {
 
   const { medicalStructure, medicalRoles, workspace } = useApp();
   const healthView = currentPage.startsWith('sante_') ? currentPage.slice(6) as HealthView : null;
+  useEffect(() => { definirContexteErreurs({ structureId: medicalStructure?.id ?? null, page: currentPage }); }, [medicalStructure?.id, currentPage]);
   // En arrivant sur un écran comptable, on relit journal et balance (au plus toutes les 15 s) : les opérations de
   // l'espace santé (factures, encaissements, délivrances) y sont passées entre-temps côté serveur.
   const { rafraichirComptabilite } = useApp();
