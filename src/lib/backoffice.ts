@@ -22,6 +22,8 @@ const ACTIONS: Record<string, string> = {
   support_accorde: 'Accès de support accordé',
   support_refuse: 'Accès de support refusé',
   support_revoque: 'Accès de support révoqué',
+  cim10_import: 'CIM-10 chargée',
+  compte_commun_defini: 'Compte commun du plan défini',
 };
 export function libelleAction(action: string): string {
   return ACTIONS[action] ?? action.replace(/_/g, ' ');
