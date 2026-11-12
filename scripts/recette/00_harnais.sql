@@ -104,7 +104,7 @@ GRANT SELECT ON recette.comptes, recette.structures, recette.ids TO authenticate
 CREATE OR REPLACE FUNCTION recette.essai(_phase text, _module text, _cle text, _scenario text, _attendu text,
   _mode text, _sql text, _exigence text DEFAULT NULL, _criticite text DEFAULT 'majeure') RETURNS text
 LANGUAGE plpgsql AS $f$
-DECLARE _v text; _err text; _ok boolean; _t0 timestamptz := clock_timestamp(); _annuler boolean := _mode IN ('refus', 'vide');
+DECLARE _v text; _err text; _etat text; _ok boolean; _t0 timestamptz := clock_timestamp(); _annuler boolean := _mode IN ('refus', 'vide');
 BEGIN
   BEGIN
     PERFORM recette.agir(_cle);
@@ -114,7 +114,7 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN
     IF SQLERRM = 'RECETTE_ANNULER' THEN
       GET STACKED DIAGNOSTICS _v = PG_EXCEPTION_DETAIL; IF _v = '∅' THEN _v := NULL; END IF;
-    ELSE _err := SQLERRM; END IF;
+    ELSE _err := SQLERRM; _etat := SQLSTATE; END IF;
   END;
   _ok := CASE
     WHEN _mode = 'ok' THEN _err IS NULL
@@ -122,6 +122,12 @@ BEGIN
     WHEN _mode = 'vide' THEN _err IS NOT NULL OR coalesce(_v, '') IN ('', '0', '[]', '{}', 'f', 'false')
     WHEN _mode LIKE 'egal:%' THEN _err IS NULL AND _v IS NOT DISTINCT FROM substr(_mode, 6)
     ELSE false END;
+  -- Une erreur de rédaction du test (objet inconnu, syntaxe) n'est jamais comptée comme un refus réussi : test « bloqué ».
+  IF _etat IS NOT NULL AND _etat LIKE '42%' AND _etat <> '42501' THEN
+    INSERT INTO recette.resultats(phase, module, profil, scenario, attendu, obtenu, statut, exigence, duree_ms)
+    VALUES (_phase, _module, _cle, _scenario, _attendu, 'Test à corriger (' || _etat || ') : ' || left(_err, 400), 'bloque', _exigence, 0);
+    RETURN 'BLOQUÉ ' || _err;
+  END IF;
   PERFORM recette.noter(_phase, _module, _cle, _scenario, _attendu,
     CASE WHEN _err IS NOT NULL THEN 'Refusé : ' || _err ELSE 'Accepté' || coalesce(' → ' || _v, '') END,
     _ok, _exigence, NULL, _criticite, round(extract(epoch FROM clock_timestamp() - _t0) * 1000));
