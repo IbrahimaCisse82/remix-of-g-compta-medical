@@ -4,6 +4,7 @@ import { BrisGlaceButton } from './BrisGlace';
 import ExportDossierButton from './ExportDossierButton';
 import ConsentementPatient from './ConsentementPatient';
 import IdentitePatient from './IdentitePatient';
+import SuiviPatient from './SuiviPatient';
 import { statutCouverture } from '@/lib/organismes-import';
 import { useApp } from '@/stores/app-store';
 import { peut } from '@/domain/sante/droits';
@@ -149,7 +150,7 @@ function NouveauPatientForm({ structureId, onDone }: { structureId: string; onDo
   );
 }
 
-const ONGLETS = ['Identité', 'Assurances', 'Antécédents', 'Consentements', 'Documents'] as const;
+const ONGLETS = ['Identité', 'Suivi', 'Assurances', 'Antécédents', 'Consentements', 'Documents'] as const;
 
 function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
   const { medicalRoles } = useApp();
@@ -201,9 +202,9 @@ function FichePatient({ id, onBack }: { id: string; onBack: () => void }) {
         <p className="text-sm text-fg2">{p.sexe === 'F' ? 'Féminin' : 'Masculin'}{p.date_naissance ? ` · ${p.date_naissance_estimee ? '≈ ' : ''}${libelleAge(p.date_naissance)} (${new Date(p.date_naissance).toLocaleDateString('fr-FR')}${p.date_naissance_estimee ? ', estimée' : ''})` : ''}</p>
       </div>
       <div className="flex gap-1 border-b border-border mb-4 overflow-x-auto" role="tablist">
-        {ONGLETS.map(o => <Button key={o} role="tab" aria-selected={onglet === o} variant={onglet === o ? 'secondary' : 'ghost'} size="sm" onClick={() => setOnglet(o)}>{o}</Button>)}
+        {ONGLETS.filter(o => o !== 'Suivi' || medicalRoles.some(r => r === 'medecin' || r === 'biologiste')).map(o => <Button key={o} role="tab" aria-selected={onglet === o} variant={onglet === o ? 'secondary' : 'ghost'} size="sm" onClick={() => setOnglet(o)}>{o}</Button>)}
       </div>
-      {onglet === 'Documents' ? <DocumentsPatient patientId={id} structureId={p.structure_id} items={items} onChange={loadItems} /> : onglet === 'Identité' ? (
+      {onglet === 'Suivi' ? <SuiviPatient patientId={id} /> : onglet === 'Documents' ? <DocumentsPatient patientId={id} structureId={p.structure_id} items={items} onChange={loadItems} /> : onglet === 'Identité' ? (
         <div className="space-y-4"><dl className="grid sm:grid-cols-2 gap-3 text-sm">
           {[['Téléphone', p.telephone], ['Adresse', p.adresse], ['Personne à prévenir', p.contact_urgence_nom], ['Tél. à prévenir', p.contact_urgence_tel], ['Créé le', new Date(p.created_at).toLocaleDateString('fr-FR')]].map(([k, v]) => (
             <div key={k} className="border border-border rounded-md p-3"><dt className="text-xs text-fg3">{k}</dt><dd>{v || '—'}</dd></div>
