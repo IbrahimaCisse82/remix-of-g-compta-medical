@@ -897,6 +897,20 @@
       "when": 1793496000127,
       "tag": "0127_cim10_codes_structure",
       "breakpoints": true
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1793496000128,
+      "tag": "0128_plan_comptable_plateforme",
+      "breakpoints": true
+    },
+    {
+      "idx": 129,
+      "version": "7",
+      "when": 1793496000129,
+      "tag": "0129_referentiels_mise_a_jour",
+      "breakpoints": true
     }
   ]
 }

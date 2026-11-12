@@ -22,6 +22,14 @@ const ACTIONS: Record<string, string> = {
   support_accorde: 'Accès de support accordé',
   support_refuse: 'Accès de support refusé',
   support_revoque: 'Accès de support révoqué',
+  cim10_import: 'CIM-10 chargée',
+  compte_commun_defini: 'Compte commun du plan défini',
+  plan_version_creee: 'Version du plan comptable créée (brouillon)',
+  plan_compte_modifie: 'Compte du plan modifié (brouillon)',
+  plan_version_publiee: 'Version du plan comptable publiée',
+  plan_version_supprimee: 'Brouillon du plan comptable supprimé',
+  cim10_code_defini: 'Code CIM-10 ajouté ou modifié',
+  cim10_absents_desactives: 'Codes CIM-10 absents désactivés',
 };
 export function libelleAction(action: string): string {
   return ACTIONS[action] ?? action.replace(/_/g, ' ');
