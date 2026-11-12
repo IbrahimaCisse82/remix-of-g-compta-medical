@@ -3,7 +3,7 @@
 --   1. un opérateur crée une nouvelle version « brouillon » (copie de la version en vigueur) ;
 --   2. il y ajoute, renomme ou retire des comptes ; l'écart avec la version en vigueur est affiché ;
 --   3. le propriétaire de la plateforme la publie avec le nom de l'expert-comptable qui l'a visée ;
---   4. à la publication, chaque dossier reçoit les comptes ajoutés ; un compte renommé n'est renommé que dans les
+--   4. à la publication, chaque dossier reçoit les comptes ajoutés par la version ; un compte renommé n'est renommé que dans les
 --      dossiers qui avaient gardé l'intitulé d'origine ; rien n'est supprimé ni désactivé dans un dossier.
 --   Les correspondances des états financiers sont copiées sans changement (les nouveaux comptes suivent leur compte parent).
 --   La version d'origine SYSCOHADA_REVISE_2019_V1 reste visée (verrou de clôture inchangé).
@@ -159,13 +159,18 @@ BEGIN
   CREATE TEMP TABLE _mod ON COMMIT DROP AS
     SELECT e.numero, e.intitule_avant, e.intitule_apres, e.sens_avant, e.sens_apres FROM public.plateforme_plan_ecarts(_version) e
      WHERE e.nature = 'modification';
+  CREATE TEMP TABLE _aj ON COMMIT DROP AS
+    SELECT e.numero, e.intitule_apres, e.sens_apres FROM public.plateforme_plan_ecarts(_version) e
+     WHERE e.nature = 'ajout' AND length(e.numero) >= 3 AND left(e.numero, 1) <> '9';
   UPDATE public.syscohada_references
      SET valide_officiellement = true, visa_le = now(), visa_declare_par = auth.uid(), publie_par = auth.uid(), visa_expert = btrim(_expert)
    WHERE version = _version;
-  -- Comptes ajoutés (et tout compte installable absent) : ajoutés à chaque dossier.
+  -- Comptes ajoutés par la version (installables : 3 chiffres et plus, classes 1 à 8) : ajoutés à chaque dossier.
   INSERT INTO public.plan_comptable(entreprise_id, numero, intitule, classe, sens, type_compte, actif)
-    SELECT e.id, r.numero, r.intitule, r.classe, r.sens, r.type_compte, true
-      FROM public.entreprises e CROSS JOIN public.plan_reference_comptes() r WHERE r.origine = 'referentiel'
+    SELECT e.id, a.numero, a.intitule_apres, left(a.numero, 1),
+           CASE WHEN a.sens_apres IN ('D', 'C') THEN a.sens_apres ELSE 'D/C' END,
+           CASE left(a.numero, 1) WHEN '6' THEN 'Résultat' WHEN '7' THEN 'Résultat' WHEN '8' THEN 'HAO' ELSE 'Bilan' END, true
+      FROM _aj a CROSS JOIN public.entreprises e
   ON CONFLICT (entreprise_id, numero) DO NOTHING;
   GET DIAGNOSTICS _ajoutes = ROW_COUNT;
   -- Comptes renommés : seulement là où le dossier avait gardé l'intitulé d'origine.
