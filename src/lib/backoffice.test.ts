@@ -25,7 +25,7 @@ describe('libellés', () => {
     expect(libelleAction('abonnement_active')).toBe('abonnement active');
   });
   it('tous les modules du lot pilote sont disponibles', () => {
-    expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['tableau', 'retours', 'clients', 'utilisateurs', 'support', 'operateurs', 'journal', 'referentiels']);
+    expect(MODULES_BACKOFFICE.filter(m => m.disponible).map(m => m.id)).toEqual(['tableau', 'retours', 'clients', 'utilisateurs', 'support', 'erreurs', 'operateurs', 'journal', 'referentiels']);
   });
 });
 
