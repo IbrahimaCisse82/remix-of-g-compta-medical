@@ -124,15 +124,15 @@ DO $d$ DECLARE s text; a jsonb; p jsonb; _lignes jsonb; _r jsonb; _n int := 0; B
     END LOOP;
     -- Lignes d'import : chaque paramètre ; les valeurs numériques reçoivent une plage adulte (et une plage enfant fictive pour certains).
     SELECT jsonb_agg(l) INTO _lignes FROM (
-      SELECT jsonb_build_object('code_analyse', a->>'code', 'code_parametre', CASE WHEN o = 1 THEN a->>'code' ELSE p->>'code' END,
-             'libelle_parametre', p->>'libelle', 'unite', p->>'unite', 'type', p->>'type', 'sensible', CASE WHEN (a->>'sensible')::boolean THEN 'oui' ELSE 'non' END,
-             'bas', p->>'bas', 'haut', p->>'haut', 'critique_bas', p->>'critique_bas', 'critique_haut', p->>'critique_haut', 'age_min_ans', '18', 'age_max_ans', '150') l
-        FROM recette.fichiers f, jsonb_array_elements(f.contenu) a, jsonb_array_elements(a->'parametres') WITH ORDINALITY q(p, o) WHERE f.nom = 'catalogue'
+      SELECT jsonb_build_object('code_analyse', an->>'code', 'code_parametre', CASE WHEN o = 1 THEN an->>'code' ELSE pa->>'code' END,
+             'libelle_parametre', pa->>'libelle', 'unite', pa->>'unite', 'type', pa->>'type', 'sensible', CASE WHEN (an->>'sensible')::boolean THEN 'oui' ELSE 'non' END,
+             'bas', pa->>'bas', 'haut', pa->>'haut', 'critique_bas', pa->>'critique_bas', 'critique_haut', pa->>'critique_haut', 'age_min_ans', '18', 'age_max_ans', '150') l
+        FROM recette.fichiers f, jsonb_array_elements(f.contenu) an, jsonb_array_elements(an->'parametres') WITH ORDINALITY q(pa, o) WHERE f.nom = 'catalogue'
       UNION ALL
-      SELECT jsonb_build_object('code_analyse', a->>'code', 'code_parametre', CASE WHEN o = 1 THEN a->>'code' ELSE p->>'code' END, 'type', 'numerique',
-             'bas', round((p->>'bas')::numeric * 0.9, 2)::text, 'haut', round((p->>'haut')::numeric * 1.1, 2)::text, 'age_min_ans', '0', 'age_max_ans', '17')
-        FROM recette.fichiers f, jsonb_array_elements(f.contenu) a, jsonb_array_elements(a->'parametres') WITH ORDINALITY q(p, o)
-       WHERE f.nom = 'catalogue' AND p->>'type' = 'numerique' AND (p->>'haut')::numeric > 0 AND (p->>'bas') IS NOT NULL) t;
+      SELECT jsonb_build_object('code_analyse', an->>'code', 'code_parametre', CASE WHEN o = 1 THEN an->>'code' ELSE pa->>'code' END, 'type', 'numerique',
+             'bas', round((pa->>'bas')::numeric * 0.9, 2)::text, 'haut', round((pa->>'haut')::numeric * 1.1, 2)::text, 'age_min_ans', '0', 'age_max_ans', '17')
+        FROM recette.fichiers f, jsonb_array_elements(f.contenu) an, jsonb_array_elements(an->'parametres') WITH ORDINALITY q(pa, o)
+       WHERE f.nom = 'catalogue' AND pa->>'type' = 'numerique' AND (pa->>'haut')::numeric > 0 AND (pa->>'bas') IS NOT NULL) t;
     PERFORM recette.agir(s || CASE s WHEN 'B' THEN '-bio-1' ELSE '-bio' END);
     _r := public.sante_catalogue_importer_references(recette.sid(s), _lignes);
     PERFORM recette.sortir();
