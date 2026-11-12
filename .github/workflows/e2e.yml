@@ -6,9 +6,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+# Comptes de test fixes (e2e-<rôle>@gsante.test) : une exécution à la fois, toutes branches confondues.
 concurrency:
-  group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  group: e2e-base-de-test
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:

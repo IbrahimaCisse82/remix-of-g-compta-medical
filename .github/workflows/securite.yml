@@ -1,10 +1,17 @@
 name: Securite base (P0)
-on: [push, pull_request]
-# Une exécution à la fois par branche (la plus récente remplace la précédente). Les tests utilisent des comptes
-# et des structures qui leur sont propres : des branches différentes peuvent tourner en même temps.
+# Sur chaque demande de fusion et sur main (pas sur chaque poussée : une branche ouverte en PR lançait deux exécutions
+# du même commit, « push » et « pull_request »).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+# Une seule exécution à la fois contre la base de test partagée : plusieurs suites (securite.db.test.ts notamment)
+# réutilisent des comptes et des structures de test fixes (p0-owner-a@gsante.test, « TEST P0 A »). Deux exécutions
+# simultanées se modifient mutuellement ces comptes (refus 42501) et surchargent la base (délais 57014) — audit du 12/11/2026.
 concurrency:
-  group: base-de-test-${{ github.ref }}
-  cancel-in-progress: true
+  group: base-de-test
+  cancel-in-progress: false
 jobs:
   tests:
     runs-on: ubuntu-latest
