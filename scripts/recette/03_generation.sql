@@ -154,11 +154,15 @@ BEGIN
       -- Facturation et encaissement par le caissier (couverture active si elle existe).
       _acte := CASE WHEN _sp = 'medecine-generale' THEN 'CS' WHEN _sp = 'pediatrie' THEN 'CSP' ELSE 'CSS' END;
       SELECT tarif INTO _tarif FROM public.sante_actes WHERE structure_id = recette.sid(_s) AND code = _acte;
-      PERFORM recette.session_caisse(_s);
-      PERFORM recette.agir(_s || '-caisse');
-      SELECT a.id INTO _ass FROM public.sante_patient_assurances a WHERE a.patient_id = _pid AND (a.date_fin IS NULL OR a.date_fin >= current_date) ORDER BY a.date_debut LIMIT 1;
-      _fac := public.sante_facturer_consultation(_c, _pid, jsonb_build_array(jsonb_build_object('code', _acte, 'libelle', 'Consultation', 'prix_unitaire', _tarif, 'quantite', 1)), _ass);
-      PERFORM recette.sortir();
+      -- La structure facture automatiquement la consultation à la clôture (acte par défaut) ; sinon le caissier la facture.
+      SELECT id INTO _fac FROM public.sante_factures WHERE consultation_id = _c AND type = 'facture' AND NOT annulee LIMIT 1;
+      IF _fac IS NULL THEN
+        PERFORM recette.session_caisse(_s);
+        PERFORM recette.agir(_s || '-caisse');
+        SELECT a.id INTO _ass FROM public.sante_patient_assurances a WHERE a.patient_id = _pid AND (a.date_fin IS NULL OR a.date_fin >= current_date) ORDER BY a.date_debut LIMIT 1;
+        _fac := public.sante_facturer_consultation(_c, _pid, jsonb_build_array(jsonb_build_object('code', _acte, 'libelle', 'Consultation', 'prix_unitaire', _tarif, 'quantite', 1)), _ass);
+        PERFORM recette.sortir();
+      END IF;
       PERFORM recette.encaisser(_s, _fac);
       _stats := jsonb_set(_stats, '{factures}', to_jsonb((_stats->>'factures')::int + 1));
     EXCEPTION WHEN OTHERS THEN PERFORM recette.erreur('consultation', _s, SQLERRM);
@@ -217,6 +221,7 @@ BEGIN
       END IF;
       PERFORM recette.agir(_tech1);
       PERFORM public.sante_avancer_demande(_d, 'recue', NULL);
+      PERFORM public.sante_avancer_demande(_d, 'en_analyse', NULL);
       FOR _p IN SELECT ap.* FROM public.sante_analyse_parametres ap JOIN public.sante_demande_analyses da ON da.analyse_id = ap.analyse_id WHERE da.demande_id = _d LOOP
         _v := recette.resultat_fictif(_p);
         PERFORM public.sante_saisir_resultat(_d, _p.id, _v.num, _v.txt);
