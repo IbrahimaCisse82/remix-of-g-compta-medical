@@ -113,3 +113,13 @@ export function chronologie(evenements: EvenementSuivi[]): EvenementSuivi[] {
 
 /** Date du jour à Dakar (UTC toute l'année), au format AAAA-MM-JJ. */
 export const aujourdhuiDakar = (maintenant = new Date()) => maintenant.toISOString().slice(0, 10);
+
+const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+/** Jour de la semaine (en toutes lettres) d'une date AAAA-MM-JJ. */
+export const jourSemaine = (date: string) => JOURS[new Date(`${date}T00:00:00Z`).getUTCDay()];
+export const estWeekEnd = (date: string) => [0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay());
+/** Les délais rapides tombent un jour ouvré : samedi et dimanche passent au lundi suivant. */
+export function jourOuvre(date: string): string {
+  const j = new Date(`${date}T00:00:00Z`).getUTCDay();
+  return j === 6 ? ajouterJours(date, 2) : j === 0 ? ajouterJours(date, 1) : date;
+}

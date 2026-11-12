@@ -51,6 +51,7 @@ export default function FacturationPage({ structureId }: { structureId: string }
   const [catalogueQuery, setCatalogueQuery] = useState('');
   const [aFacturer, setAFacturer] = useState<AFacturer[] | null>(null);
   const [consultation, setConsultation] = useState<AFacturer | null>(null);
+  const [rattachables, setRattachables] = useState<{ consultationId: string; liste: { facture_id: string; numero: string; total: number; emise_le: string }[] } | null>(null);
   const [anciennes, setAnciennes] = useState<{ id: string; ouverte_le: string; caissier: string }[]>([]);
 
   const load = async () => {
@@ -117,6 +118,26 @@ export default function FacturationPage({ structureId }: { structureId: string }
   let apercu = { net: total, organisme: 0, patient: total };
   try { apercu = ventiler(total, Number(remise) || 0, ass ? { taux: Number(ass.taux_couverture), plafond: ass.plafond } : null); } catch { /* remise invalide */ }
 
+  const facturerConsultation = async (k: AFacturer) => {
+    setConsultation(k); setPatient({ id: k.patient_id, label: `${k.patient} · ${k.numero_dossier}` }); setRemise('0'); setMotifRemise('');
+    setPanier(k.acte_code ? [{ code: k.acte_code, libelle: k.acte_libelle ?? 'Consultation', tarif: Number(k.acte_tarif) }] : []);
+    await chargerAssurances(k.patient_id);
+    document.getElementById('nouvelle-facture')?.scrollIntoView({ behavior: 'smooth' });
+  };
+  // Consultation déjà payée par une facture émise à la main : on la rattache au lieu de refacturer.
+  const chercherRattachables = async (k: AFacturer) => {
+    if (rattachables?.consultationId === k.consultation_id) return setRattachables(null);
+    const { data, error } = await rpcPlateforme<{ facture_id: string; numero: string; total: number; emise_le: string }[]>('sante_factures_rattachables', { _consultation_id: k.consultation_id });
+    if (error) return toast.error(error.message);
+    if (!data?.length) return toast.info('Aucune facture non rattachée pour ce patient autour de cette date.');
+    setRattachables({ consultationId: k.consultation_id, liste: data });
+  };
+  const rattacher = async (consultationId: string, factureId: string, numero: string) => {
+    const { error } = await rpcPlateforme<null>('sante_rattacher_facture_consultation', { _consultation_id: consultationId, _facture_id: factureId });
+    if (error) return toast.error(error.message);
+    toast.success(`Consultation rattachée à la facture ${numero}`);
+    setRattachables(null); await load();
+  };
   const creer = async () => {
     if (!patient || panier.length === 0) return;
     let reduction;
@@ -234,12 +255,15 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
           <li key={k.consultation_id} className="py-2 flex flex-wrap items-center gap-3 text-sm">
             <span className="flex-1 min-w-48"><b>{k.patient}</b> <span className="font-mono text-xs text-fg3">{k.numero_dossier}</span>
               <span className="block text-xs text-fg2">{new Date(k.cloturee_le).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}{k.praticien ? ` · ${k.praticien}` : ''}{k.acte_libelle ? ` · ${k.acte_libelle} ${fcfa(Number(k.acte_tarif))}` : ''}</span></span>
-            <Button size="sm" variant={consultation?.consultation_id === k.consultation_id ? 'secondary' : 'outline'} onClick={async () => {
-              setConsultation(k); setPatient({ id: k.patient_id, label: `${k.patient} · ${k.numero_dossier}` }); setRemise('0'); setMotifRemise('');
-              setPanier(k.acte_code ? [{ code: k.acte_code, libelle: k.acte_libelle ?? 'Consultation', tarif: Number(k.acte_tarif) }] : []);
-              await chargerAssurances(k.patient_id);
-              document.getElementById('nouvelle-facture')?.scrollIntoView({ behavior: 'smooth' });
-            }}>Facturer</Button>
+            <Button size="sm" variant="ghost" onClick={() => chercherRattachables(k)}>Déjà facturée ?</Button>
+            <Button size="sm" variant={consultation?.consultation_id === k.consultation_id ? 'secondary' : 'outline'} onClick={() => facturerConsultation(k)}>Facturer</Button>
+            {rattachables?.consultationId === k.consultation_id && <div className="basis-full text-xs bg-bg3 rounded-md p-2 space-y-1">
+              <p className="text-fg2">Factures de ce patient sans consultation rattachée : choisissez celle qui a payé cette consultation.</p>
+              {rattachables.liste.map(f => <div key={f.facture_id} className="flex items-center justify-between gap-2">
+                <span><span className="font-mono">{f.numero}</span> · {fcfa(Number(f.total))} · {new Date(f.emise_le).toLocaleDateString('fr-FR')}</span>
+                <Button size="sm" variant="outline" className="h-7" onClick={() => rattacher(k.consultation_id, f.facture_id, f.numero)}>Rattacher</Button>
+              </div>)}
+            </div>}
           </li>
         ))}</ul>
       </section>}
@@ -247,6 +271,13 @@ ${encHtml ? `<h3 style="font-size:10pt;margin-top:16px">Règlements</h3><table><
       {droit('creer_facture') && <section id="nouvelle-facture" className="border border-border bg-bg2 rounded-md p-5 space-y-4">
         <h2 className="font-semibold">{consultation ? `Facture de la consultation du ${new Date(consultation.cloturee_le).toLocaleDateString('fr-FR')}` : 'Nouvelle facture'}</h2>
         {consultation && !consultation.acte_code && <p className="text-xs text-fg2">Aucun acte de consultation n’est configuré pour la structure : choisissez l’acte ci-dessous (à définir dans Structure & équipe → Facturation automatique).</p>}
+        {patient && !consultation && (aFacturer ?? []).some(k => k.patient_id === patient.id) && <div role="alert" className="text-sm border border-warning rounded-md p-3 space-y-1">
+          <p className="text-warning font-semibold">Ce patient a des consultations clôturées non facturées : facturez-les depuis la consultation pour éviter une double facturation.</p>
+          {(aFacturer ?? []).filter(k => k.patient_id === patient.id).map(k => <div key={k.consultation_id} className="flex items-center justify-between gap-2 text-xs">
+            <span>Consultation du {new Date(k.cloturee_le).toLocaleDateString('fr-FR')}{k.praticien ? ` · ${k.praticien}` : ''}</span>
+            <Button size="sm" variant="outline" className="h-7" onClick={() => facturerConsultation(k)}>Facturer cette consultation</Button>
+          </div>)}
+        </div>}
         {patient ? <p className="text-sm">Patient : <b>{patient.label}</b> <Button size="sm" variant="ghost" onClick={() => { setPatient(null); setConsultation(null); setPanier([]); }}>{consultation ? 'Abandonner' : 'Changer'}</Button></p> : (
           <div><div className="flex gap-2"><Input placeholder="Nom, téléphone ou n° de dossier" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && chercher()} /><Button onClick={chercher}>Chercher</Button></div>
             <div className="mt-2 space-y-1">{patients.map(p => <button key={p.id} className="block w-full text-left text-sm border border-border rounded p-2 hover:bg-muted" onClick={() => choisir(p)}>{p.nom} {p.prenoms} · {p.numero_dossier}</button>)}</div></div>
