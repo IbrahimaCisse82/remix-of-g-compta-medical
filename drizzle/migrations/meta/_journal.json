@@ -827,6 +827,90 @@
       "when": 1793496000117,
       "tag": "0117_acces_support_consenti",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1793496000118,
+      "tag": "0118_erreurs_application",
+      "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1793496000119,
+      "tag": "0119_suivi_controles",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1793496000120,
+      "tag": "0120_consultations_a_facturer",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1793496000121,
+      "tag": "0121_cim10_diagnostics_chroniques",
+      "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1793496000122,
+      "tag": "0122_specialites_cim10",
+      "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1793496000123,
+      "tag": "0123_cim10_recherche_abreviations",
+      "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1793496000124,
+      "tag": "0124_cim10_restriction_specialite",
+      "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1793496000125,
+      "tag": "0125_cim10_mode_recommande",
+      "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1793496000126,
+      "tag": "0126_rattachement_facture_consultation",
+      "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1793496000127,
+      "tag": "0127_cim10_codes_structure",
+      "breakpoints": true
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1793496000128,
+      "tag": "0128_plan_comptable_plateforme",
+      "breakpoints": true
+    },
+    {
+      "idx": 129,
+      "version": "7",
+      "when": 1793496000129,
+      "tag": "0129_referentiels_mise_a_jour",
+      "breakpoints": true
     }
   ]
 }

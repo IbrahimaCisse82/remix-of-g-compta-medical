@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { etatAcces, MODULES_BACKOFFICE, type MoiPlateforme } from '@/lib/backoffice';
 import OperateursPanel from './OperateursPanel';
 import JournalPanel from './JournalPanel';
+import ReferentielsPanel from './ReferentielsPanel';
 import RetoursPanel from './RetoursPanel';
 import TableauPanel from './TableauPanel';
 import ClientsPanel from './ClientsPanel';
 import UtilisateursPanel from './UtilisateursPanel';
 import SupportPanel from './SupportPanel';
+import ErreursPanel from './ErreursPanel';
 
 
 /** Espace réservé aux opérateurs de la plateforme (équipe Grow Hub). Aucune donnée médicale n'y est affichée. */
@@ -78,11 +80,13 @@ export default function AdminPage() {
           <main className="flex-1 p-6 overflow-auto">
             {module === 'operateurs' && <OperateursPanel proprietaire={moi?.role === 'proprietaire'} />}
             {module === 'journal' && <JournalPanel />}
+            {module === 'referentiels' && <ReferentielsPanel />}
             {module === 'retours' && <RetoursPanel />}
             {module === 'tableau' && <TableauPanel ouvrir={setModule} />}
             {module === 'clients' && <ClientsPanel />}
             {module === 'utilisateurs' && <UtilisateursPanel />}
             {module === 'support' && <SupportPanel />}
+            {module === 'erreurs' && <ErreursPanel />}
           </main>
         </div>
       )}

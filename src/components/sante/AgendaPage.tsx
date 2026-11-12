@@ -6,8 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { creneaux, LIBELLE_RDV, transitionsPossibles, type StatutRdv } from '@/domain/sante/clinique';
+import { aujourdhuiDakar, echeance } from '@/domain/sante/suivi';
+import { useApp } from '@/stores/app-store';
+import { controlesARevoir, type ControleARevoir } from './controles';
 
 type Praticien = { id: string; nom: string; specialite: string | null };
+type Preremplissage = { patient: { id: string; label: string }; motif: string };
 type Rdv = { id: string; debut: string; duree_min: number; motif: string | null; statut: StatutRdv; praticien_id: string; patient_id: string; arrive_le: string | null; patient: { nom: string; prenoms: string; numero_dossier: string } | null };
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -19,6 +23,9 @@ export default function AgendaPage({ structureId, onConsultation }: { structureI
   const [filtre, setFiltre] = useState<string>('');
   const [rdvs, setRdvs] = useState<Rdv[]>([]);
   const [form, setForm] = useState(false);
+  const [prerempli, setPrerempli] = useState<Preremplissage | null>(null);
+  const { medicalRoles } = useApp();
+  const voitControles = medicalRoles.some(r => r === 'medecin' || r === 'secretaire' || r === 'admin_structure');
 
   useEffect(() => {
     supabase.from('sante_praticiens').select('id, nom, specialite').eq('structure_id', structureId).eq('actif', true).order('nom')
@@ -67,7 +74,7 @@ export default function AgendaPage({ structureId, onConsultation }: { structureI
           {praticiens.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
         </select>
       </div>
-      {form && <NouveauRdv structureId={structureId} jour={jour} praticiens={praticiens} onClose={() => { setForm(false); load(); }} />}
+      {form && <NouveauRdv key={prerempli?.patient.id ?? 'nouveau'} structureId={structureId} jour={jour} praticiens={praticiens} initial={prerempli} onClose={() => { setForm(false); setPrerempli(null); load(); }} />}
       <div className="grid lg:grid-cols-[1fr_300px] gap-6">
         <section className="border border-border bg-bg2 rounded-md divide-y divide-border">
           {rdvs.length === 0 ? <p className="p-6 text-sm text-fg3 text-center">Aucun rendez-vous ce jour.</p> : rdvs.map(r => (
@@ -94,20 +101,24 @@ export default function AgendaPage({ structureId, onConsultation }: { structureI
               <li key={r.id} className="text-sm flex justify-between gap-2"><span>{i + 1}. {r.patient?.nom} {r.patient?.prenoms}</span><span className="text-xs text-fg3">depuis {r.arrive_le ? heure(r.arrive_le) : ''}</span></li>
             ))}</ol>
           )}
+          {voitControles && <PatientsARevoir structureId={structureId} actualiser={rdvs} onRendezVous={k => {
+            setPrerempli({ patient: { id: k.patient_id, label: `${k.patient} (${k.numero_dossier})` }, motif: k.motif ? `Contrôle : ${k.motif}`.slice(0, 300) : 'Contrôle' });
+            setJour(k.prevu_le < aujourdhuiDakar() ? aujourdhuiDakar() : k.prevu_le); setForm(true);
+          }} />}
         </aside>
       </div>
     </div>
   );
 }
 
-function NouveauRdv({ structureId, jour, praticiens, onClose }: { structureId: string; jour: string; praticiens: Praticien[]; onClose: () => void }) {
+function NouveauRdv({ structureId, jour, praticiens, initial, onClose }: { structureId: string; jour: string; praticiens: Praticien[]; initial?: Preremplissage | null; onClose: () => void }) {
   const [q, setQ] = useState('');
   const [res, setRes] = useState<{ id: string; nom: string; prenoms: string; numero_dossier: string }[]>([]);
-  const [patient, setPatient] = useState<{ id: string; label: string } | null>(null);
+  const [patient, setPatient] = useState<{ id: string; label: string } | null>(initial?.patient ?? null);
   const [praticien, setPraticien] = useState(praticiens[0]?.id ?? '');
   const [h, setH] = useState('09:00');
   const [duree, setDuree] = useState(20);
-  const [motif, setMotif] = useState('');
+  const [motif, setMotif] = useState(initial?.motif ?? '');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -157,5 +168,48 @@ function NouveauRdv({ structureId, jour, praticiens, onClose }: { structureId: s
       </div>
       <div className="flex gap-2 justify-end"><Button disabled={busy} variant="ghost" onClick={onClose}>Annuler</Button><Button disabled={busy} onClick={save}>{busy ? 'Enregistrement…' : 'Enregistrer'}</Button></div>
     </div>
+  );
+}
+
+const HORIZONS = [[7, '7 jours'], [30, '30 jours'], [90, '3 mois']] as const;
+
+/** Contrôles prévus (en retard ou dans l'horizon choisi) : la secrétaire rappelle le patient, le médecin voit le motif. */
+function PatientsARevoir({ structureId, actualiser, onRendezVous }: { structureId: string; actualiser: unknown; onRendezVous: (k: ControleARevoir) => void }) {
+  const [horizon, setHorizon] = useState<number>(7);
+  const [liste, setListe] = useState<ControleARevoir[] | null>(null);
+  useEffect(() => {
+    let actif = true;
+    controlesARevoir(structureId, horizon).then(({ data, error }) => { if (actif) setListe(error ? null : data ?? []); });
+    return () => { actif = false; };
+  }, [structureId, horizon, actualiser]);
+  if (liste === null) return null;
+  const jour = aujourdhuiDakar();
+  const retard = liste.filter(k => k.en_retard).length;
+  return (
+    <section className="mt-6 pt-4 border-t border-border" aria-labelledby="titre-a-revoir">
+      <div className="flex justify-between items-center gap-2 mb-2">
+        <h2 id="titre-a-revoir" className="font-semibold">Patients à revoir ({liste.length})</h2>
+        <select aria-label="Horizon" className="bg-bg3 border border-border rounded-md px-1 h-8 text-xs" value={horizon} onChange={e => setHorizon(Number(e.target.value))}>
+          {HORIZONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      </div>
+      {retard > 0 && <p className="text-xs text-destructive mb-2">{retard} contrôle{retard > 1 ? 's' : ''} en retard</p>}
+      {liste.length === 0 ? <p className="text-xs text-fg3">Aucun contrôle prévu sur cette période.</p> : (
+        <ul className="space-y-3">{liste.map(k => {
+          const e = echeance(k.prevu_le, jour);
+          return (
+            <li key={k.controle_id} className="text-sm">
+              <p className="font-semibold">{k.patient} <span className="font-mono text-xs text-fg3">{k.numero_dossier}</span></p>
+              <p className={`text-xs ${e.etat === 'retard' ? 'text-destructive' : 'text-fg2'}`}>{new Date(`${k.prevu_le}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC' })} · {e.libelle}{k.praticien ? ` · ${k.praticien}` : ''}</p>
+              {k.motif && <p className="text-xs text-fg2">{k.motif}</p>}
+              {k.telephone && <p className="text-xs"><a className="text-primary underline" href={`tel:${k.telephone}`}>{k.telephone}</a></p>}
+              {k.rdv_debut && k.rdv_statut !== 'annule'
+                ? <p className="text-xs text-fg3">RDV le {new Date(k.rdv_debut).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                : <Button size="sm" variant="outline" className="mt-1 h-7" onClick={() => onRendezVous(k)}><Plus />Donner rendez-vous</Button>}
+            </li>
+          );
+        })}</ul>
+      )}
+    </section>
   );
 }

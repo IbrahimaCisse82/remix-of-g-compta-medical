@@ -137,7 +137,7 @@ export async function exporterEtatsDgid(d: DonneesDgid): Promise<string[]> {
   const reponse = await fetch(`${import.meta.env.BASE_URL}${MODELE_DGID}`);
   if (!reponse.ok) throw new Error('Modèle DGID introuvable');
   const { fichier, provisoire } = await genererClasseurDgid(await reponse.arrayBuffer(), d);
-  const url = URL.createObjectURL(new Blob([fichier], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const url = URL.createObjectURL(new Blob([new Uint8Array(fichier)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = `etats_financiers_DGID_${(d.entreprise.sigle || d.entreprise.nom || 'entite').replace(/[^\w-]+/g, '_')}_${d.exercice.annee}.xlsx`;

@@ -42,7 +42,7 @@ describe.skipIf(!url || !key || !service)('Back-office : tableau de bord, client
   it('tableau de bord : comptages seulement', async () => {
     const r = await operateur.rpc('plateforme_tableau_bord');
     expect(r.error).toBeNull();
-    expect(Object.keys(r.data).sort()).toEqual(['activite_7j', 'admins_sans_double_auth', 'compta_en_erreur', 'connectes_7j', 'par_type',
+    expect(Object.keys(r.data).sort()).toEqual(['activite_7j', 'admins_sans_double_auth', 'compta_en_erreur', 'connectes_7j', 'erreurs_24h', 'par_type',
       'retours_bloquants', 'retours_nouveaux', 'retours_ouverts', 'structures_reelles', 'structures_test', 'utilisateurs']);
     expect(r.data.structures_test).toBeGreaterThan(0);
   });

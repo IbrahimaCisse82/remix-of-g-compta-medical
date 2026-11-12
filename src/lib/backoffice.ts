@@ -22,6 +22,14 @@ const ACTIONS: Record<string, string> = {
   support_accorde: 'Accès de support accordé',
   support_refuse: 'Accès de support refusé',
   support_revoque: 'Accès de support révoqué',
+  cim10_import: 'CIM-10 chargée',
+  compte_commun_defini: 'Compte commun du plan défini',
+  plan_version_creee: 'Version du plan comptable créée (brouillon)',
+  plan_compte_modifie: 'Compte du plan modifié (brouillon)',
+  plan_version_publiee: 'Version du plan comptable publiée',
+  plan_version_supprimee: 'Brouillon du plan comptable supprimé',
+  cim10_code_defini: 'Code CIM-10 ajouté ou modifié',
+  cim10_absents_desactives: 'Codes CIM-10 absents désactivés',
 };
 export function libelleAction(action: string): string {
   return ACTIONS[action] ?? action.replace(/_/g, ' ');
@@ -34,8 +42,10 @@ export const MODULES_BACKOFFICE: ModuleBackoffice[] = [
   { id: 'clients', libelle: 'Clients', lot: 'pilote', disponible: true },
   { id: 'utilisateurs', libelle: 'Utilisateurs', lot: 'pilote', disponible: true },
   { id: 'support', libelle: 'Support', lot: 'pilote', disponible: true },
+  { id: 'erreurs', libelle: 'Erreurs', lot: 'pilote', disponible: true },
   { id: 'operateurs', libelle: 'Opérateurs', lot: 'socle', disponible: true },
   { id: 'journal', libelle: "Journal d'audit", lot: 'socle', disponible: true },
+  { id: 'referentiels', libelle: 'Référentiels', lot: 'socle', disponible: true },
 ];
 
 export type TypeRetour = 'bug' | 'amelioration' | 'question';
