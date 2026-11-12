@@ -1,42 +1,42 @@
 {
   "releve_le": "2026-11-12",
-  "source": "production Lovable Cloud (otyqiiumbdgaxvkcqpht) après 0125 et chargement de la CIM-10 FR 2026 ; code des fonctions comparé sans commentaires ni espaces ; tâches appelant une URL exclues",
+  "source": "production Lovable Cloud (otyqiiumbdgaxvkcqpht) après 0129 et chargement de la CIM-10 FR 2026 ; code des fonctions comparé sans commentaires ni espaces ; tâches appelant une URL exclues",
   "categories": {
     "colonne": {
-      "nombre": 1726,
-      "empreinte": "7319a5117c7bcaa720f44a537e1758fa"
+      "nombre": 1745,
+      "empreinte": "05dcbd8c40a7f83646880604caf88be3"
     },
     "contrainte": {
-      "nombre": 651,
-      "empreinte": "7c0c45d59720dc368f8e46d06228abb6"
+      "nombre": 660,
+      "empreinte": "854e0a81cbbc954e8ee9157c53812606"
     },
     "declencheur": {
       "nombre": 110,
       "empreinte": "86091e8a4fc84a936778cf249bd78290"
     },
     "droit_fonction": {
-      "nombre": 310,
-      "empreinte": "9e967ea16df96a6a58c7756c4cbe387f"
+      "nombre": 330,
+      "empreinte": "bfc73e6fbf02e02e1d249bb057707dc0"
     },
     "fonction": {
-      "nombre": 310,
-      "empreinte": "8308ce62995d9aba8371c30b3e02b27e"
+      "nombre": 330,
+      "empreinte": "03f14cccbd9c332c642e0914ce6fa6ee"
     },
     "index": {
-      "nombre": 313,
-      "empreinte": "337f51a296afeb6c98b7a1d81aae680e"
+      "nombre": 316,
+      "empreinte": "f698b94815e7d1d86365bf4303ddf1a5"
     },
     "politique": {
-      "nombre": 364,
-      "empreinte": "5ea0f3e8aa74bf296042b60a1762acc5"
+      "nombre": 367,
+      "empreinte": "ca8944aa2a88a6b8e39460639aca4cbe"
     },
     "politique_stockage": {
       "nombre": 8,
       "empreinte": "3e1fee41ee003d204809ab6258b64412"
     },
     "rls": {
-      "nombre": 158,
-      "empreinte": "ff5bc0c82d00b71325d7ebf3466f6f1e"
+      "nombre": 160,
+      "empreinte": "f9d146334b76dd720696959681df221b"
     },
     "stockage": {
       "nombre": 2,
