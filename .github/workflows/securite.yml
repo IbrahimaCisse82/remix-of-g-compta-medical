@@ -1,6 +1,14 @@
 name: Securite base (P0)
-on: [push, pull_request]
-# Une seule exécution à la fois contre la base de test partagée (sinon les tests se marchent dessus).
+# Sur chaque demande de fusion et sur main (pas sur chaque poussée : une branche ouverte en PR lançait deux exécutions
+# du même commit, « push » et « pull_request »).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+# Une seule exécution à la fois contre la base de test partagée : plusieurs suites (securite.db.test.ts notamment)
+# réutilisent des comptes et des structures de test fixes (p0-owner-a@gsante.test, « TEST P0 A »). Deux exécutions
+# simultanées se modifient mutuellement ces comptes (refus 42501) et surchargent la base (délais 57014) — audit du 12/11/2026.
 concurrency:
   group: base-de-test
   cancel-in-progress: false
@@ -31,3 +39,33 @@ jobs:
           SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+  e2e:
+    # Tests écran (navigateur réel) après les tests de la base, dans la même file d'attente : jamais en même temps
+    # qu'une autre exécution contre la base de test.
+    needs: tests
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Base de test configurée ?
+        id: base
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::warning title=Tests écran NON exécutés::Secrets TEST_SUPABASE_* absents."
+            echo "actif=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "actif=oui" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.base.outputs.actif == 'oui'
+        uses: oven-sh/setup-bun@v2
+      - if: steps.base.outputs.actif == 'oui'
+        run: bun install --frozen-lockfile
+      - if: steps.base.outputs.actif == 'oui'
+        run: bunx playwright install --with-deps chromium
+      - if: steps.base.outputs.actif == 'oui'
+        run: bunx playwright test
