@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { etatAcces, MODULES_BACKOFFICE, type MoiPlateforme } from '@/lib/backoffice';
 import OperateursPanel from './OperateursPanel';
 import JournalPanel from './JournalPanel';
+import ReferentielsPanel from './ReferentielsPanel';
 import RetoursPanel from './RetoursPanel';
 import TableauPanel from './TableauPanel';
 import ClientsPanel from './ClientsPanel';
@@ -79,6 +80,7 @@ export default function AdminPage() {
           <main className="flex-1 p-6 overflow-auto">
             {module === 'operateurs' && <OperateursPanel proprietaire={moi?.role === 'proprietaire'} />}
             {module === 'journal' && <JournalPanel />}
+            {module === 'referentiels' && <ReferentielsPanel />}
             {module === 'retours' && <RetoursPanel />}
             {module === 'tableau' && <TableauPanel ouvrir={setModule} />}
             {module === 'clients' && <ClientsPanel />}

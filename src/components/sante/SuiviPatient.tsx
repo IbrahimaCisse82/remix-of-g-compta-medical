@@ -3,11 +3,13 @@ import { CalendarClock, FileText, Stethoscope, TrendingDown, TrendingUp, Minus }
 import { supabase } from '@/integrations/supabase/client';
 import { aujourdhuiDakar, bornes, chronologie, courbesConstantes, echeance, tendance, type Courbe, type EvenementSuivi, type Mesure } from '@/domain/sante/suivi';
 import { lireControles, type Controle } from './controles';
+import { lireDiagnostics } from './cim10-client';
+import MaladiesChroniques from './MaladiesChroniques';
 
 const dateFr = (d: string) => new Date(d.length === 10 ? `${d}T00:00:00Z` : d).toLocaleDateString('fr-FR', { timeZone: 'UTC' });
 
 /** Onglet « Suivi » du dossier patient : courbes des constantes et chronologie (consultations, ordonnances, contrôles). */
-export default function SuiviPatient({ patientId }: { patientId: string }) {
+export default function SuiviPatient({ patientId, medecin = false }: { patientId: string; medecin?: boolean }) {
   const [etat, setEtat] = useState<'chargement' | 'ok' | 'refuse'>('chargement');
   const [mesures, setMesures] = useState<Mesure[]>([]);
   const [evenements, setEvenements] = useState<EvenementSuivi[]>([]);
@@ -17,18 +19,19 @@ export default function SuiviPatient({ patientId }: { patientId: string }) {
   useEffect(() => {
     let actif = true;
     (async () => {
-      const [c, k, o, ctl] = await Promise.all([
+      const [c, k, o, ctl, diag] = await Promise.all([
         supabase.from('sante_consultations').select('id, created_at, motif, diagnostic, conduite, statut, praticien:sante_praticiens(nom)').eq('patient_id', patientId).order('created_at', { ascending: false }).limit(200),
         supabase.from('sante_constantes').select('created_at, ta_sys, ta_dia, pouls, temperature, poids, spo2, glycemie').eq('patient_id', patientId).order('created_at').limit(500),
         supabase.from('sante_ordonnances').select('id, numero, emise_le, lignes:sante_ordonnance_lignes(id)').eq('patient_id', patientId).order('emise_le', { ascending: false }).limit(200),
         lireControles({ patientId }),
+        lireDiagnostics('patient_id', patientId),
       ]);
       if (!actif) return;
       if (c.error) { setEtat('refuse'); return; }
       setMesures((k.data ?? []) as Mesure[]);
       setControles(ctl);
       setEvenements([
-        ...(c.data ?? []).map(x => ({ type: 'consultation' as const, date: x.created_at, id: x.id, motif: x.motif, diagnostic: x.diagnostic, conduite: x.conduite, statut: x.statut, praticien: (x.praticien as { nom: string } | null)?.nom ?? null })),
+        ...(c.data ?? []).map(x => ({ type: 'consultation' as const, date: x.created_at, id: x.id, motif: x.motif, diagnostic: x.diagnostic, conduite: x.conduite, statut: x.statut, praticien: (x.praticien as { nom: string } | null)?.nom ?? null, codes: diag.filter(d => d.consultation_id === x.id).sort((a, b) => Number(b.principal) - Number(a.principal)) })),
         ...(o.data ?? []).map(x => ({ type: 'ordonnance' as const, date: x.emise_le, id: x.id, numero: x.numero, medicaments: (x.lignes as unknown[] | null)?.length ?? 0 })),
         ...ctl.map(x => ({ type: 'controle' as const, date: x.prevu_le, id: x.id, motif: x.motif, statut: x.statut, prevu_le: x.prevu_le })),
       ]);
@@ -53,6 +56,8 @@ export default function SuiviPatient({ patientId }: { patientId: string }) {
         <Indicateur titre="Mesures de constantes" valeur={String(mesures.length)} detail={mesures.length ? `Dernière le ${dateFr(mesures[mesures.length - 1].created_at)}` : 'Aucune'} />
         <Indicateur titre="Prochain contrôle" valeur={aVenir[0] ? dateFr(aVenir[0].prevu_le) : '—'} detail={aVenir[0] ? `${echeance(aVenir[0].prevu_le, jour).libelle} · ${aVenir[0].motif}` : 'Aucun contrôle programmé'} alerte={aVenir[0] ? echeance(aVenir[0].prevu_le, jour).etat === 'retard' : false} />
       </div>
+
+      <MaladiesChroniques patientId={patientId} medecin={medecin} />
 
       <section className="border border-border bg-bg2 rounded-md p-4">
         <h2 className="font-semibold mb-1">Évolution des constantes</h2>
@@ -100,6 +105,7 @@ function ElementChronologie({ e, jour }: { e: EvenementSuivi; jour: string }) {
         <div className="text-sm">
           <p className="font-semibold">{e.motif || 'Consultation'}{e.statut !== 'cloturee' && <span className="ml-2 text-xs font-normal text-fg3">(brouillon)</span>}</p>
           {e.diagnostic && <p><span className="text-fg3">Diagnostic : </span>{e.diagnostic}</p>}
+          {e.codes && e.codes.length > 0 && <p className="flex flex-wrap gap-1 mt-0.5">{e.codes.map(d => <span key={d.code} title={d.libelle} className={`font-mono text-xs px-1.5 rounded border ${d.principal ? 'border-primary text-primary' : 'border-border text-fg2'}`}>{d.code}</span>)}</p>}
           {e.conduite && <p className="text-fg2 whitespace-pre-wrap"><span className="text-fg3">Conduite : </span>{e.conduite}</p>}
         </div>
       )}
