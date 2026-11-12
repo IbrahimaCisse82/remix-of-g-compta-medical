@@ -29,6 +29,7 @@ import { ImportEquipe } from '@/components/sante/ImportsStructure';
 import { roleCompatible } from '@/domain/sante/imports-structure';
 import { ParametresFinanceCard, FiscalSecoursCard } from '@/components/sante/FinanceSante';
 import { SecuriteFacturationCard } from '@/components/sante/BrisGlace';
+import SpecialitesCard from '@/components/sante/SpecialitesCard';
 import { moduleVisible, type ContexteNavigation } from '@/lib/navigation-sante';
 import type { PageId } from '@/stores/app-store';
 import ConfigurationEntreprise from './sante/ConfigurationEntreprise';
@@ -178,6 +179,7 @@ export default function HealthShell({ embeddedView }: { embeddedView?: HealthVie
               {medicalStructure && medicalRoles.includes('admin_structure') && <section key={`exploitation-${medicalStructure.id}`} className="mt-8"><ExploitationPage structureId={medicalStructure.id} structureNom={medicalStructure.nom} entrepriseId={entreprise?.id ?? null} /></section>}
               {medicalStructure && medicalRoles.includes('admin_structure') && <EmailJournal key={`journal-${medicalStructure.id}`} structureId={medicalStructure.id} />}
               {medicalStructure && <ViolationsCard structureId={medicalStructure.id} />}
+              {medicalStructure && medicalStructure.type !== 'laboratoire' && medicalRoles.includes('admin_structure') && <SpecialitesCard structureId={medicalStructure.id} />}
               {medicalStructure && <SecuriteFacturationCard structureId={medicalStructure.id} />}
               {medicalStructure && <ConformiteCard structureId={medicalStructure.id} />}
               {medicalStructure && medicalRoles.includes('admin_structure') && <BibliothequeConsentements key={`consentements-${medicalStructure.id}`} structureId={medicalStructure.id} />}
