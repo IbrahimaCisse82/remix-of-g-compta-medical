@@ -214,7 +214,7 @@ BEGIN
       _rej := random() < 0.03;
       IF _rej THEN
         PERFORM recette.agir(_tech1);
-        PERFORM public.sante_rejeter_echantillon(_d, 'HEMOLYSE', 'Échantillon hémolysé (fictif)', true);
+        PERFORM public.sante_rejeter_echantillon(_d, 'hemolyse', 'Échantillon hémolysé (fictif)', true);
         PERFORM recette.sortir();
         _stats := jsonb_set(_stats, '{rejets}', to_jsonb((_stats->>'rejets')::int + 1));
         CONTINUE;
@@ -242,4 +242,45 @@ BEGIN
     END;
   END LOOP;
   RETURN _stats;
+END $f$;
+
+-- Reprise des demandes existantes (prescrites en consultation, ou restées en cours) jusqu'à la validation biologique.
+CREATE OR REPLACE FUNCTION recette.traiter_demandes(_s text, _n int) RETURNS jsonb LANGUAGE plpgsql AS $f$
+DECLARE d record; _p record; _v record; _fac uuid; _k int := 0; _ok int := 0;
+  _bio text := CASE _s WHEN 'B' THEN 'B-bio-1' ELSE 'C-bio' END; _tech1 text := CASE _s WHEN 'B' THEN 'B-tech-3' ELSE 'C-tech' END;
+  _tech2 text := CASE _s WHEN 'B' THEN 'B-tech-2' ELSE 'C-bio' END; _prel text := CASE _s WHEN 'B' THEN 'B-prel-2' ELSE 'C-prel' END;
+BEGIN
+  FOR d IN SELECT id, statut, validee_tech_le FROM public.sante_demandes_labo WHERE structure_id = recette.sid(_s)
+             AND statut NOT IN ('validee','rejetee','remise','annulee') ORDER BY created_at LIMIT _n LOOP
+    _k := _k + 1;
+    BEGIN
+      IF d.statut IN ('en_attente','enregistree','prescrite') THEN
+        PERFORM recette.agir(_prel); PERFORM public.sante_prelever(d.id, ARRAY['nom','date_naissance'], 'Pli du coude (TEST)', NULL); PERFORM recette.sortir();
+      END IF;
+      IF d.statut IN ('en_attente','enregistree','prescrite','prelevee') THEN
+        PERFORM recette.agir(_tech1); PERFORM public.sante_avancer_demande(d.id, 'recue', NULL); PERFORM recette.sortir();
+      END IF;
+      IF d.statut IN ('en_attente','enregistree','prescrite','prelevee','recue') THEN
+        PERFORM recette.agir(_tech1); PERFORM public.sante_avancer_demande(d.id, 'en_analyse', NULL); PERFORM recette.sortir();
+      END IF;
+      PERFORM recette.agir(_tech1);
+      FOR _p IN SELECT ap.* FROM public.sante_analyse_parametres ap JOIN public.sante_demande_analyses da ON da.analyse_id = ap.analyse_id
+                 WHERE da.demande_id = d.id AND NOT EXISTS (SELECT 1 FROM public.sante_resultats r WHERE r.demande_id = d.id AND r.parametre_id = ap.id) LOOP
+        _v := recette.resultat_fictif(_p);
+        PERFORM public.sante_saisir_resultat(d.id, _p.id, _v.num, _v.txt);
+      END LOOP;
+      PERFORM recette.sortir();
+      PERFORM recette.agir(_bio);
+      PERFORM public.sante_acquitter_critique(r.id) FROM public.sante_resultats r WHERE r.demande_id = d.id AND r.drapeau IN ('HH','LL') AND r.critique_acquitte_par IS NULL;
+      PERFORM recette.sortir();
+      IF d.validee_tech_le IS NULL THEN
+        PERFORM recette.agir(_tech2); PERFORM public.sante_valider_demande(d.id, 'technique'); PERFORM recette.sortir();
+      END IF;
+      PERFORM recette.agir(_bio); PERFORM public.sante_valider_demande(d.id, 'biologique'); PERFORM recette.sortir();
+      FOR _fac IN SELECT id FROM public.sante_factures WHERE demande_id = d.id AND type = 'facture' LOOP PERFORM recette.encaisser(_s, _fac); END LOOP;
+      _ok := _ok + 1;
+    EXCEPTION WHEN OTHERS THEN PERFORM recette.erreur('traiter_demande', _s, SQLERRM);
+    END;
+  END LOOP;
+  RETURN jsonb_build_object('vues', _k, 'validees', _ok);
 END $f$;
