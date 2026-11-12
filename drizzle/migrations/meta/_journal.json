@@ -890,6 +890,13 @@
       "when": 1793496000126,
       "tag": "0126_rattachement_facture_consultation",
       "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1793496000127,
+      "tag": "0127_cim10_codes_structure",
+      "breakpoints": true
     }
   ]
 }

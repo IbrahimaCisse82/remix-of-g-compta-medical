@@ -43,3 +43,13 @@ export const changerStatutChronique = (id: string, statut: 'active' | 'resolue')
 export const modeCim10 = (structureId: string) => rpcPlateforme<ModeCim10>('sante_cim10_mode', { _structure_id: structureId });
 export const definirModeCim10 = (structureId: string, mode: ModeCim10) => rpcPlateforme<null>('sante_cim10_mode_definir', { _structure_id: structureId, _mode: mode });
 export const statistiquesCim10 = (structureId: string) => rpcPlateforme<{ codages: number; hors_specialite: number }[]>('sante_cim10_statistiques', { _structure_id: structureId });
+
+/** Codes propres à la structure (0127) : ajoutés par l'administrateur, visibles seulement dans sa structure. */
+export type CodeStructure = { id: string; code: string; libelle: string; actif: boolean; created_at: string };
+export async function lireCodesStructure(structureId: string): Promise<CodeStructure[] | null> {
+  const { data, error } = await table<CodeStructure>('sante_cim10_structure_codes').select('id, code, libelle, actif, created_at').eq('structure_id', structureId).order('created_at');
+  return error ? null : data ?? [];
+}
+export const ajouterCodeStructure = (structureId: string, code: string, libelle: string) =>
+  rpcPlateforme<string>('sante_cim10_code_ajouter', { _structure_id: structureId, _code: code, _libelle: libelle });
+export const activerCodeStructure = (id: string, actif: boolean) => rpcPlateforme<null>('sante_cim10_code_activer', { _id: id, _actif: actif });
