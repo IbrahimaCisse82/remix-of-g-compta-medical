@@ -2,7 +2,11 @@
 Produit : catalogue.json (pour la base de TEST) + fichiers d'import (CSV/XLSX) valides, erronés, doublons, volume."""
 import json, csv, random, sys, os
 random.seed(2026)
-S = {'H': 'hematologie', 'B': 'biochimie', 'I': 'immunologie', 'M': 'microbiologie', 'P': 'parasitologie', 'S': 'serologie'}
+# Sections admises par l'application : hematologie, biochimie, serologie, bacteriologie, parasitologie, hormonologie, urines.
+# Immunologie → sérologie (hormones → hormonologie) ; microbiologie → bactériologie.
+S = {'H': 'hematologie', 'B': 'biochimie', 'I': 'serologie', 'M': 'bacteriologie', 'P': 'parasitologie', 'S': 'serologie'}
+HORMONES = {'TSH','T4L','PSA','BHCG','PROL','FSH','LH','ESTR','PROG','TESTO','CORT','AFP','CA125','PCT','BNP','TEST_GR'}
+URINES = {'ECBU','PROTU','MICRA','BU','CLAI'}
 # (code, libellé, section, tarif FCFA, délai h, tube, échantillon, sensible, paramètres[(code, libellé, unité, type, bas, haut, crit_bas, crit_haut)])
 N = lambda c, l, u, b, h, cb=None, ch=None: (c, l, u, 'numerique', b, h, cb, ch)
 Q = lambda c, l: (c, l, None, 'qualitatif', None, None, None, None)
@@ -112,7 +116,7 @@ A = [
 ]
 assert len(A) >= 100, len(A)
 out = os.path.dirname(os.path.abspath(__file__))
-catalogue = [dict(code=a[0], libelle=a[1], section=S[a[2]], tarif=a[3], delai=a[4], tube=a[5], echantillon=a[6], sensible=a[7],
+catalogue = [dict(code=a[0], libelle=a[1], section=('hormonologie' if a[0] in HORMONES else 'urines' if a[0] in URINES and a[2]!='M' else S[a[2]]), tarif=a[3], delai=a[4], tube=a[5], echantillon=a[6], sensible=a[7],
                   parametres=[dict(code=p[0], libelle=p[1], unite=p[2], type=p[3], bas=p[4], haut=p[5], critique_bas=p[6], critique_haut=p[7]) for p in a[8]]) for a in A]
 json.dump(catalogue, open(os.path.join(out, 'catalogue.json'), 'w'), ensure_ascii=False)
 print(len(catalogue), 'analyses', sum(len(a['parametres']) for a in catalogue), 'paramètres')
