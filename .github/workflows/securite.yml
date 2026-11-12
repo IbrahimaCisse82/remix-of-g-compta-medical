@@ -39,3 +39,33 @@ jobs:
           SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+  e2e:
+    # Tests écran (navigateur réel) après les tests de la base, dans la même file d'attente : jamais en même temps
+    # qu'une autre exécution contre la base de test.
+    needs: tests
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Base de test configurée ?
+        id: base
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::warning title=Tests écran NON exécutés::Secrets TEST_SUPABASE_* absents."
+            echo "actif=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "actif=oui" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.base.outputs.actif == 'oui'
+        uses: oven-sh/setup-bun@v2
+      - if: steps.base.outputs.actif == 'oui'
+        run: bun install --frozen-lockfile
+      - if: steps.base.outputs.actif == 'oui'
+        run: bunx playwright install --with-deps chromium
+      - if: steps.base.outputs.actif == 'oui'
+        run: bunx playwright test
