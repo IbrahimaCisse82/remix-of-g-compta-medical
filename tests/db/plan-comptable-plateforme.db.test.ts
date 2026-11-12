@@ -43,7 +43,7 @@ describe.skipIf(!url || !key || !service)('Plan comptable géré par la platefor
   }, 180000);
 
   it('le référentiel installable vient de la base : SYSCOHADA visé + comptes communs (70611)', async () => {
-    const r = await gerant.rpc('plan_reference_comptes');
+    const r = await gerant.rpc('plan_reference_comptes').in('numero', ['701', '70611', '10']);
     expect(r.error).toBeNull();
     const parNumero = new Map((r.data as { numero: string; origine: string }[]).map(x => [x.numero, x.origine]));
     expect(parNumero.get('701')).toBe('referentiel');
@@ -81,9 +81,9 @@ describe.skipIf(!url || !key || !service)('Plan comptable géré par la platefor
     expect(j.data).toHaveLength(1);
     // Désactivé : il n'est plus installé dans les nouveaux dossiers, sans être retiré des dossiers existants.
     expect((await operateur.rpc('plateforme_compte_commun_definir', { _numero: commun, _intitule: 'Commun de recette', _sens: 'C', _actif: false })).error).toBeNull();
-    const ref = await gerant.rpc('plan_reference_comptes');
+    const ref = await gerant.rpc('plan_reference_comptes').eq('numero', commun);
     expect((ref.data as { numero: string }[]).some(x => x.numero === commun)).toBe(false);
-    const tous = await gerant.rpc('plan_reference_comptes', { _tous: true });
+    const tous = await gerant.rpc('plan_reference_comptes', { _tous: true }).eq('numero', commun);
     expect((tous.data as { numero: string; origine: string }[]).find(x => x.numero === commun)?.origine).toBe('plateforme');
     expect((await gerant.from('plan_comptable').select('id').eq('entreprise_id', entreprise).eq('numero', commun)).data).toHaveLength(1);
   });
