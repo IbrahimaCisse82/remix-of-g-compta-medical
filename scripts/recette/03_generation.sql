@@ -190,7 +190,7 @@ END $f$;
 CREATE OR REPLACE FUNCTION recette.gen_demandes(_s text, _n int) RETURNS jsonb LANGUAGE plpgsql AS $f$
 DECLARE i int; _pid uuid; _d uuid; _p record; _v record; _fac uuid; _rej boolean;
   _bio text := CASE _s WHEN 'B' THEN 'B-bio-1' ELSE 'C-bio' END; _bio2 text := CASE _s WHEN 'B' THEN 'B-bio-2' ELSE 'C-bio' END;
-  _tech1 text := CASE _s WHEN 'B' THEN 'B-tech-1' ELSE 'C-tech' END; _tech2 text := CASE _s WHEN 'B' THEN 'B-tech-2' ELSE 'C-tech' END;
+  _tech1 text := CASE _s WHEN 'B' THEN 'B-tech-1' ELSE 'C-tech' END; _tech2 text := CASE _s WHEN 'B' THEN 'B-tech-2' ELSE 'C-bio' END;  -- C : un seul technicien, la validation technique revient au biologiste
   _prel text := CASE _s WHEN 'B' THEN 'B-prel-1' ELSE 'C-prel' END;
   _stats jsonb := '{"demandes":0,"rejets":0,"resultats":0,"validees":0,"factures":0}';
 BEGIN
