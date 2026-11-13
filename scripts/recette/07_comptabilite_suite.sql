@@ -18,9 +18,11 @@ END $d$;
 
 -- Volume : saisies manuelles validées dans les journaux AC, BQ, PA, OD et CA (comptes du plan du dossier uniquement).
 CREATE OR REPLACE FUNCTION recette.gen_ecritures(_s text, _n int) RETURNS int LANGUAGE plpgsql AS $f$
-DECLARE i int; _ok int := 0; _d date; _m numeric; _j text; _l jsonb; _lib text; _e uuid := recette.eid(_s); _x uuid := recette.exo(_s, 2026);
+DECLARE k int; i int; _base int; _ok int := 0; _d date; _m numeric; _j text; _l jsonb; _lib text; _e uuid := recette.eid(_s); _x uuid := recette.exo(_s, 2026);
 BEGIN
-  FOR i IN 1.._n LOOP
+  SELECT count(*) INTO _base FROM public.ecritures WHERE entreprise_id = _e AND piece LIKE 'RT-' || _s || '-%';
+  FOR k IN 1.._n LOOP
+    i := _base + k;
     _d := DATE '2026-01-02' + (random() * 313)::int;
     _m := (5 + floor(random() * 400)) * 500;
     CASE i % 6
