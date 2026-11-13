@@ -144,8 +144,12 @@ Deno.serve(async (req) => {
     if ((section === 'bilan' || section === 'resultat') && exercice) {
       const ok = section === 'bilan' ? acces.peut_voir_bilan : acces.peut_voir_resultat;
       if (ok) {
-        const { data: balance } = await supabase.from('balance').select('*').eq('exercice_id', exercice.id);
-        payload.balance = balance || [];
+        // Balance calculée à partir des écritures validées (mv_balance), comme les écrans du dossier : la table
+        // « balance » n'est qu'une copie tenue par l'écran de saisie et ignore les écritures automatiques (A-008).
+        const { data: balance } = await supabase.from('mv_balance')
+          .select('compte,intitule,md,mc,sfd,sfc')
+          .eq('entreprise_id', entreprise_id).eq('exercice_id', exercice.id).order('compte');
+        payload.balance = (balance || []).map((b: Record<string, unknown>) => ({ ...b, sd: 0, sc: 0 }));
       }
     }
 
