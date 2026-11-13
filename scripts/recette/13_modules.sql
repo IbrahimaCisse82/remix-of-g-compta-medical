@@ -208,7 +208,7 @@ DO $d$ DECLARE _s text; _t jsonb; _ca numeric; _ca_db numeric; _l numeric; _l_db
               GROUP BY l.libelle ORDER BY sum(CASE WHEN f.type = 'avoir' THEN -abs(l.montant) ELSE l.montant END) DESC LIMIT 30) ok
           FROM jsonb_array_elements(_t->'ca_actes') x) z), 'TDB-01', NULL, 'mineure');
     IF _s = 'B' THEN
-      SELECT count(*) INTO _l_db FROM public.sante_labo_demandes WHERE structure_id = recette.sid('B') AND created_at >= DATE '2026-01-01' AND created_at < DATE '2027-01-01';
+      SELECT count(*) INTO _l_db FROM public.sante_demandes_labo WHERE structure_id = recette.sid('B') AND created_at >= DATE '2026-01-01' AND created_at < DATE '2027-01-01';
       PERFORM recette.noter('10','Tableau de bord',_cle,'Structure B : nombre de demandes de laboratoire', _l_db::text, coalesce(_t->'labo'->>'demandes', 'absent'), (_t->'labo'->>'demandes')::numeric = _l_db, 'TDB-01', NULL, 'majeure');
     END IF;
   END LOOP;
