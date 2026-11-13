@@ -34,7 +34,8 @@ BEGIN
     BEGIN
       PERFORM public.fn_creer_ecriture(_e, _x, _j, _d, _lib, _l, 'RT-' || _s || '-' || _j || '-' || i, CASE WHEN i % 10 = 0 THEN 'brouillon' ELSE 'validee' END, 'saisie');
       _ok := _ok + 1;
-    EXCEPTION WHEN OTHERS THEN PERFORM recette.erreur('gen_ecritures', _s, SQLERRM);
+    EXCEPTION WHEN OTHERS THEN
+      IF coalesce(current_setting('recette.gen_err', true), '') = '' THEN PERFORM set_config('recette.gen_err', left(SQLERRM, 200) || ' [' || _j || ' ' || _d || ']', false); END IF;
     END;
   END LOOP;
   RETURN _ok;
@@ -45,10 +46,11 @@ DO $d$ DECLARE _s text; _cle text; _n int; _t0 timestamptz; BEGIN
   FOREACH _s IN ARRAY ARRAY['A','B','C'] LOOP
     _cle := CASE _s WHEN 'B' THEN 'B-admin' ELSE _s || '-compta' END;
     _t0 := clock_timestamp();
+    PERFORM set_config('recette.gen_err', '', false);
     PERFORM recette.agir(_cle);
     _n := recette.gen_ecritures(_s, 1300);
     PERFORM recette.sortir();
-    PERFORM recette.noter('8','Comptabilité',_cle,'Structure ' || _s || ' : 1 300 saisies manuelles (AC, BQ, PA, OD, CA ; 10 % en brouillon)','1300 écritures créées', _n || ' créées',
+    PERFORM recette.noter('8','Comptabilité',_cle,'Structure ' || _s || ' : 1 300 saisies manuelles (AC, BQ, PA, OD, CA ; 10 % en brouillon)','1300 écritures créées', _n || ' créées' || coalesce(nullif(' ; première erreur : ' || current_setting('recette.gen_err', true), ' ; première erreur : '), ''),
       _n = 1300, 'CPT-11', NULL, 'majeure', round(extract(epoch FROM clock_timestamp() - _t0) * 1000 / 1300, 1));
   END LOOP;
 END $d$;
