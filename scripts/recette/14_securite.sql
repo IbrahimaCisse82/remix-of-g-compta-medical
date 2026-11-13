@@ -5,7 +5,7 @@ DO $g$ BEGIN
 END $g$;
 DELETE FROM recette.resultats WHERE phase = '11';
 
--- Lignes visibles, table par table, pour un profil : 'anon' (sans jeton) ou une clé de compte de recette.
+-- Lignes visibles, table par table (tables, vues et vues matérialisées : ces dernières n'ont pas de RLS), pour un profil : 'anon' (sans jeton) ou une clé de compte de recette.
 -- _hors : ne compter que les lignes des structures/dossiers qui ne sont pas ceux du profil (tables portant structure_id ou entreprise_id).
 CREATE OR REPLACE FUNCTION recette.balayage(_qui text, _hors text DEFAULT NULL) RETURNS TABLE(tbl text, n bigint, err text) LANGUAGE plpgsql AS $f$
 DECLARE t record; _sql text; _sid uuid := recette.sid(_hors); _eid uuid := recette.eid(_hors); _claims text; _role text;
@@ -15,7 +15,7 @@ BEGIN
   FOR t IN SELECT c.relname,
                   EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'structure_id' AND NOT a.attisdropped) has_s,
                   EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'entreprise_id' AND NOT a.attisdropped) has_e
-             FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r','p') ORDER BY c.relname LOOP
+             FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r','p','m','v') ORDER BY c.relname LOOP
     IF _hors IS NOT NULL THEN
       IF t.has_s THEN _sql := format('SELECT count(*) FROM public.%I WHERE structure_id IS DISTINCT FROM %L AND structure_id IN (SELECT structure_id FROM recette.structures)', t.relname, _sid);
       ELSIF t.has_e THEN _sql := format('SELECT count(*) FROM public.%I WHERE entreprise_id IS DISTINCT FROM %L AND entreprise_id IN (SELECT entreprise_id FROM recette.structures)', t.relname, _eid);
@@ -97,3 +97,11 @@ SELECT 'A-011', 'Tableau de bord : le palmarès des actes renvoie 30 libellés q
   'Ajouter ORDER BY sum(montant) DESC avant LIMIT 30 dans la sous-requête (migration additive : CREATE OR REPLACE de la fonction).', 'ouverte'
 WHERE NOT EXISTS (SELECT 1 FROM recette.anomalies WHERE code = 'A-011');
 UPDATE recette.resultats SET anomalie = 'A-011' WHERE phase = '10' AND scenario LIKE '%palmarès des actes%' AND statut = 'echoue';
+
+INSERT INTO recette.anomalies (code, titre, module, criticite, reproduction, cause, correction, statut)
+SELECT 'A-012', 'La balance de tous les dossiers (mv_balance) est lisible sans connexion', 'Sécurité', 'critique',
+  'En rôle anon (clé publique seule, sans jeton) : SELECT * FROM public.mv_balance renvoie les soldes de tous les dossiers (58 lignes, 3 dossiers en TEST). Équivalent API : GET /rest/v1/mv_balance avec la clé publique.',
+  'Vue matérialisée créée hors des migrations du dépôt avec les droits par défaut (SELECT pour anon et authenticated) ; une vue matérialisée ne porte pas de RLS. L''application ne la lit que par fn_balance / fn_balance_ecarts (SECURITY DEFINER).',
+  'REVOKE ALL ON public.mv_balance FROM anon, authenticated (migration 0130) ; ajouter les vues matérialisées au test de sécurité de la CI.', 'ouverte'
+WHERE NOT EXISTS (SELECT 1 FROM recette.anomalies WHERE code = 'A-012');
+UPDATE recette.resultats SET anomalie = 'A-012' WHERE phase = '11' AND statut = 'echoue' AND obtenu LIKE '%mv_balance%';
