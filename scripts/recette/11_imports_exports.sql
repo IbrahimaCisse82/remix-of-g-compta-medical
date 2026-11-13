@@ -6,13 +6,12 @@ DELETE FROM recette.resultats WHERE phase = '9';
 
 -- Fichiers d'import construits à partir du catalogue fictif de B ; conservés dans recette.fichiers pour le livrable 3.
 DO $d$ DECLARE _ok jsonb; _vol jsonb; BEGIN
-  SELECT jsonb_agg(jsonb_build_object('code_analyse', a.code, 'code_parametre', p.code, 'type', 'numerique', 'unite', coalesce(p.unite, ''),
-           'bas', (10 + n)::text, 'haut', (60 + n)::text, 'critique_bas', '1', 'critique_haut', (900 + n)::text, 'sexe', CASE WHEN n % 2 = 0 THEN 'M' ELSE 'F' END,
+  SELECT jsonb_agg(jsonb_build_object('code_analyse', z.acode, 'code_parametre', z.pcode, 'type', 'numerique', 'unite', coalesce(z.unite, ''),
+           'bas', (10 + z.n)::text, 'haut', (60 + z.n)::text, 'critique_bas', '1', 'critique_haut', (900 + z.n)::text, 'sexe', CASE WHEN z.n % 2 = 0 THEN 'M' ELSE 'F' END,
            'age_min_ans', '18', 'age_max_ans', '150', 'delai_heures', '24', 'a_jeun', 'non'))
-    INTO _ok FROM (SELECT a.code, p.code AS pcode, p.*, row_number() OVER (ORDER BY a.code, p.code) n
+    INTO _ok FROM (SELECT a.code AS acode, p.code AS pcode, p.unite, row_number() OVER (ORDER BY a.code, p.code) n
                      FROM public.sante_analyse_parametres p JOIN public.sante_analyses a ON a.id = p.analyse_id
-                    WHERE p.structure_id = recette.sid('B') AND p.type = 'numerique' ORDER BY a.code, p.code LIMIT 20) z
-    JOIN public.sante_analyses a ON a.structure_id = recette.sid('B') AND a.code = z.code JOIN public.sante_analyse_parametres p ON p.analyse_id = a.id AND p.code = z.pcode;
+                    WHERE p.structure_id = recette.sid('B') AND p.type = 'numerique' ORDER BY a.code, p.code LIMIT 20) z;
   SELECT jsonb_agg(_ok->(g % jsonb_array_length(_ok))) INTO _vol FROM generate_series(0, 4999) g;
   INSERT INTO recette.fichiers (nom, contenu) VALUES
     ('import_catalogue_valide', _ok),
