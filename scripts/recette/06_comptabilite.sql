@@ -68,13 +68,13 @@ SELECT recette.essai('8','Comptabilité','A-compta','Écriture datée hors de l'
 SELECT recette.essai('8','Comptabilité','A-lecteur','Un lecteur tente de saisir une écriture','Refus','refus',
   $$SELECT public.fn_creer_ecriture(recette.eid('A'), recette.exo('A', 2026), 'OD', DATE '2026-06-30', 'Lecteur', '[{"compte":"601100","debit":1000},{"compte":"401100","credit":1000}]', 'PJ-6', 'brouillon', 'saisie')::text$$, 'CPT-11', 'critique');
 SELECT recette.essai('8','Comptabilité','A-compta','Saisie d''un achat fournisseur (journal des achats)','Écriture créée','ok',
-  $$SELECT public.fn_creer_ecriture(recette.eid('A'), recette.exo('A', 2026), 'AC', DATE '2026-06-30', 'Achat de consommables (TEST)', '[{"compte":"604100","debit":250000},{"compte":"401100","credit":250000}]', 'FA-TEST-1', 'brouillon', 'saisie')::text$$, 'CPT-11', 'majeure');
+  $$SELECT public.fn_creer_ecriture(recette.eid('A'), recette.exo('A', 2026), 'AC', DATE '2026-06-30', 'Achat de consommables (TEST)', '[{"compte":"6041","debit":250000},{"compte":"4011","credit":250000}]', 'FA-TEST-1', 'brouillon', 'saisie')::text$$, 'CPT-11', 'majeure');
 SELECT recette.essai('8','Comptabilité','A-compta','Validation de l''écriture d''achat','Validée','ok',
   $$SELECT public.fn_valider_ecriture((SELECT id FROM public.ecritures WHERE entreprise_id = recette.eid('A') AND piece = 'FA-TEST-1' ORDER BY created_at DESC LIMIT 1))::text$$, 'CPT-11', 'majeure');
 SELECT recette.essai('8','Comptabilité','A-compta','Contrepassation d''une écriture validée (correction tracée)','Contrepassation créée','ok',
   $$SELECT public.fn_contrepasser_ecriture((SELECT id FROM public.ecritures WHERE entreprise_id = recette.eid('A') AND piece = 'FA-TEST-1' AND statut = 'validee' ORDER BY created_at LIMIT 1), 'Erreur de compte (TEST)')::text$$, 'CPT-11', 'majeure');
 SELECT recette.essai('8','Comptabilité','A-compta','Balance générale équilibrée (fonction de l''application)','Σ débit = Σ crédit','ok',
-  $$SELECT CASE WHEN sum(coalesce((b->>'total_debit')::numeric, (b->>'debit')::numeric, 0)) = sum(coalesce((b->>'total_credit')::numeric, (b->>'credit')::numeric, 0)) THEN 'équilibrée ' || count(*) || ' comptes' END
+  $$SELECT CASE WHEN sum((b->>'md')::numeric) = sum((b->>'mc')::numeric) AND sum((b->>'md')::numeric) > 0 THEN 'équilibrée ' || count(*) || ' comptes' END
      FROM (SELECT to_jsonb(x) b FROM public.fn_balance(recette.eid('A'), recette.exo('A', 2026)) x) z$$, 'CPT-12', 'critique');
 SELECT recette.essai('8','Comptabilité','A-compta','Contrôle des écarts de balance','Aucun écart','vide',
   $$SELECT count(*)::text FROM public.fn_balance_ecarts(recette.eid('A'), recette.exo('A', 2026))$$, 'CPT-12', 'critique');
