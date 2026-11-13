@@ -69,7 +69,7 @@ DO $d$ DECLARE _a uuid; _b uuid; _c uuid; _r text; BEGIN
   SELECT j.id INTO _c FROM public.journal j WHERE j.entreprise_id = recette.eid('A') AND j.piece = 'LET-BQ-2' AND j.compte = '4011';
   INSERT INTO recette.ids VALUES ('let_a', _a), ('let_b', _b), ('let_c', _c) ON CONFLICT (cle) DO UPDATE SET id = excluded.id;
 END $d$;
-SELECT recette.essai('8','Comptabilité','X-externe','Un compte extérieur au dossier lettre des lignes du dossier A','Refus (0 ou erreur)','egal:0',
+SELECT recette.essai('8','Comptabilité','X-externe','Un compte extérieur au dossier lettre des lignes du dossier A','Refus (0 ou erreur)','vide',
   $$SELECT public.reglement_lettrer(ARRAY[(SELECT id FROM recette.ids WHERE cle='let_a'), (SELECT id FROM recette.ids WHERE cle='let_b')])::text$$, 'CPT-14', 'majeure');
 SELECT recette.essai('8','Comptabilité','A-compta','Lettrage refusé si les montants ne se soldent pas (100 000 contre 40 000)','0 (refus)','egal:0',
   $$SELECT public.reglement_lettrer(ARRAY[(SELECT id FROM recette.ids WHERE cle='let_a'), (SELECT id FROM recette.ids WHERE cle='let_c')])::text$$, 'CPT-14', 'majeure');
