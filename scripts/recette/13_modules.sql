@@ -64,7 +64,7 @@ DO $d$ DECLARE _l jsonb; _r record; BEGIN
    WHERE e.source_type = 'retrocession' AND e.source_id = _r.id;
   PERFORM recette.noter('10','Rétrocessions',NULL,'Écriture du relevé : honoraires au débit (6324), praticien au crédit (4011)',
     coalesce('6324 +' || _r.montant_brut || ' ; 4011 −' || _r.montant_net, 'relevé absent'), coalesce(_l::text, 'aucune écriture'),
-    (_l->>'6324')::numeric = _r.montant_brut AND (_l->>'4011')::numeric = -_r.montant_net, 'RET-03', NULL, 'critique');
+    coalesce((_l->>'6324')::numeric = _r.montant_brut AND (_l->>'4011')::numeric = -_r.montant_net, false), 'RET-03', NULL, 'critique');
 END $d$;
 SELECT recette.essai('10','Rétrocessions','A-caisse','Le caissier paie une rétrocession','Refus','refus',
   $$SELECT public.sante_payer_retrocession(recette.rid('retro_nov'), 'especes')::text$$, 'RET-04', 'majeure');
