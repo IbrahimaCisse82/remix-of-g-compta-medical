@@ -109,6 +109,10 @@ BEGIN
   BEGIN
     PERFORM recette.agir(_cle);
     EXECUTE _sql INTO _v;
+    -- Les contrôles différés (équilibre, lettrage, comptabilisation) s'exécutent normalement au COMMIT, sous l'identité de
+    -- l'appelant : on les déclenche ici, sinon un essai annulé ne les verrait jamais.
+    SET CONSTRAINTS ALL IMMEDIATE;
+    SET CONSTRAINTS ALL DEFERRED;
     IF _annuler THEN RAISE EXCEPTION 'RECETTE_ANNULER' USING DETAIL = coalesce(_v, '∅'); END IF;
     PERFORM recette.sortir();
   EXCEPTION WHEN OTHERS THEN
