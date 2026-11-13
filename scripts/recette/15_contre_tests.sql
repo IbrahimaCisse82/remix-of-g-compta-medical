@@ -54,7 +54,7 @@ SELECT recette.essai('12','Comptabilité','C-admin','Non-régression A-009 : ré
 
 -- A-006
 SELECT recette.essai('12','Tiers payant','A-caisse','Contre-test A-006 : le caissier déclare « payée » la part organisme sans relevé','Refus','refus',
-  $$SELECT coalesce(public.sante_statut_tiers((SELECT id FROM public.sante_factures WHERE structure_id = recette.sid('A') AND part_organisme > 0 AND statut_tiers IN ('a_facturer','envoye') AND NOT annulee LIMIT 1), 'paye')::text, 'ok')$$, 'TP-05', 'A-006', 'majeure');
+  $$SELECT coalesce(public.sante_statut_tiers((SELECT id FROM public.sante_factures WHERE structure_id = recette.sid('A') AND part_organisme > 0 AND statut_tiers IN ('a_facturer','envoye') AND NOT annulee LIMIT 1), 'paye')::text, 'ok')$$, 'TP-05', 'majeure');
 SELECT recette.essai('12','Tiers payant','A-caisse','Non-régression A-006 : envoi à l''organisme toujours possible','Accepté','ok',
   $$SELECT coalesce(public.sante_statut_tiers((SELECT id FROM public.sante_factures WHERE structure_id = recette.sid('A') AND part_organisme > 0 AND statut_tiers IN ('a_facturer','rejete') AND NOT annulee LIMIT 1), 'envoye')::text, 'envoyé')$$, 'TP-03', 'majeure');
 
@@ -87,6 +87,10 @@ END $d$;
 DELETE FROM recette.resultats WHERE phase = '5' AND statut = 'bloque';
 SELECT recette.essai('5','Habilitations','A-compta','Contrôle positif : le comptable peut créer une écriture brouillon (annulée ensuite)','Accepté','vide',
   $$SELECT CASE WHEN public.fn_creer_ecriture(recette.eid('A'), recette.exo('A', 2026), 'OD', DATE '2026-06-30', 'Contrôle positif', '[{"compte":"6222","debit":1000},{"compte":"4011","credit":1000}]', 'PJ-POS', 'brouillon', 'saisie') IS NOT NULL THEN '' END$$, 'SEC-03', 'majeure');
+
+UPDATE recette.resultats SET anomalie = 'A-006' WHERE phase = '12' AND scenario LIKE 'Contre-test A-006%';
+UPDATE recette.resultats SET anomalie = 'A-007' WHERE phase = '12' AND scenario LIKE 'Contre-test A-007%';
+UPDATE recette.resultats SET anomalie = 'A-009' WHERE phase = '12' AND scenario LIKE 'Contre-test A-009%';
 
 -- Statut des anomalies : « corrigée en TEST » seulement si tous leurs contre-tests passent.
 UPDATE recette.anomalies a SET statut = 'corrigée en TEST (PR, non fusionnée)'
