@@ -48,34 +48,34 @@ DO $d$ DECLARE _c jsonb; _base numeric; _attendu numeric; BEGIN
     abs((_c->>'base')::numeric - _base) <= 1 AND (_c->>'montant_brut')::numeric = round((_c->>'base')::numeric * 50 / 100), 'RET-02', NULL, 'critique');
 END $d$;
 SELECT recette.essai('10','Rétrocessions','A-compta','Le comptable valide un relevé de rétrocession','Refus (administrateur)','refus',
-  $$SELECT public.sante_valider_retrocession(recette.rid('prat_fall'), DATE '2026-10-01', DATE '2026-10-31')::text$$, 'RET-03', 'majeure');
+  $$SELECT public.sante_valider_retrocession(recette.rid('prat_fall'), DATE '2026-11-01', DATE '2026-11-13')::text$$, 'RET-03', 'majeure');
 DO $d$ DECLARE _r text; BEGIN
-  _r := recette.essai('10','Rétrocessions','A-admin','Validation du relevé d''octobre 2026','Relevé créé et comptabilisé','ok',
-    $$SELECT coalesce((SELECT id::text FROM public.sante_retrocessions WHERE praticien_id = recette.rid('prat_fall') AND periode_debut = DATE '2026-10-01' AND statut <> 'annulee'),
-                      public.sante_valider_retrocession(recette.rid('prat_fall'), DATE '2026-10-01', DATE '2026-10-31')::text)$$, 'RET-03', 'majeure');
-  INSERT INTO recette.ids SELECT 'retro_oct', id FROM public.sante_retrocessions WHERE praticien_id = recette.rid('prat_fall') AND periode_debut = DATE '2026-10-01' AND statut <> 'annulee'
+  _r := recette.essai('10','Rétrocessions','A-admin','Validation du relevé de novembre 2026 (1er au 13)','Relevé créé et comptabilisé','ok',
+    $$SELECT coalesce((SELECT id::text FROM public.sante_retrocessions WHERE praticien_id = recette.rid('prat_fall') AND periode_debut = DATE '2026-11-01' AND statut <> 'annulee'),
+                      public.sante_valider_retrocession(recette.rid('prat_fall'), DATE '2026-11-01', DATE '2026-11-13')::text)$$, 'RET-03', 'majeure');
+  INSERT INTO recette.ids SELECT 'retro_nov', id FROM public.sante_retrocessions WHERE praticien_id = recette.rid('prat_fall') AND periode_debut = DATE '2026-11-01' AND statut <> 'annulee'
     ON CONFLICT (cle) DO UPDATE SET id = excluded.id;
 END $d$;
 SELECT recette.essai('10','Rétrocessions','A-admin','Second relevé chevauchant la même période','Refus','refus',
-  $$SELECT public.sante_valider_retrocession(recette.rid('prat_fall'), DATE '2026-10-15', DATE '2026-11-10')::text$$, 'RET-03', 'critique');
+  $$SELECT public.sante_valider_retrocession(recette.rid('prat_fall'), DATE '2026-11-10', DATE '2026-11-20')::text$$, 'RET-03', 'critique');
 DO $d$ DECLARE _l jsonb; _r record; BEGIN
-  SELECT * INTO _r FROM public.sante_retrocessions WHERE id = recette.rid('retro_oct');
+  SELECT * INTO _r FROM public.sante_retrocessions WHERE id = recette.rid('retro_nov');
   SELECT jsonb_object_agg(l.compte, l.debit - l.credit) INTO _l FROM public.sante_compta_evenements e JOIN public.ecriture_lignes l ON l.ecriture_id = e.ecriture_id
    WHERE e.source_type = 'retrocession' AND e.source_id = _r.id;
   PERFORM recette.noter('10','Rétrocessions',NULL,'Écriture du relevé : honoraires au débit (6324), praticien au crédit (4011)',
-    '6324 +' || _r.montant_brut || ' ; 4011 −' || _r.montant_net, coalesce(_l::text, 'aucune écriture'),
+    coalesce('6324 +' || _r.montant_brut || ' ; 4011 −' || _r.montant_net, 'relevé absent'), coalesce(_l::text, 'aucune écriture'),
     (_l->>'6324')::numeric = _r.montant_brut AND (_l->>'4011')::numeric = -_r.montant_net, 'RET-03', NULL, 'critique');
 END $d$;
 SELECT recette.essai('10','Rétrocessions','A-caisse','Le caissier paie une rétrocession','Refus','refus',
-  $$SELECT public.sante_payer_retrocession(recette.rid('retro_oct'), 'especes')::text$$, 'RET-04', 'majeure');
+  $$SELECT public.sante_payer_retrocession(recette.rid('retro_nov'), 'especes')::text$$, 'RET-04', 'majeure');
 SELECT recette.essai('10','Rétrocessions','A-compta','Paiement par virement sans référence','Refus','refus',
-  $$SELECT public.sante_payer_retrocession(recette.rid('retro_oct'), 'virement', '')::text$$, 'RET-04', 'mineure');
+  $$SELECT public.sante_payer_retrocession(recette.rid('retro_nov'), 'virement', '')::text$$, 'RET-04', 'mineure');
 SELECT recette.essai('10','Rétrocessions','A-compta','Paiement du relevé par virement','Payé','ok',
-  $$SELECT coalesce(public.sante_payer_retrocession(recette.rid('retro_oct'), 'virement', 'VIR-RET-TEST-1')::text, 'payé')$$, 'RET-04', 'majeure');
+  $$SELECT coalesce(public.sante_payer_retrocession(recette.rid('retro_nov'), 'virement', 'VIR-RET-TEST-1')::text, 'payé')$$, 'RET-04', 'majeure');
 SELECT recette.essai('10','Rétrocessions','A-compta','Second paiement du même relevé','Refus','refus',
-  $$SELECT public.sante_payer_retrocession(recette.rid('retro_oct'), 'virement', 'VIR-RET-TEST-2')::text$$, 'RET-04', 'critique');
+  $$SELECT public.sante_payer_retrocession(recette.rid('retro_nov'), 'virement', 'VIR-RET-TEST-2')::text$$, 'RET-04', 'critique');
 SELECT recette.essai('10','Rétrocessions','A-admin','Annulation d''un relevé déjà payé','Refus','refus',
-  $$SELECT public.sante_annuler_retrocession(recette.rid('retro_oct'), 'Erreur de période (TEST)')::text$$, 'RET-04', 'majeure');
+  $$SELECT public.sante_annuler_retrocession(recette.rid('retro_nov'), 'Erreur de période (TEST)')::text$$, 'RET-04', 'majeure');
 
 -- B. Plannings et primes de garde.
 DO $d$ DECLARE _e uuid; _m uuid; BEGIN
