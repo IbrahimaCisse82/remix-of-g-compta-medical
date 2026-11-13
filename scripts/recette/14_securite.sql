@@ -40,7 +40,7 @@ GRANT SELECT ON recette.structures TO anon, authenticated;
 
 -- Tables de référence publiques par conception (lecture ouverte attendue) : exclues du constat, listées dans le rapport.
 CREATE OR REPLACE FUNCTION recette.references_publiques() RETURNS text[] LANGUAGE sql IMMUTABLE AS $f$
-  SELECT ARRAY['syscohada_references','sante_cim10','sante_specialites','plans_abonnement','echeances_modeles','comptes_communs','sante_repertoire_organismes','tva_parametrage']
+  SELECT ARRAY['syscohada_references','sante_cim10','sante_specialites','plans_abonnement','echeances_modeles','plateforme_comptes_communs','sante_repertoire_organismes','tva_parametrage']
 $f$;
 
 DO $d$ DECLARE _l text; _n bigint; _e text; BEGIN
