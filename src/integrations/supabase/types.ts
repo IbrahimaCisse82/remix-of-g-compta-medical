@@ -555,6 +555,136 @@ export type Database = {
         }
         Relationships: []
       }
+      commandes_achat: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_commande: string
+          date_livraison_prevue: string | null
+          entreprise_id: string
+          fournisseur_id: string
+          id: string
+          notes: string | null
+          numero: string
+          objet: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_commande?: string
+          date_livraison_prevue?: string | null
+          entreprise_id: string
+          fournisseur_id: string
+          id?: string
+          notes?: string | null
+          numero: string
+          objet?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_commande?: string
+          date_livraison_prevue?: string | null
+          entreprise_id?: string
+          fournisseur_id?: string
+          id?: string
+          notes?: string | null
+          numero?: string
+          objet?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commandes_achat_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_achat_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commandes_achat_lignes: {
+        Row: {
+          article_id: string | null
+          commande_id: string
+          compte_charge: string
+          created_at: string
+          designation: string
+          duree_annees: number | null
+          id: string
+          nature: string
+          ordre: number
+          prix_unitaire: number
+          quantite: number
+          reactif_id: string | null
+          taux_tva: number
+        }
+        Insert: {
+          article_id?: string | null
+          commande_id: string
+          compte_charge?: string
+          created_at?: string
+          designation: string
+          duree_annees?: number | null
+          id?: string
+          nature?: string
+          ordre?: number
+          prix_unitaire?: number
+          quantite: number
+          reactif_id?: string | null
+          taux_tva?: number
+        }
+        Update: {
+          article_id?: string | null
+          commande_id?: string
+          compte_charge?: string
+          created_at?: string
+          designation?: string
+          duree_annees?: number | null
+          id?: string
+          nature?: string
+          ordre?: number
+          prix_unitaire?: number
+          quantite?: number
+          reactif_id?: string | null
+          taux_tva?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commandes_achat_lignes_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_achat_lignes_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_achat_lignes_reactif_id_fkey"
+            columns: ["reactif_id"]
+            isOneToOne: false
+            referencedRelation: "sante_reactifs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declarations_tva: {
         Row: {
           created_at: string
@@ -1387,10 +1517,6 @@ export type Database = {
       }
       factures: {
         Row: {
-          type_document: string
-          facture_origine_id: string | null
-          piece_journal: string | null
-          montant_paye: number
           client_id: string
           comptabilisee: boolean
           compte_vente: string
@@ -1402,11 +1528,14 @@ export type Database = {
           dgid_mode: string
           entreprise_id: string
           exercice_id: string
+          facture_origine_id: string | null
           hash_certif: string | null
           id: string
+          montant_paye: number
           notes: string | null
           numero: string
           objet: string | null
+          piece_journal: string | null
           qr_code: string | null
           sante_source_id: string | null
           sante_source_type: string | null
@@ -1416,14 +1545,11 @@ export type Database = {
           total_ht: number
           total_ttc: number
           total_tva: number
+          type_document: string
           updated_at: string
           uuid_dgid: string | null
         }
         Insert: {
-          type_document?: string
-          facture_origine_id?: string | null
-          piece_journal?: string | null
-          montant_paye?: number
           client_id: string
           comptabilisee?: boolean
           compte_vente?: string
@@ -1435,11 +1561,14 @@ export type Database = {
           dgid_mode?: string
           entreprise_id: string
           exercice_id: string
+          facture_origine_id?: string | null
           hash_certif?: string | null
           id?: string
+          montant_paye?: number
           notes?: string | null
           numero: string
           objet?: string | null
+          piece_journal?: string | null
           qr_code?: string | null
           sante_source_id?: string | null
           sante_source_type?: string | null
@@ -1449,14 +1578,11 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
+          type_document?: string
           updated_at?: string
           uuid_dgid?: string | null
         }
         Update: {
-          type_document?: string
-          facture_origine_id?: string | null
-          piece_journal?: string | null
-          montant_paye?: number
           client_id?: string
           comptabilisee?: boolean
           compte_vente?: string
@@ -1468,11 +1594,14 @@ export type Database = {
           dgid_mode?: string
           entreprise_id?: string
           exercice_id?: string
+          facture_origine_id?: string | null
           hash_certif?: string | null
           id?: string
+          montant_paye?: number
           notes?: string | null
           numero?: string
           objet?: string | null
+          piece_journal?: string | null
           qr_code?: string | null
           sante_source_id?: string | null
           sante_source_type?: string | null
@@ -1482,15 +1611,22 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
+          type_document?: string
           updated_at?: string
           uuid_dgid?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "factures_facture_origine_id_fkey"
+            columns: ["facture_origine_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       factures_achat: {
         Row: {
-          type_document: string
-          facture_origine_id: string | null
           commande_id: string | null
           comptabilisee: boolean
           created_at: string
@@ -1499,6 +1635,7 @@ export type Database = {
           date_reception: string | null
           entreprise_id: string
           exercice_id: string
+          facture_origine_id: string | null
           fournisseur_id: string
           id: string
           montant_paye: number
@@ -1511,11 +1648,10 @@ export type Database = {
           total_ht: number
           total_ttc: number
           total_tva: number
+          type_document: string
           updated_at: string
         }
         Insert: {
-          type_document?: string
-          facture_origine_id?: string | null
           commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string
@@ -1524,6 +1660,7 @@ export type Database = {
           date_reception?: string | null
           entreprise_id: string
           exercice_id: string
+          facture_origine_id?: string | null
           fournisseur_id: string
           id?: string
           montant_paye?: number
@@ -1536,11 +1673,10 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
+          type_document?: string
           updated_at?: string
         }
         Update: {
-          type_document?: string
-          facture_origine_id?: string | null
           commande_id?: string | null
           comptabilisee?: boolean
           created_at?: string
@@ -1549,6 +1685,7 @@ export type Database = {
           date_reception?: string | null
           entreprise_id?: string
           exercice_id?: string
+          facture_origine_id?: string | null
           fournisseur_id?: string
           id?: string
           montant_paye?: number
@@ -1561,9 +1698,17 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_tva?: number
+          type_document?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "factures_achat_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_achat"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "factures_achat_entreprise_id_fkey"
             columns: ["entreprise_id"]
@@ -1579,6 +1724,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "factures_achat_facture_origine_id_fkey"
+            columns: ["facture_origine_id"]
+            isOneToOne: false
+            referencedRelation: "factures_achat"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "factures_achat_fournisseur_id_fkey"
             columns: ["fournisseur_id"]
             isOneToOne: false
@@ -1589,8 +1741,8 @@ export type Database = {
       }
       factures_achat_lignes: {
         Row: {
-          commande_ligne_id: string | null
           article_id: string | null
+          commande_ligne_id: string | null
           compte_charge: string
           created_at: string
           date_mise_service: string | null
@@ -1608,13 +1760,13 @@ export type Database = {
           taux_tva: number
         }
         Insert: {
-          commande_ligne_id?: string | null
           article_id?: string | null
+          commande_ligne_id?: string | null
           compte_charge?: string
           created_at?: string
           date_mise_service?: string | null
-          duree_annees?: number | null
           designation: string
+          duree_annees?: number | null
           facture_id: string
           id?: string
           immobilisation_id?: string | null
@@ -1627,13 +1779,13 @@ export type Database = {
           taux_tva?: number
         }
         Update: {
-          commande_ligne_id?: string | null
           article_id?: string | null
+          commande_ligne_id?: string | null
           compte_charge?: string
           created_at?: string
           date_mise_service?: string | null
-          duree_annees?: number | null
           designation?: string
+          duree_annees?: number | null
           facture_id?: string
           id?: string
           immobilisation_id?: string | null
@@ -1647,10 +1799,38 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "factures_achat_lignes_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_achat_lignes_commande_ligne_id_fkey"
+            columns: ["commande_ligne_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_achat_lignes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "factures_achat_lignes_facture_id_fkey"
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "factures_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_achat_lignes_immobilisation_id_fkey"
+            columns: ["immobilisation_id"]
+            isOneToOne: false
+            referencedRelation: "immobilisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_achat_lignes_mouvement_stock_id_fkey"
+            columns: ["mouvement_stock_id"]
+            isOneToOne: false
+            referencedRelation: "mouvements_stock"
             referencedColumns: ["id"]
           },
         ]
@@ -2465,6 +2645,91 @@ export type Database = {
           },
         ]
       }
+      paie_paiements: {
+        Row: {
+          annule_le: string | null
+          compte_tresorerie: string
+          created_at: string
+          created_by: string | null
+          date_paiement: string
+          ecriture_id: string | null
+          entreprise_id: string
+          exercice_id: string
+          id: string
+          journal_code: string
+          mode: string | null
+          montant: number
+          motif_annulation: string | null
+          nature: string
+          numero: string
+          periode: string
+          reference: string | null
+          repartition: Json
+        }
+        Insert: {
+          annule_le?: string | null
+          compte_tresorerie: string
+          created_at?: string
+          created_by?: string | null
+          date_paiement: string
+          ecriture_id?: string | null
+          entreprise_id: string
+          exercice_id: string
+          id?: string
+          journal_code: string
+          mode?: string | null
+          montant: number
+          motif_annulation?: string | null
+          nature: string
+          numero: string
+          periode: string
+          reference?: string | null
+          repartition: Json
+        }
+        Update: {
+          annule_le?: string | null
+          compte_tresorerie?: string
+          created_at?: string
+          created_by?: string | null
+          date_paiement?: string
+          ecriture_id?: string | null
+          entreprise_id?: string
+          exercice_id?: string
+          id?: string
+          journal_code?: string
+          mode?: string | null
+          montant?: number
+          motif_annulation?: string | null
+          nature?: string
+          numero?: string
+          periode?: string
+          reference?: string | null
+          repartition?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paie_paiements_ecriture_id_fkey"
+            columns: ["ecriture_id"]
+            isOneToOne: false
+            referencedRelation: "ecritures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paie_paiements_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paie_paiements_exercice_id_fkey"
+            columns: ["exercice_id"]
+            isOneToOne: false
+            referencedRelation: "exercices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paie_parametres: {
         Row: {
           created_at: string
@@ -2594,6 +2859,268 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      plateforme_acces_support: {
+        Row: {
+          created_at: string
+          decide_le: string | null
+          decide_par: string | null
+          duree_heures: number
+          expire_le: string | null
+          id: string
+          membership_id: string | null
+          motif: string
+          operateur_id: string
+          statut: string
+          structure_id: string
+          termine_le: string | null
+        }
+        Insert: {
+          created_at?: string
+          decide_le?: string | null
+          decide_par?: string | null
+          duree_heures: number
+          expire_le?: string | null
+          id?: string
+          membership_id?: string | null
+          motif: string
+          operateur_id: string
+          statut?: string
+          structure_id: string
+          termine_le?: string | null
+        }
+        Update: {
+          created_at?: string
+          decide_le?: string | null
+          decide_par?: string | null
+          duree_heures?: number
+          expire_le?: string | null
+          id?: string
+          membership_id?: string | null
+          motif?: string
+          operateur_id?: string
+          statut?: string
+          structure_id?: string
+          termine_le?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plateforme_acces_support_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plateforme_audit: {
+        Row: {
+          action: string
+          cible_id: string | null
+          cible_type: string | null
+          created_at: string
+          details: Json
+          id: number
+          operateur_id: string | null
+        }
+        Insert: {
+          action: string
+          cible_id?: string | null
+          cible_type?: string | null
+          created_at?: string
+          details?: Json
+          id?: never
+          operateur_id?: string | null
+        }
+        Update: {
+          action?: string
+          cible_id?: string | null
+          cible_type?: string | null
+          created_at?: string
+          details?: Json
+          id?: never
+          operateur_id?: string | null
+        }
+        Relationships: []
+      }
+      plateforme_comptes_communs: {
+        Row: {
+          actif: boolean
+          created_at: string
+          intitule: string
+          numero: string
+          sens: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          intitule: string
+          numero: string
+          sens?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          intitule?: string
+          numero?: string
+          sens?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plateforme_erreurs: {
+        Row: {
+          contexte: Json
+          derniere: string
+          empreinte: string
+          id: number
+          jour: string
+          message: string
+          occurrences: number
+          page: string | null
+          pile: string | null
+          premiere: string
+          structure_id: string | null
+          utilisateurs: string[]
+        }
+        Insert: {
+          contexte?: Json
+          derniere?: string
+          empreinte: string
+          id?: never
+          jour?: string
+          message: string
+          occurrences?: number
+          page?: string | null
+          pile?: string | null
+          premiere?: string
+          structure_id?: string | null
+          utilisateurs?: string[]
+        }
+        Update: {
+          contexte?: Json
+          derniere?: string
+          empreinte?: string
+          id?: never
+          jour?: string
+          message?: string
+          occurrences?: number
+          page?: string | null
+          pile?: string | null
+          premiere?: string
+          structure_id?: string | null
+          utilisateurs?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plateforme_erreurs_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plateforme_operateurs: {
+        Row: {
+          actif: boolean
+          created_at: string
+          cree_par: string | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          cree_par?: string | null
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          cree_par?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plateforme_retours: {
+        Row: {
+          auteur_id: string | null
+          contexte: Json
+          created_at: string
+          entreprise_id: string | null
+          id: string
+          message: string
+          page: string | null
+          priorite: string
+          repondu_le: string | null
+          reponse: string | null
+          roles: string[]
+          statut: string
+          structure_id: string | null
+          traite_par: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          auteur_id?: string | null
+          contexte?: Json
+          created_at?: string
+          entreprise_id?: string | null
+          id?: string
+          message: string
+          page?: string | null
+          priorite?: string
+          repondu_le?: string | null
+          reponse?: string | null
+          roles?: string[]
+          statut?: string
+          structure_id?: string | null
+          traite_par?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          auteur_id?: string | null
+          contexte?: Json
+          created_at?: string
+          entreprise_id?: string | null
+          id?: string
+          message?: string
+          page?: string | null
+          priorite?: string
+          repondu_le?: string | null
+          reponse?: string | null
+          roles?: string[]
+          statut?: string
+          structure_id?: string | null
+          traite_par?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plateforme_retours_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plateforme_retours_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portail_acces: {
         Row: {
@@ -2828,6 +3355,317 @@ export type Database = {
             columns: ["operation_id"]
             isOneToOne: false
             referencedRelation: "operations_bancaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receptions_achat: {
+        Row: {
+          bon_livraison: string | null
+          commande_id: string
+          created_at: string
+          created_by: string | null
+          date_reception: string
+          entreprise_id: string
+          id: string
+          notes: string | null
+          numero: string
+        }
+        Insert: {
+          bon_livraison?: string | null
+          commande_id: string
+          created_at?: string
+          created_by?: string | null
+          date_reception: string
+          entreprise_id: string
+          id?: string
+          notes?: string | null
+          numero: string
+        }
+        Update: {
+          bon_livraison?: string | null
+          commande_id?: string
+          created_at?: string
+          created_by?: string | null
+          date_reception?: string
+          entreprise_id?: string
+          id?: string
+          notes?: string | null
+          numero?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receptions_achat_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receptions_achat_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receptions_achat_lignes: {
+        Row: {
+          commande_ligne_id: string
+          created_at: string
+          id: string
+          lot: string | null
+          lot_reactif_id: string | null
+          mouvement_stock_id: string | null
+          peremption: string | null
+          quantite: number
+          reception_id: string
+        }
+        Insert: {
+          commande_ligne_id: string
+          created_at?: string
+          id?: string
+          lot?: string | null
+          lot_reactif_id?: string | null
+          mouvement_stock_id?: string | null
+          peremption?: string | null
+          quantite: number
+          reception_id: string
+        }
+        Update: {
+          commande_ligne_id?: string
+          created_at?: string
+          id?: string
+          lot?: string | null
+          lot_reactif_id?: string | null
+          mouvement_stock_id?: string | null
+          peremption?: string | null
+          quantite?: number
+          reception_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receptions_achat_lignes_commande_ligne_id_fkey"
+            columns: ["commande_ligne_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_achat_lignes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receptions_achat_lignes_lot_reactif_id_fkey"
+            columns: ["lot_reactif_id"]
+            isOneToOne: false
+            referencedRelation: "sante_lots_reactifs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receptions_achat_lignes_mouvement_stock_id_fkey"
+            columns: ["mouvement_stock_id"]
+            isOneToOne: false
+            referencedRelation: "mouvements_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receptions_achat_lignes_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "receptions_achat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reglements_tiers: {
+        Row: {
+          acompte: number
+          annule_le: string | null
+          client_id: string | null
+          compte_tiers: string
+          compte_tresorerie: string | null
+          created_at: string
+          created_by: string | null
+          date_reglement: string
+          ecriture_id: string | null
+          entreprise_id: string
+          exercice_id: string
+          fournisseur_id: string | null
+          id: string
+          journal_acompte_id: string | null
+          journal_code: string
+          mode: string | null
+          montant: number
+          motif_annulation: string | null
+          numero: string
+          reference: string | null
+          sens: string
+        }
+        Insert: {
+          acompte?: number
+          annule_le?: string | null
+          client_id?: string | null
+          compte_tiers: string
+          compte_tresorerie?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_reglement: string
+          ecriture_id?: string | null
+          entreprise_id: string
+          exercice_id: string
+          fournisseur_id?: string | null
+          id?: string
+          journal_acompte_id?: string | null
+          journal_code: string
+          mode?: string | null
+          montant: number
+          motif_annulation?: string | null
+          numero: string
+          reference?: string | null
+          sens: string
+        }
+        Update: {
+          acompte?: number
+          annule_le?: string | null
+          client_id?: string | null
+          compte_tiers?: string
+          compte_tresorerie?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_reglement?: string
+          ecriture_id?: string | null
+          entreprise_id?: string
+          exercice_id?: string
+          fournisseur_id?: string | null
+          id?: string
+          journal_acompte_id?: string | null
+          journal_code?: string
+          mode?: string | null
+          montant?: number
+          motif_annulation?: string | null
+          numero?: string
+          reference?: string | null
+          sens?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reglements_tiers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_ecriture_id_fkey"
+            columns: ["ecriture_id"]
+            isOneToOne: false
+            referencedRelation: "ecritures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_exercice_id_fkey"
+            columns: ["exercice_id"]
+            isOneToOne: false
+            referencedRelation: "exercices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reglements_tiers_imputations: {
+        Row: {
+          annule_le: string | null
+          created_at: string
+          created_by: string | null
+          date_imputation: string
+          ecriture_id: string | null
+          entreprise_id: string
+          facture_achat_id: string | null
+          facture_id: string | null
+          id: string
+          journal_avance_id: string | null
+          journal_id: string | null
+          montant: number
+          origine: string
+          reglement_id: string
+        }
+        Insert: {
+          annule_le?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_imputation: string
+          ecriture_id?: string | null
+          entreprise_id: string
+          facture_achat_id?: string | null
+          facture_id?: string | null
+          id?: string
+          journal_avance_id?: string | null
+          journal_id?: string | null
+          montant: number
+          origine: string
+          reglement_id: string
+        }
+        Update: {
+          annule_le?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_imputation?: string
+          ecriture_id?: string | null
+          entreprise_id?: string
+          facture_achat_id?: string | null
+          facture_id?: string | null
+          id?: string
+          journal_avance_id?: string | null
+          journal_id?: string | null
+          montant?: number
+          origine?: string
+          reglement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reglements_tiers_imputations_ecriture_id_fkey"
+            columns: ["ecriture_id"]
+            isOneToOne: false
+            referencedRelation: "ecritures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_imputations_entreprise_id_fkey"
+            columns: ["entreprise_id"]
+            isOneToOne: false
+            referencedRelation: "entreprises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_imputations_facture_achat_id_fkey"
+            columns: ["facture_achat_id"]
+            isOneToOne: false
+            referencedRelation: "factures_achat"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_imputations_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reglements_tiers_imputations_reglement_id_fkey"
+            columns: ["reglement_id"]
+            isOneToOne: false
+            referencedRelation: "reglements_tiers"
             referencedColumns: ["id"]
           },
         ]
@@ -3468,6 +4306,80 @@ export type Database = {
           },
         ]
       }
+      sante_cim10: {
+        Row: {
+          actif: boolean
+          chapitre: string | null
+          code: string
+          libelle: string
+          recherche: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          actif?: boolean
+          chapitre?: string | null
+          code: string
+          libelle: string
+          recherche: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          actif?: boolean
+          chapitre?: string | null
+          code?: string
+          libelle?: string
+          recherche?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      sante_cim10_structure_codes: {
+        Row: {
+          actif: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          libelle: string
+          recherche: string
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          libelle: string
+          recherche: string
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          libelle?: string
+          recherche?: string
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_cim10_structure_codes_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_compta_evenements: {
         Row: {
           created_at: string
@@ -3981,6 +4893,67 @@ export type Database = {
           },
         ]
       }
+      sante_consultation_diagnostics: {
+        Row: {
+          code: string
+          consultation_id: string
+          created_at: string
+          created_by: string | null
+          hors_specialite: boolean
+          id: string
+          libelle: string
+          patient_id: string
+          principal: boolean
+          structure_id: string
+        }
+        Insert: {
+          code: string
+          consultation_id: string
+          created_at?: string
+          created_by?: string | null
+          hors_specialite?: boolean
+          id?: string
+          libelle: string
+          patient_id: string
+          principal?: boolean
+          structure_id: string
+        }
+        Update: {
+          code?: string
+          consultation_id?: string
+          created_at?: string
+          created_by?: string | null
+          hors_specialite?: boolean
+          id?: string
+          libelle?: string
+          patient_id?: string
+          principal?: boolean
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_consultation_diagnostics_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "sante_consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_consultation_diagnostics_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_consultation_diagnostics_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_consultations: {
         Row: {
           anamnese: string | null
@@ -4060,6 +5033,100 @@ export type Database = {
           },
           {
             foreignKeyName: "sante_consultations_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_controles: {
+        Row: {
+          annule_motif: string | null
+          consultation_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          motif: string
+          patient_id: string
+          praticien_id: string | null
+          prevu_le: string
+          rdv_id: string | null
+          realise_par: string | null
+          statut: string
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          annule_motif?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motif: string
+          patient_id: string
+          praticien_id?: string | null
+          prevu_le: string
+          rdv_id?: string | null
+          realise_par?: string | null
+          statut?: string
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          annule_motif?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motif?: string
+          patient_id?: string
+          praticien_id?: string | null
+          prevu_le?: string
+          rdv_id?: string | null
+          realise_par?: string | null
+          statut?: string
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_controles_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "sante_consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_controles_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_controles_praticien_id_fkey"
+            columns: ["praticien_id"]
+            isOneToOne: false
+            referencedRelation: "sante_praticiens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_controles_rdv_id_fkey"
+            columns: ["rdv_id"]
+            isOneToOne: false
+            referencedRelation: "sante_rendez_vous"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_controles_realise_par_fkey"
+            columns: ["realise_par"]
+            isOneToOne: false
+            referencedRelation: "sante_consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_controles_structure_id_fkey"
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "structures"
@@ -5123,6 +6190,73 @@ export type Database = {
           },
         ]
       }
+      sante_maladies_chroniques: {
+        Row: {
+          code: string | null
+          consultation_id: string | null
+          created_at: string
+          created_by: string | null
+          depuis: string | null
+          id: string
+          libelle: string
+          note: string | null
+          patient_id: string
+          statut: string
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          depuis?: string | null
+          id?: string
+          libelle: string
+          note?: string | null
+          patient_id: string
+          statut?: string
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          consultation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          depuis?: string | null
+          id?: string
+          libelle?: string
+          note?: string | null
+          patient_id?: string
+          statut?: string
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_maladies_chroniques_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "sante_consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_maladies_chroniques_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "sante_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_maladies_chroniques_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_micro_germes: {
         Row: {
           commentaire: string | null
@@ -5730,6 +6864,7 @@ export type Database = {
           nom: string
           numero_ordre: string | null
           specialite: string | null
+          specialite_id: string | null
           structure_id: string
           taux_retenue_source: number
           user_id: string | null
@@ -5742,6 +6877,7 @@ export type Database = {
           nom: string
           numero_ordre?: string | null
           specialite?: string | null
+          specialite_id?: string | null
           structure_id: string
           taux_retenue_source?: number
           user_id?: string | null
@@ -5754,11 +6890,19 @@ export type Database = {
           nom?: string
           numero_ordre?: string | null
           specialite?: string | null
+          specialite_id?: string | null
           structure_id?: string
           taux_retenue_source?: number
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sante_praticiens_specialite_id_fkey"
+            columns: ["specialite_id"]
+            isOneToOne: false
+            referencedRelation: "sante_specialites"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sante_praticiens_structure_id_fkey"
             columns: ["structure_id"]
@@ -6842,6 +7986,86 @@ export type Database = {
           },
         ]
       }
+      sante_specialites: {
+        Row: {
+          id: string
+          libelle: string
+          ordre: number
+          plages: string[]
+        }
+        Insert: {
+          id: string
+          libelle: string
+          ordre?: number
+          plages?: string[]
+        }
+        Update: {
+          id?: string
+          libelle?: string
+          ordre?: number
+          plages?: string[]
+        }
+        Relationships: []
+      }
+      sante_structure_cim10: {
+        Row: {
+          mode: string
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          mode?: string
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          mode?: string
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_structure_cim10_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: true
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sante_structure_specialites: {
+        Row: {
+          created_at: string
+          specialite_id: string
+          structure_id: string
+        }
+        Insert: {
+          created_at?: string
+          specialite_id: string
+          structure_id: string
+        }
+        Update: {
+          created_at?: string
+          specialite_id?: string
+          structure_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sante_structure_specialites_specialite_id_fkey"
+            columns: ["specialite_id"]
+            isOneToOne: false
+            referencedRelation: "sante_specialites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sante_structure_specialites_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sante_tarifs_convention: {
         Row: {
           code: string
@@ -7253,28 +8477,49 @@ export type Database = {
       }
       syscohada_references: {
         Row: {
+          base_version: string | null
           comptes: Json
           created_at: string
+          cree_par: string | null
           mapping: Json
+          note: string | null
+          publie_par: string | null
           source: string
           valide_officiellement: boolean
           version: string
+          visa_declare_par: string | null
+          visa_expert: string | null
+          visa_le: string | null
         }
         Insert: {
+          base_version?: string | null
           comptes?: Json
           created_at?: string
+          cree_par?: string | null
           mapping?: Json
+          note?: string | null
+          publie_par?: string | null
           source: string
           valide_officiellement?: boolean
           version: string
+          visa_declare_par?: string | null
+          visa_expert?: string | null
+          visa_le?: string | null
         }
         Update: {
+          base_version?: string | null
           comptes?: Json
           created_at?: string
+          cree_par?: string | null
           mapping?: Json
+          note?: string | null
+          publie_par?: string | null
           source?: string
           valide_officiellement?: boolean
           version?: string
+          visa_declare_par?: string | null
+          visa_expert?: string | null
+          visa_le?: string | null
         }
         Relationships: []
       }
@@ -7517,6 +8762,17 @@ export type Database = {
         Args: { _entreprise_id: string }
         Returns: boolean
       }
+      commande_achat_maj_statut: {
+        Args: { _commande_id: string }
+        Returns: string
+      }
+      commande_ligne_quantites: {
+        Args: { _ligne_id: string }
+        Returns: {
+          facturee: number
+          recue: number
+        }[]
+      }
       create_medical_invitation: {
         Args: {
           _email: string
@@ -7550,7 +8806,36 @@ export type Database = {
         }
         Returns: string
       }
+      erreur_signaler: {
+        Args: {
+          _contexte?: Json
+          _message: string
+          _page?: string
+          _pile?: string
+          _structure_id?: string
+        }
+        Returns: undefined
+      }
+      est_operateur: { Args: never; Returns: boolean }
+      est_proprietaire_plateforme: { Args: never; Returns: boolean }
       exercice_est_cloture: { Args: { _exercice_id: string }; Returns: boolean }
+      fn_affecter_resultat: {
+        Args: {
+          _date: string
+          _exercice_id: string
+          _lignes: Json
+          _reference: string
+        }
+        Returns: string
+      }
+      fn_annuler_paiement_paie: {
+        Args: { _motif: string; _paiement_id: string }
+        Returns: Json
+      }
+      fn_annuler_reglement_tiers: {
+        Args: { _imputation_id: string; _motif: string; _reglement_id: string }
+        Returns: Json
+      }
       fn_balance: {
         Args: { _entreprise_id: string; _exercice_id: string }
         Returns: {
@@ -7574,10 +8859,16 @@ export type Database = {
           md_stockee: number
         }[]
       }
-      fn_cloturer_exercice: {
-        Args: { _exercice_id: string }
-        Returns: undefined
+      fn_cloturer_exercice: { Args: { _exercice_id: string }; Returns: Json }
+      fn_comptabiliser_facture_achat: {
+        Args: { _facture_id: string }
+        Returns: Json
       }
+      fn_comptabiliser_facture_vente: {
+        Args: { _facture_id: string }
+        Returns: Json
+      }
+      fn_constater_fnp: { Args: { _exercice_id: string }; Returns: Json }
       fn_contrepasser_ecriture: {
         Args: { _ecriture_id: string; _motif: string }
         Returns: string
@@ -7596,8 +8887,83 @@ export type Database = {
         }
         Returns: string
       }
+      fn_extourner_fnp: { Args: { _exercice_id: string }; Returns: Json }
       fn_generer_alertes_echeances: { Args: never; Returns: number }
+      fn_imputer_acompte_tiers: {
+        Args: {
+          _date: string
+          _facture_id: string
+          _montant: number
+          _reglement_id: string
+        }
+        Returns: Json
+      }
+      fn_paie_restes: {
+        Args: { _entreprise_id: string; _periode: string }
+        Returns: {
+          compte: string
+          du: number
+          nature: string
+          paye: number
+          reste: number
+        }[]
+      }
+      fn_payer_paie: {
+        Args: {
+          _compte_tresorerie: string
+          _date: string
+          _exercice_id: string
+          _mode?: string
+          _montant?: number
+          _nature: string
+          _periode: string
+          _reference?: string
+        }
+        Returns: Json
+      }
+      fn_receptionner_commande: {
+        Args: {
+          _bon_livraison: string
+          _commande_id: string
+          _date: string
+          _exercice_id: string
+          _lignes: Json
+          _notes?: string
+        }
+        Returns: Json
+      }
+      fn_receptions_non_facturees: {
+        Args: { _exercice_id: string }
+        Returns: {
+          commande: string
+          commande_ligne_id: string
+          compte: string
+          derniere_reception: string
+          designation: string
+          fournisseur: string
+          montant_ht: number
+          nature: string
+          prix_unitaire: number
+          quantite: number
+          tva_deductible: number
+          tva_non_deductible: number
+        }[]
+      }
       fn_refresh_balance: { Args: never; Returns: undefined }
+      fn_regler_tiers: {
+        Args: {
+          _acompte?: number
+          _compte_tresorerie: string
+          _date: string
+          _exercice_id: string
+          _imputations: Json
+          _mode: string
+          _reference: string
+          _sens: string
+          _tiers_id: string
+        }
+        Returns: Json
+      }
       fn_resync_balance: {
         Args: { _entreprise_id: string; _exercice_id: string }
         Returns: number
@@ -7652,12 +9018,299 @@ export type Database = {
         Args: { _entreprise_id: string; _module: string }
         Returns: boolean
       }
+      paie_comptes_nature: { Args: { _nature: string }; Returns: string[] }
+      paie_ecriture_en_vigueur: {
+        Args: { _entreprise_id: string; _periode: string }
+        Returns: boolean
+      }
+      plan_installer_reference: {
+        Args: { _entreprise_id: string }
+        Returns: number
+      }
+      plan_reference_comptes: {
+        Args: { _tous?: boolean }
+        Returns: {
+          classe: string
+          intitule: string
+          numero: string
+          origine: string
+          sens: string
+          type_compte: string
+        }[]
+      }
+      plan_reference_version: { Args: never; Returns: string }
+      plan_version_comptes: {
+        Args: { _version: string }
+        Returns: {
+          classe: string
+          intitule: string
+          numero: string
+          sens: string
+        }[]
+      }
+      plateforme_cim10_chercher: {
+        Args: { _inactifs?: boolean; _limite?: number; _q: string }
+        Returns: {
+          actif: boolean
+          chapitre: string
+          code: string
+          libelle: string
+          updated_at: string
+          version: string
+        }[]
+      }
+      plateforme_cim10_code_definir: {
+        Args: {
+          _actif?: boolean
+          _chapitre?: string
+          _code: string
+          _libelle: string
+        }
+        Returns: Json
+      }
+      plateforme_cim10_desactiver_absents: {
+        Args: { _appliquer?: boolean; _version: string }
+        Returns: Json
+      }
+      plateforme_cim10_importer: {
+        Args: { _lignes: Json; _version: string }
+        Returns: Json
+      }
+      plateforme_clients_lister: {
+        Args: { _inclure_test?: boolean; _recherche?: string }
+        Returns: {
+          administrateurs: string[]
+          consultations_30j: number
+          created_at: string
+          demandes_labo_30j: number
+          derniere_connexion: string
+          entreprise: string
+          est_test: boolean
+          factures_30j: number
+          membres: number
+          ninea: string
+          nom: string
+          patients_30j: number
+          retours_ouverts: number
+          structure_id: string
+          telephone: string
+          type: string
+        }[]
+      }
+      plateforme_compte_commun_definir: {
+        Args: {
+          _actif?: boolean
+          _intitule: string
+          _numero: string
+          _sens?: string
+        }
+        Returns: Json
+      }
+      plateforme_erreurs_lister: {
+        Args: { _jours?: number }
+        Returns: {
+          contexte: Json
+          derniere: string
+          id: number
+          jour: string
+          message: string
+          occurrences: number
+          page: string
+          pile: string
+          premiere: string
+          structure_nom: string
+          utilisateurs: number
+        }[]
+      }
+      plateforme_erreurs_purger: { Args: never; Returns: number }
+      plateforme_est_structure_test: {
+        Args: { _structure_id: string }
+        Returns: boolean
+      }
+      plateforme_journal: {
+        Args: { _avant?: number; _limite?: number }
+        Returns: {
+          action: string
+          cible_id: string
+          cible_type: string
+          created_at: string
+          details: Json
+          id: number
+          operateur_email: string
+        }[]
+      }
+      plateforme_moi: { Args: never; Returns: Json }
+      plateforme_nettoyer_texte: {
+        Args: { _max: number; _t: string }
+        Returns: string
+      }
+      plateforme_operateur_definir: {
+        Args: { _actif: boolean; _email: string; _role: string }
+        Returns: string
+      }
+      plateforme_operateurs_lister: {
+        Args: never
+        Returns: {
+          actif: boolean
+          created_at: string
+          email: string
+          role: string
+          user_id: string
+        }[]
+      }
+      plateforme_plan_compte_modifier: {
+        Args: {
+          _intitule?: string
+          _numero: string
+          _retirer?: boolean
+          _sens?: string
+          _version: string
+        }
+        Returns: Json
+      }
+      plateforme_plan_ecarts: {
+        Args: { _version: string }
+        Returns: {
+          intitule_apres: string
+          intitule_avant: string
+          nature: string
+          numero: string
+          sens_apres: string
+          sens_avant: string
+        }[]
+      }
+      plateforme_plan_version_creer: {
+        Args: { _note?: string; _version: string }
+        Returns: string
+      }
+      plateforme_plan_version_publier: {
+        Args: { _expert: string; _version: string }
+        Returns: Json
+      }
+      plateforme_plan_version_supprimer: {
+        Args: { _version: string }
+        Returns: undefined
+      }
+      plateforme_plan_versions: { Args: never; Returns: Json }
+      plateforme_referentiels_etat: { Args: never; Returns: Json }
+      plateforme_retour_traiter: {
+        Args: {
+          _id: string
+          _priorite: string
+          _reponse?: string
+          _statut: string
+        }
+        Returns: undefined
+      }
+      plateforme_retours_lister: {
+        Args: { _limite?: number; _statut?: string }
+        Returns: {
+          auteur_email: string
+          contexte: Json
+          created_at: string
+          id: string
+          message: string
+          page: string
+          priorite: string
+          repondu_le: string
+          reponse: string
+          roles: string[]
+          statut: string
+          structure_nom: string
+          structure_type: string
+          type: string
+          updated_at: string
+        }[]
+      }
+      plateforme_support_demander: {
+        Args: { _duree_heures?: number; _motif: string; _structure_id: string }
+        Returns: string
+      }
+      plateforme_support_expirer: { Args: never; Returns: number }
+      plateforme_support_lister: {
+        Args: never
+        Returns: {
+          created_at: string
+          decide_le: string
+          duree_heures: number
+          expire_le: string
+          id: string
+          motif: string
+          operateur_email: string
+          statut: string
+          structure_id: string
+          structure_nom: string
+          termine_le: string
+        }[]
+      }
+      plateforme_support_terminer: {
+        Args: { _id: string; _statut: string }
+        Returns: undefined
+      }
+      plateforme_tableau_bord: { Args: never; Returns: Json }
+      plateforme_tracer: {
+        Args: {
+          _action: string
+          _cible_id: string
+          _cible_type: string
+          _details?: Json
+        }
+        Returns: undefined
+      }
+      plateforme_utilisateur_chercher: {
+        Args: { _email: string }
+        Returns: {
+          created_at: string
+          derniere_connexion: string
+          double_auth: boolean
+          email: string
+          email_confirme: boolean
+          operateur: boolean
+          rattachements: Json
+          user_id: string
+        }[]
+      }
+      reglement_compte_tiers: {
+        Args: { _sens: string; _tiers_id: string }
+        Returns: Record<string, unknown>
+      }
+      reglement_lettrer: { Args: { _ids: string[] }; Returns: number }
+      reglement_maj_facture: {
+        Args: { _delta: number; _facture_id: string; _sens: string }
+        Returns: number
+      }
+      retour_envoyer: {
+        Args: {
+          _contexte?: Json
+          _message: string
+          _page?: string
+          _structure_id?: string
+          _type: string
+        }
+        Returns: string
+      }
+      retours_mes: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          message: string
+          repondu_le: string
+          reponse: string
+          statut: string
+          type: string
+        }[]
+      }
       sante_acquitter_critique: {
         Args: { _resultat_id: string }
         Returns: undefined
       }
       sante_acquitter_journal: { Args: { _ids: number[] }; Returns: number }
       sante_alertes_stock: { Args: { _structure_id: string }; Returns: Json }
+      sante_annuler_controle: {
+        Args: { _controle_id: string; _motif: string }
+        Returns: undefined
+      }
       sante_annuler_facture: {
         Args: { _facture_id: string; _motif: string }
         Returns: string
@@ -7744,6 +9397,113 @@ export type Database = {
       sante_categorie_code: {
         Args: { _code: string; _structure_id: string }
         Returns: string
+      }
+      sante_chronique_declarer: {
+        Args: {
+          _code?: string
+          _consultation_id?: string
+          _depuis?: string
+          _libelle?: string
+          _note?: string
+          _patient_id: string
+        }
+        Returns: string
+      }
+      sante_chronique_statut: {
+        Args: { _id: string; _statut: string }
+        Returns: undefined
+      }
+      sante_cim10_autorise: {
+        Args: { _code: string; _plages: string[] }
+        Returns: boolean
+      }
+      sante_cim10_chercher: {
+        Args: { _limite?: number; _q: string }
+        Returns: {
+          chapitre: string
+          code: string
+          libelle: string
+        }[]
+      }
+      sante_cim10_code: { Args: { _c: string }; Returns: string }
+      sante_cim10_code_activer: {
+        Args: { _actif: boolean; _id: string }
+        Returns: undefined
+      }
+      sante_cim10_code_ajouter: {
+        Args: { _code: string; _libelle: string; _structure_id: string }
+        Returns: string
+      }
+      sante_cim10_correspond: {
+        Args: { _mots: string[]; _recherche: string }
+        Returns: boolean
+      }
+      sante_cim10_couverture: {
+        Args: { _structure_id: string }
+        Returns: {
+          codes: number
+          libelle: string
+          specialite_id: string
+        }[]
+      }
+      sante_cim10_dans_plages: {
+        Args: { _code: string; _plages: string[] }
+        Returns: boolean
+      }
+      sante_cim10_mode: { Args: { _structure_id: string }; Returns: string }
+      sante_cim10_mode_definir: {
+        Args: { _mode: string; _structure_id: string }
+        Returns: undefined
+      }
+      sante_cim10_mots: { Args: { _q: string }; Returns: string[] }
+      sante_cim10_patient: {
+        Args: { _limite?: number; _patient_id: string; _q: string }
+        Returns: {
+          chapitre: string
+          code: string
+          dans_specialite: boolean
+          libelle: string
+        }[]
+      }
+      sante_cim10_plages: {
+        Args: { _praticien_id: string; _structure_id: string }
+        Returns: string[]
+      }
+      sante_cim10_plages_communes: { Args: never; Returns: string[] }
+      sante_cim10_plages_effectives: {
+        Args: { _praticien_id: string; _structure_id: string }
+        Returns: string[]
+      }
+      sante_cim10_specialite: {
+        Args: {
+          _consultation_id: string
+          _limite?: number
+          _q: string
+          _toutes?: boolean
+        }
+        Returns: {
+          chapitre: string
+          code: string
+          dans_specialite: boolean
+          libelle: string
+        }[]
+      }
+      sante_cim10_statistiques: {
+        Args: { _structure_id: string }
+        Returns: {
+          codages: number
+          hors_specialite: number
+        }[]
+      }
+      sante_cim10_structure: {
+        Args: { _structure_id: string }
+        Returns: {
+          chapitre: string
+          code: string
+          libelle: string
+          propre: boolean
+          recherche: string
+        }[]
       }
       sante_cle_repertoire: { Args: { _nom: string }; Returns: string }
       sante_cloturer_consultation: {
@@ -7838,7 +9598,37 @@ export type Database = {
         Args: { _fusion_id: string }
         Returns: undefined
       }
+      sante_consultations_a_facturer: {
+        Args: { _jours?: number; _structure_id: string }
+        Returns: {
+          acte_code: string
+          acte_libelle: string
+          acte_tarif: number
+          cloturee_le: string
+          consultation_id: string
+          numero_dossier: string
+          patient: string
+          patient_id: string
+          praticien: string
+        }[]
+      }
       sante_controle_quotidien: { Args: never; Returns: number }
+      sante_controles_a_revoir: {
+        Args: { _horizon_jours?: number; _structure_id: string }
+        Returns: {
+          controle_id: string
+          en_retard: boolean
+          motif: string
+          numero_dossier: string
+          patient: string
+          patient_id: string
+          praticien: string
+          prevu_le: string
+          rdv_debut: string
+          rdv_statut: string
+          telephone: string
+        }[]
+      }
       sante_cq_bloquant: { Args: { _demande_id: string }; Returns: boolean }
       sante_cr_remettable: { Args: { _demande_id: string }; Returns: boolean }
       sante_creances_organismes: {
@@ -7966,6 +9756,11 @@ export type Database = {
         }
         Returns: string
       }
+      sante_diagnostic_coder: {
+        Args: { _code: string; _consultation_id: string; _principal?: boolean }
+        Returns: string
+      }
+      sante_diagnostic_retirer: { Args: { _id: string }; Returns: undefined }
       sante_dispenser: {
         Args: { _consultation_id: string; _lignes: Json }
         Returns: number
@@ -8058,6 +9853,15 @@ export type Database = {
       sante_escalader_bris_glace: { Args: never; Returns: number }
       sante_export_dossier: { Args: { _patient_id: string }; Returns: Json }
       sante_export_structure: { Args: { _structure_id: string }; Returns: Json }
+      sante_facturer_consultation: {
+        Args: {
+          _assurance_id?: string
+          _consultation_id: string
+          _lignes: Json
+          _patient_id: string
+        }
+        Returns: string
+      }
       sante_factures_ouvertes_organisme: {
         Args: { _organisme: string; _structure_id: string }
         Returns: {
@@ -8077,6 +9881,15 @@ export type Database = {
           numero: string
           organisme: string
           reste: number
+        }[]
+      }
+      sante_factures_rattachables: {
+        Args: { _consultation_id: string }
+        Returns: {
+          emise_le: string
+          facture_id: string
+          numero: string
+          total: number
         }[]
       }
       sante_fermer_caisse: {
@@ -8141,6 +9954,10 @@ export type Database = {
         Args: { _facture_id: string }
         Returns: Json
       }
+      sante_medecin_du_dossier: {
+        Args: { _patient_id: string; _structure_id: string }
+        Returns: boolean
+      }
       sante_modele_consentement_archiver: {
         Args: { _modele_id: string }
         Returns: undefined
@@ -8193,6 +10010,10 @@ export type Database = {
           nom: string
         }[]
       }
+      sante_praticien_courant: {
+        Args: { _structure_id: string }
+        Returns: string
+      }
       sante_praticien_relier_moi: {
         Args: { _praticien_id: string }
         Returns: undefined
@@ -8219,6 +10040,16 @@ export type Database = {
         Args: { _prefixe: string; _structure_id: string; _type: string }
         Returns: string
       }
+      sante_programmer_controle: {
+        Args: {
+          _consultation_id: string
+          _duree_min?: number
+          _heure?: string
+          _motif: string
+          _prevu_le: string
+        }
+        Returns: string
+      }
       sante_proposer_fusion: {
         Args: { _conserve: string; _fusionne: string; _motif: string }
         Returns: string
@@ -8237,6 +10068,10 @@ export type Database = {
         Returns: number
       }
       sante_rapport_caisse: { Args: { _session_id: string }; Returns: Json }
+      sante_rattacher_facture_consultation: {
+        Args: { _consultation_id: string; _facture_id: string }
+        Returns: undefined
+      }
       sante_recap_personnel: {
         Args: { _annee: number; _mois: number; _structure_id: string }
         Returns: Json
@@ -8421,11 +10256,16 @@ export type Database = {
         Returns: undefined
       }
       sante_storage_patient: { Args: { _name: string }; Returns: string }
+      sante_structure_specialites_definir: {
+        Args: { _specialites: string[]; _structure_id: string }
+        Returns: number
+      }
       sante_supervision: { Args: { _structure_id: string }; Returns: Json }
       sante_tableau_bord: {
         Args: { _debut: string; _fin: string; _structure_id: string }
         Returns: Json
       }
+      sante_texte_recherche: { Args: { _t: string }; Returns: string }
       sante_traiter_evenement: { Args: { _id: string }; Returns: string }
       sante_traiter_non_conformite: {
         Args: { _action: string; _cloturer: boolean; _id: string }
@@ -8474,10 +10314,40 @@ export type Database = {
         }
         Returns: Json
       }
+      stock_mouvement_comptabilise: {
+        Args: {
+          _article_id: string
+          _date: string
+          _exercice_id: string
+          _notes?: string
+          _prix_unitaire: number
+          _quantite: number
+          _reference?: string
+          _type: string
+        }
+        Returns: Json
+      }
       structure_module_actif: {
         Args: { _module: string; _structure_id: string }
         Returns: boolean
       }
+      support_decider: {
+        Args: { _accepter: boolean; _id: string }
+        Returns: undefined
+      }
+      support_demandes_structure: {
+        Args: { _structure_id: string }
+        Returns: {
+          created_at: string
+          duree_heures: number
+          expire_le: string
+          id: string
+          motif: string
+          operateur_email: string
+          statut: string
+        }[]
+      }
+      support_revoquer: { Args: { _id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "comptable" | "lecteur"
