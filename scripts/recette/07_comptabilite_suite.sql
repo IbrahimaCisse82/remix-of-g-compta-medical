@@ -42,18 +42,7 @@ BEGIN
 END $f$;
 GRANT EXECUTE ON FUNCTION recette.gen_ecritures(text, int) TO authenticated;
 
-DO $d$ DECLARE _s text; _cle text; _n int; _t0 timestamptz; BEGIN
-  FOREACH _s IN ARRAY ARRAY['A','B','C'] LOOP
-    _cle := CASE _s WHEN 'B' THEN 'B-admin' ELSE _s || '-compta' END;
-    _t0 := clock_timestamp();
-    PERFORM set_config('recette.gen_err', '', false);
-    PERFORM recette.agir(_cle);
-    _n := recette.gen_ecritures(_s, 1300);
-    PERFORM recette.sortir();
-    PERFORM recette.noter('8','Comptabilité',_cle,'Structure ' || _s || ' : 1 300 saisies manuelles (AC, BQ, PA, OD, CA ; 10 % en brouillon)','1300 écritures créées', _n || ' créées' || coalesce(nullif(' ; première erreur : ' || current_setting('recette.gen_err', true), ' ; première erreur : '), ''),
-      _n = 1300, 'CPT-11', NULL, 'majeure', round(extract(epoch FROM clock_timestamp() - _t0) * 1000 / 1300, 1));
-  END LOOP;
-END $d$;
+-- Le volume est lancé par lots (une transaction par lot de 325 : chaque sous-transaction garde un verrou jusqu'à la fin) puis contrôlé par 08_volume.sql.
 
 -- Lettrage d'un compte fournisseur : facture et règlement de même montant.
 DO $d$ DECLARE _a uuid; _b uuid; _c uuid; _r text; BEGIN
@@ -79,21 +68,6 @@ SELECT recette.essai('8','Comptabilité','A-compta','Lettrage d''une facture fou
   $$SELECT public.reglement_lettrer(ARRAY[(SELECT id FROM recette.ids WHERE cle='let_a'), (SELECT id FROM recette.ids WHERE cle='let_b')])::text$$, 'CPT-14', 'majeure');
 SELECT recette.essai('8','Comptabilité','A-compta','Une ligne déjà lettrée ne peut pas l''être une seconde fois','0 (refus)','egal:0',
   $$SELECT public.reglement_lettrer(ARRAY[(SELECT id FROM recette.ids WHERE cle='let_a'), (SELECT id FROM recette.ids WHERE cle='let_b')])::text$$, 'CPT-14', 'majeure');
-
--- Balance après volume : équilibre global, puis balance stockée (double tenue) resynchronisée par l'outil de l'application.
-DO $d$ DECLARE _s text; _d numeric; _c numeric; BEGIN
-  FOREACH _s IN ARRAY ARRAY['A','B','C'] LOOP
-    SELECT sum(l.debit), sum(l.credit) INTO _d, _c FROM public.ecriture_lignes l WHERE l.entreprise_id = recette.eid(_s);
-    PERFORM recette.noter('8','Comptabilité',NULL,'Structure ' || _s || ' : Σ débits = Σ crédits sur toutes les lignes après volume','Égalité', _d || ' / ' || _c, _d = _c, 'CPT-12', NULL, 'critique');
-  END LOOP;
-END $d$;
-SELECT recette.essai('8','Comptabilité','A-compta','Balance de l''application (fn_balance) équilibrée après volume','Σ débit = Σ crédit','ok',
-  $$SELECT CASE WHEN sum(coalesce((b->>'md')::numeric, 0)) = sum(coalesce((b->>'mc')::numeric, 0)) AND sum((b->>'md')::numeric) > 0 THEN 'équilibrée : ' || count(*) || ' comptes, ' || sum((b->>'md')::numeric) || ' F' END
-     FROM (SELECT to_jsonb(x) b FROM public.fn_balance(recette.eid('A'), recette.exo('A', 2026)) x) z$$, 'CPT-12', 'critique');
-SELECT recette.essai('8','Comptabilité','A-compta','Resynchronisation de la balance stockée (outil Contrôle de balance)','Accepté','ok',
-  $$SELECT public.fn_resync_balance(recette.eid('A'), recette.exo('A', 2026))::text$$, 'CPT-12', 'majeure');
-SELECT recette.essai('8','Comptabilité','A-compta','Après resynchronisation : plus aucun écart balance stockée / calculée','Aucun écart','egal:0',
-  $$SELECT count(*)::text FROM public.fn_balance_ecarts(recette.eid('A'), recette.exo('A', 2026))$$, 'CPT-12', 'majeure');
 
 -- Clôture : exercice 2025 de C (activité d'ouverture), clôture par l'administrateur, à-nouveaux dans 2026, réouverture tracée.
 DO $d$ BEGIN
